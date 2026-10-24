@@ -193,7 +193,6 @@
       
       <div class="row">
         <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
-        <button class="secondary" id="wiz-copy-mines" type="button">Copia livelli e item del primo su tutti</button>
       </div>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e inizia</button></div>
@@ -235,7 +234,7 @@
 
     <section data-panel="planets" class="stack hidden">
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="copy-mines-row">Copia livelli e item del primo su tutti</button><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
         <p class="muted small">Modifica, aggiungi o riordina i pianeti, poi premi <b>Salva tutte le modifiche</b> in fondo. L'energia è quella mostrata nella Visuale impero. Le colonne Item sono i booster attivi in percentuale.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Ordine</th><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th title="Booster metallo attivo">Item M%</th><th title="Booster cristallo attivo">Item C%</th><th title="Booster deuterio attivo">Item D%</th><th title="Booster energia attivo">Item E%</th><th>Energia</th><th></th></tr></thead>
@@ -296,6 +295,15 @@
         Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). Edifici e tecnologie delle forme di vita entrano solo come percentuale di bonus. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
     </section>
+  </div>
+</div>
+
+<div id="copy-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="copy-title">
+  <div class="card modal">
+    <h2 id="copy-title" style="margin:0"></h2>
+    <p class="muted small" style="margin:8px 0 0">Vengono copiati miniere, centrali, satelliti e item. Nome, coordinate, temperatura ed energia restano quelli di ogni pianeta.</p>
+    <div id="copy-list" class="list stack"></div>
+    <div class="row" style="justify-content:flex-end"><button class="secondary" id="copy-cancel">Annulla</button><button id="copy-ok">Copia sui selezionati</button></div>
   </div>
 </div>
 
@@ -652,6 +660,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 13, date: '2026-10-24', title: 'Copia da un pianeta a scelta',
+    text: 'Ogni pianeta ha il suo pulsante "Copia": scegli su quali altri pianeti copiare miniere, centrali, satelliti e item (anche tutti con "Seleziona tutti"). Sostituisce il vecchio "Copia dal primo su tutti".',
+  },
+  {
     id: 12, date: '2026-10-24', title: 'Calcoli verificati con il gioco',
     text: 'Le formule sono state confrontate con la pagina "Impostazioni risorse" del gioco e ora coincidono. Il bonus di posizione moltiplica la miniera e gli altri bonus si calcolano su quel valore; aggiunti l\'alleanza Mercante (+5%), la riduzione del consumo di energia, il reddito base e il deuterio consumato dalla centrale a fusione. In Impostazioni c\'è un calcolatore per i bonus delle forme di vita: controlla i tuoi valori.',
   },
@@ -689,7 +701,7 @@ const CHANGELOG = [
   },
   {
     id: 3, date: '2026-10-24', title: 'Copia dal primo pianeta',
-    text: 'Un pulsante copia miniere, centrali, satelliti e item del primo pianeta su tutti gli altri: inserisci un pianeta e correggi solo quelli diversi.',
+    text: 'Un pulsante copia miniere, centrali e satelliti di un pianeta sugli altri: inserisci un pianeta e correggi solo quelli diversi.',
   },
   {
     id: 2, date: '2026-10-24', title: 'Coordinate facoltative',
@@ -896,26 +908,42 @@ function addWizardPlanet(p = {}) {
   const div = document.createElement('div');
   div.className = 'planet-card stack';
   if (p.id) div.dataset.id = p.id;
-  div.innerHTML = `<div class="row" style="justify-content:space-between"><b>Pianeta</b><div><button type="button" class="ghost" data-up title="Sposta su" aria-label="Sposta su">▲</button><button type="button" class="ghost" data-down title="Sposta giù" aria-label="Sposta giù">▼</button><button type="button" class="ghost" data-remove>Rimuovi</button></div></div>` + planetFieldsHTML(p);
+  div.innerHTML = `<div class="row" style="justify-content:space-between"><b>Pianeta</b><div><button type="button" class="ghost" data-up title="Sposta su" aria-label="Sposta su">▲</button><button type="button" class="ghost" data-down title="Sposta giù" aria-label="Sposta giù">▼</button><button type="button" class="ghost" data-copy>Copia</button><button type="button" class="ghost" data-remove>Rimuovi</button></div></div>` + planetFieldsHTML(p);
   div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+  div.querySelector('[data-copy]').addEventListener('click', () =>
+    openCopyDialog(div, $$('#wiz-planets .planet-card'), n => message($('#wiz-msg'), `Valori copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Correggi quelli diversi.`, 'ok')));
   div.querySelector('[data-up]').addEventListener('click', () => { const s = div.previousElementSibling; if (s) s.before(div); });
   div.querySelector('[data-down]').addEventListener('click', () => { const s = div.nextElementSibling; if (s) s.after(div); });
   $('#wiz-planets').appendChild(div);
 }
 $('#wiz-add-planet').addEventListener('click', () => addWizardPlanet());
 
-// Mines and energy buildings are often kept at the same level on every planet: copy them from the first one
-const MINE_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy'];
-function copyMinesFromFirst(rows) {
-  if (rows.length < 2) return 0;
-  const src = MINE_FIELDS.map(f => rows[0].querySelector(`[data-f="${f}"]`).value);
-  rows.slice(1).forEach(r => MINE_FIELDS.forEach((f, i) => (r.querySelector(`[data-f="${f}"]`).value = src[i])));
-  return rows.length - 1;
+// Mines, energy buildings and items are often the same on many planets: copy one planet onto the ones you pick
+const COPY_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy'];
+const planetLabel = (el, i) => el.querySelector('[data-f="name"]').value.trim() || `Pianeta ${i + 1} (senza nome)`;
+function openCopyDialog(source, all, onDone) {
+  const targets = all.filter(el => el !== source);
+  const srcName = planetLabel(source, all.indexOf(source));
+  if (!targets.length) return alert('Aggiungi almeno un altro pianeta su cui copiare.');
+  $('#copy-title').textContent = `Copia i valori di ${srcName}`;
+  $('#copy-list').innerHTML = `<label class="check"><input type="checkbox" id="copy-all"> <b>Seleziona tutti</b></label>` +
+    targets.map(el => `<label class="check"><input type="checkbox" data-target="${all.indexOf(el)}"> ${esc(planetLabel(el, all.indexOf(el)))}</label>`).join('');
+  const boxes = () => $$('#copy-list [data-target]');
+  $('#copy-all').onchange = e => boxes().forEach(b => (b.checked = e.target.checked));
+  $('#copy-list').onchange = e => { if (e.target.dataset.target) $('#copy-all').checked = boxes().every(b => b.checked); };
+  $('#copy-ok').onclick = () => {
+    const chosen = boxes().filter(b => b.checked).map(b => all[+b.dataset.target]);
+    if (!chosen.length) return alert('Scegli almeno un pianeta.');
+    const values = COPY_FIELDS.map(f => source.querySelector(`[data-f="${f}"]`).value);
+    chosen.forEach(el => COPY_FIELDS.forEach((f, i) => (el.querySelector(`[data-f="${f}"]`).value = values[i])));
+    $('#copy-modal').classList.add('hidden');
+    onDone(chosen.length);
+  };
+  $('#copy-modal').classList.remove('hidden');
+  $('#copy-all').focus();
 }
-$('#wiz-copy-mines').addEventListener('click', () => {
-  const n = copyMinesFromFirst($$('#wiz-planets .planet-card'));
-  message($('#wiz-msg'), n ? `Miniere, centrali, satelliti e item copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Correggi quelli diversi.` : 'Aggiungi prima almeno due pianeti.', n ? 'ok' : 'err');
-});
+$('#copy-cancel').addEventListener('click', () => $('#copy-modal').classList.add('hidden'));
+$('#copy-modal').addEventListener('click', e => { if (e.target.id === 'copy-modal') $('#copy-modal').classList.add('hidden'); });
 
 $('#wiz-finish').addEventListener('click', async () => {
   const msgEl = $('#wiz-msg');
@@ -1067,7 +1095,7 @@ function planetRowHTML(p) {
     ${cell('metal_mine')}${cell('crystal_mine')}${cell('deut_synth')}${cell('solar_plant')}${cell('fusion_reactor')}${cell('solar_satellites')}
     ${cell('item_metal')}${cell('item_crystal')}${cell('item_deut')}${cell('item_energy')}
     <td><input data-f="energy_balance" type="number" class="${st && st.balance < 0 ? 'neg' : ''}" value="${p.energy_balance ?? ''}" placeholder="—"></td>
-    <td><button class="danger" data-del title="Elimina" aria-label="Elimina" style="padding:6px 10px">✕</button></td>
+    <td><button class="secondary" data-copy style="padding:6px 10px">Copia</button> <button class="danger" data-del title="Elimina" aria-label="Elimina" style="padding:6px 10px">✕</button></td>
   </tr>`;
 }
 function setDirty(dirty) {
@@ -1083,6 +1111,10 @@ function renderPlanetTable() {
 function bindPlanetRows() {
   $$('#planet-rows tr').forEach(tr => {
     tr.querySelector('[data-del]').onclick = () => deletePlanetRow(tr);
+    tr.querySelector('[data-copy]').onclick = () => openCopyDialog(tr, $$('#planet-rows tr'), n => {
+      setDirty(true);
+      message($('#planets-msg'), `Valori copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Premi "Salva tutte le modifiche" per confermare.`, 'ok');
+    });
     tr.querySelector('[data-up]').onclick = () => moveRow(tr, -1);
     tr.querySelector('[data-down]').onclick = () => moveRow(tr, 1);
   });
@@ -1101,13 +1133,6 @@ $('#add-planet-row').addEventListener('click', () => {
   bindPlanetRows();
   setDirty(true);
   $('#planet-rows tr:last-child [data-f="name"]').focus();
-});
-$('#copy-mines-row').addEventListener('click', () => {
-  const rows = $$('#planet-rows tr');
-  const n = copyMinesFromFirst(rows);
-  if (!n) return message($('#planets-msg'), 'Servono almeno due pianeti.');
-  setDirty(true);
-  message($('#planets-msg'), `Valori copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Premi "Salva tutte le modifiche" per confermare.`, 'ok');
 });
 
 $('#save-all-planets').addEventListener('click', async () => {

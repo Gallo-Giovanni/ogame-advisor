@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 13, date: '2026-10-24', title: 'Copia da un pianeta a scelta',
+    text: 'Ogni pianeta ha il suo pulsante "Copia": scegli su quali altri pianeti copiare miniere, centrali, satelliti e item (anche tutti con "Seleziona tutti"). Sostituisce il vecchio "Copia dal primo su tutti".',
+  },
+  {
     id: 12, date: '2026-10-24', title: 'Calcoli verificati con il gioco',
     text: 'Le formule sono state confrontate con la pagina "Impostazioni risorse" del gioco e ora coincidono. Il bonus di posizione moltiplica la miniera e gli altri bonus si calcolano su quel valore; aggiunti l\'alleanza Mercante (+5%), la riduzione del consumo di energia, il reddito base e il deuterio consumato dalla centrale a fusione. In Impostazioni c\'è un calcolatore per i bonus delle forme di vita: controlla i tuoi valori.',
   },
@@ -40,7 +44,7 @@ const CHANGELOG = [
   },
   {
     id: 3, date: '2026-10-24', title: 'Copia dal primo pianeta',
-    text: 'Un pulsante copia miniere, centrali, satelliti e item del primo pianeta su tutti gli altri: inserisci un pianeta e correggi solo quelli diversi.',
+    text: 'Un pulsante copia miniere, centrali e satelliti di un pianeta sugli altri: inserisci un pianeta e correggi solo quelli diversi.',
   },
   {
     id: 2, date: '2026-10-24', title: 'Coordinate facoltative',
