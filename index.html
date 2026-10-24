@@ -98,6 +98,13 @@
   td input { padding: 6px; min-width: 58px; }
   td input.name { min-width: 110px; }
   .neg { color: var(--bad); }
+  .modal-back { position: fixed; inset: 0; background: #050814cc; display: grid; place-items: center; padding: 16px; z-index: 50; }
+  .modal { width: min(560px, 100%); max-height: 85vh; display: flex; flex-direction: column; }
+  .modal .list { overflow-y: auto; margin: 12px 0; padding-right: 4px; }
+  .upd + .upd { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+  .upd .date { font-size: .8rem; color: var(--muted); }
+  .upd.new .title::after { content: 'NUOVO'; margin-left: 8px; font-size: .7rem; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: #1a1200; vertical-align: middle; }
+  .badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 99px; background: var(--accent); color: #1a1200; font-size: .75rem; line-height: 18px; text-align: center; }
   @media (max-width: 600px) {
     .rec { grid-template-columns: 32px 1fr; }
     .rec .side { grid-column: 2; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
@@ -194,7 +201,7 @@
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
-      <button class="ghost" data-action="logout">Esci</button>
+      <div class="row" style="gap:4px"><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
     </header>
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
@@ -275,6 +282,14 @@
         Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). Edifici e tecnologie delle forme di vita entrano solo come percentuale di bonus. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
     </section>
+  </div>
+</div>
+
+<div id="updates-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="updates-title">
+  <div class="card modal">
+    <h2 id="updates-title" style="margin:0"></h2>
+    <div id="updates-list" class="list"></div>
+    <div class="row" style="justify-content:flex-end"><button id="updates-ok">Ho capito</button></div>
   </div>
 </div>
 
@@ -603,6 +618,56 @@ if (typeof module !== 'undefined') module.exports = Engine;
 
 </script>
 <script>
+// App updates shown to users ("Novità").
+// To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
+// each user stores the last id they have seen, and sees every entry with a higher id.
+const CHANGELOG = [
+  {
+    id: 10, date: '2026-10-24', title: 'Novità dell\'app',
+    text: 'Da ora, quando entri, ti mostriamo gli aggiornamenti che non hai ancora visto. Puoi rileggerli quando vuoi dal pulsante "Novità" in alto.',
+  },
+  {
+    id: 9, date: '2026-10-24', title: 'Ferma al livello',
+    text: 'In Impostazioni puoi fissare un livello massimo per ogni miniera, per il Plasma e per l\'Astrofisica: gli upgrade oltre quel livello non vengono più suggeriti.',
+  },
+  {
+    id: 8, date: '2026-10-24', title: 'Nuova colonia (Astrofisica)',
+    text: 'Tra i consigli compare anche "Nuova colonia": costo dei livelli di Astrofisica necessari, nave colonizzatrice, miniere fino alla media dei tuoi pianeti ed energia, confrontato con la produzione di un pianeta medio. Inserisci il tuo livello di Astrofisica in Impostazioni.',
+  },
+  {
+    id: 7, date: '2026-10-24', title: 'Item booster',
+    text: 'Per ogni pianeta puoi indicare i booster attivi (metallo, cristallo, deuterio, energia). In Impostazioni scegli se contarli anche nella classifica degli upgrade.',
+  },
+  {
+    id: 6, date: '2026-10-24', title: 'Niente valori negativi',
+    text: 'Galassia, sistema, posizione e livelli degli edifici non accettano più numeri negativi. Temperatura ed energia sì, come nel gioco.',
+  },
+  {
+    id: 5, date: '2026-10-24', title: 'Un solo pulsante per salvare',
+    text: 'Nella scheda Pianeti c\'è un unico pulsante "Salva tutte le modifiche": non si perdono più le righe non salvate. Le modifiche in sospeso vengono segnalate.',
+  },
+  {
+    id: 4, date: '2026-10-24', title: 'Riordina i pianeti',
+    text: 'Con le frecce ▲▼ puoi cambiare l\'ordine dei pianeti, sia nella configurazione sia nella scheda Pianeti.',
+  },
+  {
+    id: 3, date: '2026-10-24', title: 'Copia dal primo pianeta',
+    text: 'Un pulsante copia miniere, centrali, satelliti e item del primo pianeta su tutti gli altri: inserisci un pianeta e correggi solo quelli diversi.',
+  },
+  {
+    id: 2, date: '2026-10-24', title: 'Coordinate facoltative',
+    text: 'Galassia e sistema non sono più obbligatori: ai calcoli serve solo la posizione, che decide il bonus di produzione.',
+  },
+  {
+    id: 1, date: '2026-10-24', title: 'Prima versione',
+    text: 'Accesso con email, configurazione guidata del tuo impero e classifica degli upgrade per tempo di ammortamento, con il costo dell\'energia incluso.',
+  },
+];
+
+if (typeof module !== 'undefined') module.exports = CHANGELOG;
+
+</script>
+<script>
 const SUPABASE_URL = 'https://nvfpiwrienohvavvceqi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_F8NSwlv4obc_fxRVpLP_zw_bLeF3Xrk';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -724,7 +789,7 @@ async function loadUserData() {
   state.planets = planets || [];
   setDirty(false);
   if (!profile || !profile.onboarded) startOnboarding();
-  else renderApp();
+  else { renderApp(); openUpdates(true); }
 }
 
 const numericProfile = p => {
@@ -854,7 +919,7 @@ function renderApp() {
   const sel = $('#filter-planet'), cur = sel.value;
   sel.innerHTML = '<option value="">Tutti i pianeti</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
   sel.value = state.planets.some(pl => pl.id === cur) ? cur : '';
-  renderAdvice(); renderPlanetTable(); renderSettings();
+  renderAdvice(); renderPlanetTable(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
 
@@ -1027,6 +1092,43 @@ async function deletePlanetRow(tr) {
   tr.remove();
   renderApp(); // the table keeps any unsaved edits
 }
+
+/* Updates ("Novità"): each user sees the entries with an id above the last one they confirmed */
+const LATEST_UPDATE = Math.max(0, ...CHANGELOG.map(u => u.id));
+const lastSeen = () => +(state.profile?.last_seen_update || 0);
+function renderUpdatesBadge() {
+  const n = CHANGELOG.filter(u => u.id > lastSeen()).length;
+  $('#updates-badge').textContent = n;
+  $('#updates-badge').classList.toggle('hidden', !n);
+}
+function openUpdates(onlyNew) {
+  const seen = lastSeen();
+  const list = onlyNew ? CHANGELOG.filter(u => u.id > seen) : CHANGELOG;
+  if (!list.length) return;
+  $('#updates-title').textContent = onlyNew
+    ? (list.length === 1 ? 'C\'è un aggiornamento nuovo' : `Ci sono ${list.length} aggiornamenti nuovi`)
+    : 'Tutti gli aggiornamenti';
+  const day = d => new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('#updates-list').innerHTML = list.map(u => `
+    <div class="upd ${u.id > seen ? 'new' : ''}">
+      <div class="date">${day(u.date)}</div>
+      <div class="title"><b>${esc(u.title)}</b></div>
+      <div class="small">${esc(u.text)}</div>
+    </div>`).join('');
+  $('#updates-modal').classList.remove('hidden');
+  $('#updates-ok').focus();
+}
+async function closeUpdates() {
+  $('#updates-modal').classList.add('hidden');
+  if (lastSeen() >= LATEST_UPDATE) return;
+  const r = await sb.from('profiles').update({ last_seen_update: LATEST_UPDATE }).eq('user_id', state.user.id).select().single();
+  if (!r.error) state.profile = r.data;
+  renderUpdatesBadge();
+}
+$('#updates-ok').addEventListener('click', closeUpdates);
+$('#updates-modal').addEventListener('click', e => { if (e.target.id === 'updates-modal') closeUpdates(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#updates-modal').classList.contains('hidden')) closeUpdates(); });
+$('#open-updates').addEventListener('click', () => openUpdates(false));
 
 /* Settings */
 function renderSettings() {

@@ -11,6 +11,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - "Stop at level" caps for each mine, Plasma and Astrophysics: capped upgrades are never suggested
 - Energy deficits are flagged first, because they cut production on the whole planet
 - "Done" button: updates the planet and re-ranks instantly
+- "What's new" popup: each user sees the updates released since their last visit; the full list is always available
 - Single HTML file, works on desktop and mobile
 
 ## How it works
@@ -18,7 +19,8 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 |---|---|
 | Calculation engine (costs, production, energy, bonuses, ranking) | `src/engine.js` |
 | User interface and Supabase calls | `src/app.html` |
-| Build: inlines the engine into the page | `build.js` → `index.html` |
+| App updates shown to users | `src/changelog.js` |
+| Build: inlines engine and changelog into the page | `build.js` → `index.html` |
 | Engine tests | `tests/engine.test.js` |
 
 Resources are converted to metal-equivalent with the player's ratio (default 1 : 1.5 : 2.5), then:
@@ -29,10 +31,14 @@ payback (hours) = cost in metal-eq / extra production per hour in metal-eq
 
 ## Run
 ```
-node tests/engine.test.js   # run the tests
+node tests/engine.test.js      # engine tests
+node tests/changelog.test.js   # changelog checks
 node build.js               # build index.html
 ```
 Deploy `index.html` on any static host (e.g. Netlify).
+
+## Publishing an update
+Add an entry at the top of `src/changelog.js` with the next `id`, a date, a title and a short description, then rebuild. Each user stores the last id they have seen (`profiles.last_seen_update`) and is shown every entry with a higher id at their next login. Never renumber existing entries.
 
 ## Database (Supabase)
 - `profiles`: one row per user (class, speed, technologies, officers, bonuses, resource values)
