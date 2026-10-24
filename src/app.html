@@ -178,7 +178,7 @@
       <div id="wiz-planets" class="stack"></div>
       <div class="row">
         <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
-        <button class="secondary" id="wiz-copy-mines" type="button">Copia le miniere del primo su tutti</button>
+        <button class="secondary" id="wiz-copy-mines" type="button">Copia miniere e centrali del primo su tutti</button>
       </div>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e inizia</button></div>
@@ -214,7 +214,7 @@
 
     <section data-panel="planets" class="stack hidden">
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="copy-mines-row">Copia miniere del primo su tutti</button><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="copy-mines-row">Copia miniere e centrali del primo su tutti</button><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
         <p class="muted small">Modifica i valori e premi Salva sulla riga. L'energia è quella mostrata nella Visuale impero.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th>Energia</th><th></th></tr></thead>
@@ -428,8 +428,8 @@ function addWizardPlanet(p = {}) {
 }
 $('#wiz-add-planet').addEventListener('click', () => addWizardPlanet());
 
-// Mines are often kept at the same level on every planet: copy them from the first one
-const MINE_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth'];
+// Mines and energy buildings are often kept at the same level on every planet: copy them from the first one
+const MINE_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'];
 function copyMinesFromFirst(rows) {
   if (rows.length < 2) return 0;
   const src = MINE_FIELDS.map(f => rows[0].querySelector(`[data-f="${f}"]`).value);
@@ -438,7 +438,7 @@ function copyMinesFromFirst(rows) {
 }
 $('#wiz-copy-mines').addEventListener('click', () => {
   const n = copyMinesFromFirst($$('#wiz-planets .planet-card'));
-  message($('#wiz-msg'), n ? `Livelli delle miniere copiati su ${n} pianeti. Correggi quelli diversi.` : 'Aggiungi prima almeno due pianeti.', n ? 'ok' : 'err');
+  message($('#wiz-msg'), n ? `Miniere, centrali e satelliti copiati su ${n} pianeti. Correggi quelli diversi.` : 'Aggiungi prima almeno due pianeti.', n ? 'ok' : 'err');
 });
 
 $('#wiz-finish').addEventListener('click', async () => {
@@ -580,7 +580,7 @@ $('#copy-mines-row').addEventListener('click', async () => {
   const msgEl = $('#planets-msg');
   if (rows.length < 2) return message(msgEl, 'Servono almeno due pianeti salvati.');
   const first = rows[0].querySelector('[data-f="name"]').value;
-  if (!confirm(`Copiare i livelli delle miniere di ${first} su tutti gli altri ${rows.length - 1} pianeti e salvare?`)) return;
+  if (!confirm(`Copiare miniere, centrali e satelliti di ${first} su tutti gli altri ${rows.length - 1} pianeti e salvare?`)) return;
   copyMinesFromFirst(rows);
   const src = readPlanetInputs(rows[0]);
   const patch = Object.fromEntries(MINE_FIELDS.map(f => [f, src[f]]));
@@ -589,7 +589,7 @@ $('#copy-mines-row').addEventListener('click', async () => {
   if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
   r.data.forEach(row => Object.assign(state.planets.find(x => x.id === row.id), row));
   renderApp();
-  message($('#planets-msg'), `Miniere copiate su ${ids.length - 1} pianeti.`, 'ok');
+  message($('#planets-msg'), `Miniere, centrali e satelliti copiati su ${ids.length - 1} pianeti.`, 'ok');
   setTimeout(() => message($('#planets-msg'), ''), 2500);
 });
 async function savePlanetRow(tr) {
