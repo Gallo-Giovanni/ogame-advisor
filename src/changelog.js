@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 11, date: '2026-10-24', title: 'Vista per singolo pianeta',
+    text: 'In Consigli, dal menu "Mostra" scegli un pianeta: vedi solo la sua produzione (all\'ora e al giorno), la sua energia e i suoi upgrade. Con "Tutto l\'impero" torni alla vista completa. L\'app ricorda la tua scelta.',
+  },
+  {
     id: 10, date: '2026-10-24', title: 'Novità dell\'app',
     text: 'Da ora, quando entri, ti mostriamo gli aggiornamenti che non hai ancora visto. Puoi rileggerli quando vuoi dal pulsante "Novità" in alto.',
   },

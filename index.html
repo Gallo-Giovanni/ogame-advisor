@@ -210,12 +210,18 @@
     </div>
 
     <section data-panel="advice" class="stack">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="gap:8px">
+          <label for="filter-planet" style="margin:0">Mostra</label>
+          <select id="filter-planet" style="width:auto;min-width:200px"></select>
+        </div>
+        <div id="planet-info" class="muted small"></div>
+      </div>
       <div class="grid" id="stats"></div>
       <div class="card">
         <div class="row" style="justify-content:space-between">
           <h2 style="margin:0">Cosa fare adesso</h2>
           <div class="row" style="gap:8px">
-            <select id="filter-planet" style="width:auto"></select>
             <select id="filter-count" style="width:auto"><option value="10">Primi 10</option><option value="25">Primi 25</option><option value="1000">Tutti</option></select>
           </div>
         </div>
@@ -623,6 +629,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 11, date: '2026-10-24', title: 'Vista per singolo pianeta',
+    text: 'In Consigli, dal menu "Mostra" scegli un pianeta: vedi solo la sua produzione (all\'ora e al giorno), la sua energia e i suoi upgrade. Con "Tutto l\'impero" torni alla vista completa. L\'app ricorda la tua scelta.',
+  },
+  {
     id: 10, date: '2026-10-24', title: 'Novità dell\'app',
     text: 'Da ora, quando entri, ti mostriamo gli aggiornamenti che non hai ancora visto. Puoi rileggerli quando vuoi dal pulsante "Novità" in alto.',
   },
@@ -917,8 +927,10 @@ function renderApp() {
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
   $('#who').textContent = [p.nickname, p.universe, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
   const sel = $('#filter-planet'), cur = sel.value;
-  sel.innerHTML = '<option value="">Tutti i pianeti</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
-  sel.value = state.planets.some(pl => pl.id === cur) ? cur : '';
+  sel.innerHTML = '<option value="">Tutto l\'impero</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
+  let saved = cur;
+  if (!saved) { try { saved = localStorage.getItem('ogadv-planet') || ''; } catch (e) {} }
+  sel.value = state.planets.some(pl => pl.id === saved) ? saved : '';
   renderAdvice(); renderPlanetTable(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
@@ -939,18 +951,30 @@ function paybackText(h) {
 function renderAdvice() {
   const profile = numericProfile(state.profile);
   const planets = state.planets;
-  const tot = Engine.totals(profile, planets);
-  const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
-  $('#stats').innerHTML = `
-    <div class="card stat"><div class="muted small">Metallo / ora</div><div class="v res-m">${fmt(tot[0])}</div></div>
-    <div class="card stat"><div class="muted small">Cristallo / ora</div><div class="v res-c">${fmt(tot[1])}</div></div>
-    <div class="card stat"><div class="muted small">Deuterio / ora</div><div class="v res-d">${fmt(tot[2])}</div></div>
-    <div class="card stat"><div class="muted small">Pianeti senza energia</div><div class="v ${deficits ? 'neg' : ''}">${deficits} / ${planets.length}</div></div>`;
-
   const filter = $('#filter-planet').value;
+  const sel = planets.find(pl => pl.id === filter);
+  const resStat = (label, cls, v) =>
+    `<div class="card stat"><div class="muted small">${label} / ora</div><div class="v ${cls}">${fmt(v)}</div><div class="muted small">${fmt(v * 24)} al giorno</div></div>`;
+
+  if (sel) {
+    // Single planet: its own production and energy
+    const st = Engine.planetState(profile, sel);
+    const pct = Math.round(st.factor * 100);
+    $('#stats').innerHTML = resStat('Metallo', 'res-m', st.actual[0]) + resStat('Cristallo', 'res-c', st.actual[1]) + resStat('Deuterio', 'res-d', st.actual[2]) + `
+      <div class="card stat"><div class="muted small">Energia</div><div class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</div><div class="muted small">miniere al ${pct}%</div></div>`;
+    const coords = [sel.galaxy, sel.system, sel.position].map(x => x ?? '?').join(':');
+    $('#planet-info').textContent = `[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`;
+  } else {
+    const tot = Engine.totals(profile, planets);
+    const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
+    $('#stats').innerHTML = resStat('Metallo', 'res-m', tot[0]) + resStat('Cristallo', 'res-c', tot[1]) + resStat('Deuterio', 'res-d', tot[2]) + `
+      <div class="card stat"><div class="muted small">Pianeti senza energia</div><div class="v ${deficits ? 'neg' : ''}">${deficits} / ${planets.length}</div><div class="muted small">su tutto l'impero</div></div>`;
+    $('#planet-info').textContent = `${planets.length} pianeti`;
+  }
+
   const limit = +$('#filter-count').value;
   let recs = Engine.recommendations(profile, planets);
-  if (filter) recs = recs.filter(r => r.planetId === filter || r.type === 'plasma');
+  if (filter) recs = recs.filter(r => r.planetId === filter);
   recs = recs.slice(0, limit);
   state.recs = recs;
   $('#recs').innerHTML = recs.length ? recs.map((r, i) => `
@@ -968,7 +992,10 @@ function renderAdvice() {
     </div>`).join('') : '<p class="muted">Nessun consiglio: aggiungi almeno un pianeta.</p>';
   $$('[data-done]').forEach(b => b.addEventListener('click', () => completeRec(state.recs[+b.dataset.done], b)));
 }
-$('#filter-planet').addEventListener('change', renderAdvice);
+$('#filter-planet').addEventListener('change', () => {
+  try { localStorage.setItem('ogadv-planet', $('#filter-planet').value); } catch (e) {}
+  renderAdvice();
+});
 $('#filter-count').addEventListener('change', renderAdvice);
 
 async function completeRec(rec, btn) {
