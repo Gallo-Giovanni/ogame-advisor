@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OGame Advisor</title>
+<meta name="theme-color" content="#0b1020">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0b1020; --bg2: #11182e; --card: #161f3a; --line: #26315a;
+    --text: #e6ebff; --muted: #8e9ac4; --accent: #f5a524; --accent2: #36c5f0;
+    --ok: #3ddc97; --warn: #ffb547; --bad: #ff5d73;
+    --metal: #b8c2d9; --crystal: #6fd3ff; --deut: #7cf0b2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 80% -10%, #1c2a5a 0%, transparent 60%), var(--bg);
+    color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: Rajdhani, sans-serif; letter-spacing: .02em; margin: 0 0 .5rem; }
+  h1 { font-size: 1.9rem; } h2 { font-size: 1.4rem; } h3 { font-size: 1.15rem; }
+  a { color: var(--accent2); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stack > * + * { margin-top: 12px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; background: var(--bg2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 10px; font: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent2); border-color: transparent; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: .95rem; }
+  .check input { width: auto; }
+  button {
+    font: 600 .95rem Inter, sans-serif; border: 0; border-radius: 8px; padding: 10px 16px;
+    cursor: pointer; background: var(--accent); color: #1a1200;
+  }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button.ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
+  button.danger { background: transparent; color: var(--bad); border: 1px solid #5a2633; }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { padding: 10px 12px; border-radius: 8px; font-size: .9rem; }
+  .msg.err { background: #3a1621; color: #ffc2cc; }
+  .msg.ok { background: #12352a; color: #b5f5d9; }
+
+  /* Auth */
+  .auth { max-width: 420px; margin: 8vh auto 0; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffd27a, var(--accent) 45%, #7a4a00 100%);
+    box-shadow: 0 0 24px #f5a52466;
+  }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+  .tab {
+    background: none; color: var(--muted); border-radius: 0; padding: 10px 14px;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* Header */
+  header.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+
+  /* Wizard */
+  .steps { display: flex; gap: 8px; margin-bottom: 16px; }
+  .step { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+  .step.on { background: var(--accent); }
+  .planet-card { border: 1px dashed var(--line); border-radius: 10px; padding: 12px; }
+
+  /* Dashboard */
+  .stat { padding: 14px; }
+  .stat .v { font: 700 1.5rem Rajdhani, sans-serif; }
+  .res-m { color: var(--metal); } .res-c { color: var(--crystal); } .res-d { color: var(--deut); }
+  .rec { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; }
+  .rec + .rec { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .rank {
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--bg2); font: 700 1rem Rajdhani, sans-serif; color: var(--accent);
+  }
+  .rec.urgent .rank { background: #3a1621; color: var(--bad); }
+  .tag { display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: var(--bg2); color: var(--muted); }
+  .tag.bad { background: #3a1621; color: #ffc2cc; }
+  .cost { font-size: .85rem; color: var(--muted); }
+  .payback { font: 700 1.1rem Rajdhani, sans-serif; text-align: right; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: .8rem; }
+  td input { padding: 6px; min-width: 64px; }
+  td input.name { min-width: 110px; }
+  .neg { color: var(--bad); }
+  @media (max-width: 600px) {
+    .rec { grid-template-columns: 32px 1fr; }
+    .rec .side { grid-column: 2; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+    .payback { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ LOADING ============ -->
+  <div id="view-loading" class="auth muted">Caricamento…</div>
+
+  <!-- ============ AUTH ============ -->
+  <div id="view-auth" class="auth hidden">
+    <div class="brand"><div class="logo"></div><div><h1>OGame Advisor</h1><div class="muted small">Cosa uppare adesso, calcolato sul tuo impero</div></div></div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-auth="login">Accedi</button>
+        <button class="tab" data-auth="signup">Registrati</button>
+      </div>
+      <form id="auth-form" class="stack">
+        <div><label for="auth-email">Email</label><input id="auth-email" type="email" required autocomplete="email"></div>
+        <div><label for="auth-pass">Password</label><input id="auth-pass" type="password" required minlength="6" autocomplete="current-password"></div>
+        <div id="auth-msg" class="msg hidden"></div>
+        <button id="auth-submit" type="submit">Accedi</button>
+        <button id="auth-forgot" type="button" class="ghost">Password dimenticata?</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ ONBOARDING ============ -->
+  <div id="view-onboarding" class="hidden">
+    <header class="top"><h1>Configura il tuo impero</h1><button class="ghost" data-action="logout">Esci</button></header>
+    <div class="steps"><div class="step" data-step="1"></div><div class="step" data-step="2"></div><div class="step" data-step="3"></div></div>
+
+    <div class="card stack" data-wiz="1">
+      <h2>1 · Account</h2>
+      <p class="muted small">Li trovi nel gioco: classe e tecnologie nella pagina Ricerca, la velocità nelle impostazioni del server.</p>
+      <div class="grid">
+        <div><label>Nome in gioco</label><input data-p="nickname" placeholder="Es. Giovanni"></div>
+        <div><label>Universo</label><input data-p="universe" placeholder="Es. West s278-it"></div>
+        <div><label>Classe</label><select data-p="player_class">
+          <option value="explorer">Esploratore</option><option value="collector">Collezionista</option><option value="general">Generale</option></select></div>
+        <div><label>Velocità di sviluppo (economia)</label><input data-p="economy_speed" type="number" min="1" max="20" value="1"></div>
+        <div><label>Tecnologia Plasma</label><input data-p="plasma_tech" type="number" min="0" value="0"></div>
+        <div><label>Tecnologia Energetica</label><input data-p="energy_tech" type="number" min="0" value="0"></div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" data-p="geologist"> Geologo attivo</label>
+        <label class="check"><input type="checkbox" data-p="engineer"> Ingegnere attivo</label>
+        <label class="check"><input type="checkbox" data-p="commanding_staff"> Staff di comando completo</label>
+      </div>
+      <div class="row"><button data-next="2">Avanti</button></div>
+    </div>
+
+    <div class="card stack hidden" data-wiz="2">
+      <h2>2 · Bonus e valore delle risorse</h2>
+      <p class="muted small">Bonus delle forme di vita: apri <b>Risorse → Impostazioni di produzione</b> e somma le percentuali delle righe "Forme di vita". Se non le usi lascia 0. Gli oggetti temporanei (booster) non vanno inseriti.</p>
+      <div class="grid">
+        <div><label>Bonus forme di vita metallo %</label><input data-p="lf_bonus_metal" type="number" step="0.01" value="0"></div>
+        <div><label>Bonus forme di vita cristallo %</label><input data-p="lf_bonus_crystal" type="number" step="0.01" value="0"></div>
+        <div><label>Bonus forme di vita deuterio %</label><input data-p="lf_bonus_deut" type="number" step="0.01" value="0"></div>
+        <div><label>Bonus forme di vita energia %</label><input data-p="lf_bonus_energy" type="number" step="0.01" value="0"></div>
+      </div>
+      <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
+      <div class="grid">
+        <div><label>Metallo</label><input data-p="ratio_metal" type="number" step="0.1" min="0.1" value="1"></div>
+        <div><label>Cristallo</label><input data-p="ratio_crystal" type="number" step="0.1" min="0.1" value="1.5"></div>
+        <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
+      </div>
+      <div class="row"><button class="secondary" data-next="1">Indietro</button><button data-next="3">Avanti</button></div>
+    </div>
+
+    <div class="card stack hidden" data-wiz="3">
+      <h2>3 · Pianeti</h2>
+      <p class="muted small">Copia i livelli dalla <b>Visuale impero</b>. L'energia è il numero sotto il pianeta (anche negativo): se lo inserisci, i calcoli sono molto più precisi.</p>
+      <div id="wiz-planets" class="stack"></div>
+      <div class="row">
+        <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
+      </div>
+      <div id="wiz-msg" class="msg hidden"></div>
+      <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e inizia</button></div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="view-app" class="hidden">
+    <header class="top">
+      <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
+      <button class="ghost" data-action="logout">Esci</button>
+    </header>
+    <div class="tabs">
+      <button class="tab active" data-tab="advice">Consigli</button>
+      <button class="tab" data-tab="planets">Pianeti</button>
+      <button class="tab" data-tab="settings">Impostazioni</button>
+    </div>
+
+    <section data-panel="advice" class="stack">
+      <div class="grid" id="stats"></div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">Cosa fare adesso</h2>
+          <div class="row" style="gap:8px">
+            <select id="filter-planet" style="width:auto"></select>
+            <select id="filter-count" style="width:auto"><option value="10">Primi 10</option><option value="25">Primi 25</option><option value="1000">Tutti</option></select>
+          </div>
+        </div>
+        <p class="muted small" style="margin-top:6px">Ordinati per tempo di ammortamento: quanto ci mette l'upgrade a ripagarsi con la produzione in più. I problemi di energia vengono sempre prima. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
+        <div id="recs" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section data-panel="planets" class="stack hidden">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div>
+        <p class="muted small">Modifica i valori e premi Salva sulla riga. L'energia è quella mostrata nella Visuale impero.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th>Energia</th><th></th></tr></thead>
+          <tbody id="planet-rows"></tbody>
+        </table></div>
+        <div id="planets-msg" class="msg hidden" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <section data-panel="settings" class="stack hidden">
+      <div class="card stack" id="settings-form">
+        <h2>Account e bonus</h2>
+        <div class="grid">
+          <div><label>Nome in gioco</label><input data-s="nickname"></div>
+          <div><label>Universo</label><input data-s="universe"></div>
+          <div><label>Classe</label><select data-s="player_class"><option value="explorer">Esploratore</option><option value="collector">Collezionista</option><option value="general">Generale</option></select></div>
+          <div><label>Velocità di sviluppo</label><input data-s="economy_speed" type="number" min="1" max="20"></div>
+          <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
+          <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
+          <div><label>Forme di vita metallo %</label><input data-s="lf_bonus_metal" type="number" step="0.01"></div>
+          <div><label>Forme di vita cristallo %</label><input data-s="lf_bonus_crystal" type="number" step="0.01"></div>
+          <div><label>Forme di vita deuterio %</label><input data-s="lf_bonus_deut" type="number" step="0.01"></div>
+          <div><label>Forme di vita energia %</label><input data-s="lf_bonus_energy" type="number" step="0.01"></div>
+          <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
+          <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.1" min="0.1"></div>
+          <div><label>Valore deuterio</label><input data-s="ratio_deut" type="number" step="0.1" min="0.1"></div>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" data-s="geologist"> Geologo</label>
+          <label class="check"><input type="checkbox" data-s="engineer"> Ingegnere</label>
+          <label class="check"><input type="checkbox" data-s="commanding_staff"> Staff di comando</label>
+        </div>
+        <div id="settings-msg" class="msg hidden"></div>
+        <div class="row"><button id="save-settings">Salva impostazioni</button></div>
+      </div>
+      <div class="card small muted">
+        Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). Edifici e tecnologie delle forme di vita entrano solo come percentuale di bonus. Usa i risultati come guida e confrontali con i valori del gioco.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+const SUPABASE_URL = 'https://nvfpiwrienohvavvceqi.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_F8NSwlv4obc_fxRVpLP_zw_bLeF3Xrk';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const fmt = Engine.fmt;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const state = { user: null, profile: null, planets: [], authMode: 'login' };
+
+const PROFILE_DEFAULTS = {
+  nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
+  geologist: false, engineer: false, commanding_staff: false,
+  lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
+  ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5,
+};
+const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'lf_bonus_metal', 'lf_bonus_crystal', 'lf_bonus_deut', 'lf_bonus_energy', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'energy_balance'];
+
+function show(view) {
+  ['loading', 'auth', 'onboarding', 'app'].forEach(v => $('#view-' + v).classList.toggle('hidden', v !== view));
+}
+function message(el, text, kind = 'err') {
+  el.textContent = text; el.className = 'msg ' + kind; el.classList.toggle('hidden', !text);
+}
+
+/* ---------------- AUTH ---------------- */
+$$('[data-auth]').forEach(b => b.addEventListener('click', () => {
+  state.authMode = b.dataset.auth;
+  $$('[data-auth]').forEach(x => x.classList.toggle('active', x === b));
+  $('#auth-submit').textContent = state.authMode === 'login' ? 'Accedi' : 'Crea account';
+  $('#auth-pass').autocomplete = state.authMode === 'login' ? 'current-password' : 'new-password';
+  message($('#auth-msg'), '');
+}));
+
+$('#auth-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#auth-email').value.trim(), password = $('#auth-pass').value;
+  const btn = $('#auth-submit'); btn.disabled = true;
+  try {
+    if (state.authMode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } else {
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      if (!data.session) message($('#auth-msg'), 'Account creato. Controlla la tua email e clicca il link di conferma, poi accedi.', 'ok');
+    }
+  } catch (err) {
+    message($('#auth-msg'), translateError(err.message));
+  } finally { btn.disabled = false; }
+});
+
+$('#auth-forgot').addEventListener('click', async () => {
+  const email = $('#auth-email').value.trim();
+  if (!email) return message($('#auth-msg'), 'Scrivi prima la tua email.');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  message($('#auth-msg'), error ? translateError(error.message) : 'Ti abbiamo inviato una email per reimpostare la password.', error ? 'err' : 'ok');
+});
+
+function translateError(m) {
+  if (/Invalid login/i.test(m)) return 'Email o password non corretti.';
+  if (/Email not confirmed/i.test(m)) return 'Devi prima confermare l\'email: controlla la posta.';
+  if (/already registered/i.test(m)) return 'Esiste già un account con questa email.';
+  if (/Password should be/i.test(m)) return 'La password deve avere almeno 6 caratteri.';
+  return m;
+}
+
+$$('[data-action="logout"]').forEach(b => b.addEventListener('click', () => sb.auth.signOut()));
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    const pw = prompt('Inserisci la nuova password (almeno 6 caratteri):');
+    if (pw) { const { error } = await sb.auth.updateUser({ password: pw }); alert(error ? translateError(error.message) : 'Password aggiornata.'); }
+  }
+  const uid = session?.user?.id || null;
+  if (uid === state.user?.id && event !== 'INITIAL_SESSION') return;
+  state.user = session?.user || null;
+  if (!state.user) { show('auth'); return; }
+  setTimeout(loadUserData, 0); // avoid running queries inside the auth callback
+});
+
+/* ---------------- DATA ---------------- */
+async function loadUserData() {
+  show('loading');
+  const [{ data: profile, error: e1 }, { data: planets, error: e2 }] = await Promise.all([
+    sb.from('profiles').select('*').eq('user_id', state.user.id).maybeSingle(),
+    sb.from('planets').select('*').order('sort_order').order('created_at'),
+  ]);
+  if (e1 || e2) { alert('Errore nel caricamento: ' + (e1 || e2).message); show('auth'); return; }
+  state.profile = profile;
+  state.planets = planets || [];
+  if (!profile || !profile.onboarded) startOnboarding();
+  else renderApp();
+}
+
+const numericProfile = p => {
+  const out = { ...PROFILE_DEFAULTS, ...p };
+  NUM_FIELDS.forEach(k => (out[k] = Number(out[k]) || 0));
+  if (!out.economy_speed) out.economy_speed = 1;
+  ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => { if (out[k] <= 0) out[k] = PROFILE_DEFAULTS[k]; });
+  return out;
+};
+
+function readPlanetInputs(container) {
+  const p = {};
+  PLANET_FIELDS.forEach(f => {
+    const el = container.querySelector(`[data-f="${f}"]`);
+    if (!el) return;
+    const v = el.value.trim();
+    if (f === 'name') p[f] = v;
+    else if (f === 'energy_balance') p[f] = v === '' ? null : parseInt(v, 10);
+    else p[f] = v === '' ? 0 : parseInt(v, 10);
+  });
+  return p;
+}
+function validatePlanet(p) {
+  if (!p.name) return 'Ogni pianeta deve avere un nome.';
+  if (!(p.galaxy >= 1) || !(p.system >= 1)) return `${p.name}: coordinate non valide.`;
+  if (!(p.position >= 1 && p.position <= 15)) return `${p.name}: la posizione va da 1 a 15.`;
+  for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'])
+    if (!(p[f] >= 0)) return `${p.name}: valori non validi.`;
+  return null;
+}
+
+/* ---------------- ONBOARDING ---------------- */
+function startOnboarding() {
+  const p = { ...PROFILE_DEFAULTS, ...(state.profile || {}) };
+  $$('[data-p]').forEach(el => {
+    if (el.type === 'checkbox') el.checked = !!p[el.dataset.p]; else el.value = p[el.dataset.p] ?? '';
+  });
+  $('#wiz-planets').innerHTML = '';
+  if (state.planets.length) state.planets.forEach(addWizardPlanet); else addWizardPlanet();
+  goStep(1);
+  show('onboarding');
+}
+function goStep(n) {
+  $$('[data-wiz]').forEach(el => el.classList.toggle('hidden', el.dataset.wiz != n));
+  $$('.step').forEach(el => el.classList.toggle('on', el.dataset.step <= n));
+  window.scrollTo(0, 0);
+}
+$$('[data-next]').forEach(b => b.addEventListener('click', () => goStep(+b.dataset.next)));
+
+function planetFieldsHTML(p = {}) {
+  const v = k => esc(p[k] ?? '');
+  const f = (key, label, extra = '') => `<div><label>${label}</label><input data-f="${key}" type="number" value="${v(key)}" ${extra}></div>`;
+  return `
+    <div class="grid">
+      <div><label>Nome</label><input data-f="name" value="${v('name')}" placeholder="Es. Betulla"></div>
+      ${f('galaxy', 'Galassia', 'min="1"')}${f('system', 'Sistema', 'min="1"')}${f('position', 'Posizione', 'min="1" max="15"')}
+      ${f('temp_max', 'Temperatura max °C')}
+      ${f('metal_mine', 'Miniera metallo', 'min="0"')}${f('crystal_mine', 'Miniera cristallo', 'min="0"')}${f('deut_synth', 'Sintetizzatore deuterio', 'min="0"')}
+      ${f('solar_plant', 'Centrale solare', 'min="0"')}${f('fusion_reactor', 'Centrale a fusione', 'min="0"')}${f('solar_satellites', 'Satelliti solari', 'min="0"')}
+      <div><label>Energia in gioco (facoltativa)</label><input data-f="energy_balance" type="number" value="${p.energy_balance ?? ''}" placeholder="Es. -833"></div>
+    </div>`;
+}
+function addWizardPlanet(p = {}) {
+  const div = document.createElement('div');
+  div.className = 'planet-card stack';
+  if (p.id) div.dataset.id = p.id;
+  div.innerHTML = `<div class="row" style="justify-content:space-between"><b>Pianeta</b><button type="button" class="ghost" data-remove>Rimuovi</button></div>` + planetFieldsHTML(p);
+  div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
+  $('#wiz-planets').appendChild(div);
+}
+$('#wiz-add-planet').addEventListener('click', () => addWizardPlanet());
+
+$('#wiz-finish').addEventListener('click', async () => {
+  const msgEl = $('#wiz-msg');
+  const profile = { user_id: state.user.id, onboarded: true };
+  $$('[data-p]').forEach(el => { profile[el.dataset.p] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  NUM_FIELDS.forEach(k => (profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]));
+  const cards = $$('#wiz-planets .planet-card');
+  if (!cards.length) return message(msgEl, 'Aggiungi almeno un pianeta.');
+  const planets = cards.map((c, i) => ({ ...readPlanetInputs(c), sort_order: i, _id: c.dataset.id }));
+  for (const p of planets) { const err = validatePlanet(p); if (err) return message(msgEl, err); }
+
+  const btn = $('#wiz-finish'); btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
+  try {
+    let r = await sb.from('profiles').upsert(profile);
+    if (r.error) throw r.error;
+    const keep = planets.filter(p => p._id).map(p => p._id);
+    const toDelete = state.planets.filter(p => !keep.includes(p.id)).map(p => p.id);
+    if (toDelete.length) { r = await sb.from('planets').delete().in('id', toDelete); if (r.error) throw r.error; }
+    for (const p of planets) {
+      const { _id, ...row } = p;
+      r = _id ? await sb.from('planets').update(row).eq('id', _id) : await sb.from('planets').insert(row);
+      if (r.error) throw r.error;
+    }
+    await loadUserData();
+  } catch (err) { message(msgEl, 'Errore: ' + err.message); }
+  finally { btn.disabled = false; }
+});
+
+/* ---------------- MAIN APP ---------------- */
+$$('[data-tab]').forEach(b => b.addEventListener('click', () => {
+  $$('[data-tab]').forEach(x => x.classList.toggle('active', x === b));
+  $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== b.dataset.tab));
+}));
+
+function renderApp() {
+  const p = state.profile;
+  const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
+  $('#who').textContent = [p.nickname, p.universe, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
+  const sel = $('#filter-planet'), cur = sel.value;
+  sel.innerHTML = '<option value="">Tutti i pianeti</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
+  sel.value = state.planets.some(pl => pl.id === cur) ? cur : '';
+  renderAdvice(); renderPlanetTable(); renderSettings();
+  show('app');
+}
+
+function costHTML(c) {
+  const parts = [];
+  if (c[0]) parts.push(`<span class="res-m">${fmt(c[0])} M</span>`);
+  if (c[1]) parts.push(`<span class="res-c">${fmt(c[1])} C</span>`);
+  if (c[2]) parts.push(`<span class="res-d">${fmt(c[2])} D</span>`);
+  return parts.join(' · ') || '—';
+}
+function paybackText(h) {
+  if (!isFinite(h)) return 'mai';
+  if (h < 48) return h.toFixed(1).replace('.', ',') + ' ore';
+  return (h / 24).toFixed(1).replace('.', ',') + ' giorni';
+}
+
+function renderAdvice() {
+  const profile = numericProfile(state.profile);
+  const planets = state.planets;
+  const tot = Engine.totals(profile, planets);
+  const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
+  $('#stats').innerHTML = `
+    <div class="card stat"><div class="muted small">Metallo / ora</div><div class="v res-m">${fmt(tot[0])}</div></div>
+    <div class="card stat"><div class="muted small">Cristallo / ora</div><div class="v res-c">${fmt(tot[1])}</div></div>
+    <div class="card stat"><div class="muted small">Deuterio / ora</div><div class="v res-d">${fmt(tot[2])}</div></div>
+    <div class="card stat"><div class="muted small">Pianeti senza energia</div><div class="v ${deficits ? 'neg' : ''}">${deficits} / ${planets.length}</div></div>`;
+
+  const filter = $('#filter-planet').value;
+  const limit = +$('#filter-count').value;
+  let recs = Engine.recommendations(profile, planets);
+  if (filter) recs = recs.filter(r => r.planetId === filter || r.type === 'plasma');
+  recs = recs.slice(0, limit);
+  state.recs = recs;
+  $('#recs').innerHTML = recs.length ? recs.map((r, i) => `
+    <div class="rec ${r.urgent ? 'urgent' : ''}">
+      <div class="rank">${r.urgent ? '!' : i + 1}</div>
+      <div>
+        <div><b>${esc(r.title)}</b> <span class="tag ${r.urgent ? 'bad' : ''}">${esc(r.planet)}</span></div>
+        <div class="small muted">${esc(r.detail)}</div>
+        <div class="cost">Costo: ${costHTML(r.cost)} · Rende: +${fmt(r.gainEq)} eq. metallo/ora</div>
+      </div>
+      <div class="side">
+        <div class="payback">${paybackText(r.payback)}</div>
+        <button class="secondary small" data-done="${i}" style="padding:6px 12px;margin-top:6px">Fatto</button>
+      </div>
+    </div>`).join('') : '<p class="muted">Nessun consiglio: aggiungi almeno un pianeta.</p>';
+  $$('[data-done]').forEach(b => b.addEventListener('click', () => completeRec(state.recs[+b.dataset.done], b)));
+}
+$('#filter-planet').addEventListener('change', renderAdvice);
+$('#filter-count').addEventListener('change', renderAdvice);
+
+async function completeRec(rec, btn) {
+  const profile = numericProfile(state.profile);
+  const planet = state.planets.find(p => p.id === rec.planetId);
+  const patch = Engine.applyRecommendation(profile, planet, rec);
+  btn.disabled = true;
+  let r;
+  if (patch.profile) {
+    r = await sb.from('profiles').update(patch.profile).eq('user_id', state.user.id).select().single();
+    if (!r.error) state.profile = r.data;
+  } else {
+    r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
+    if (!r.error) Object.assign(planet, r.data);
+  }
+  if (r.error) { alert('Errore: ' + r.error.message); btn.disabled = false; return; }
+  renderApp();
+}
+
+/* Planets table */
+function planetRowHTML(p) {
+  const cell = (k, cls = '') => `<td><input data-f="${k}" class="${cls}" ${k === 'name' ? '' : 'type="number"'} value="${esc(p[k] ?? '')}"></td>`;
+  const st = p.id ? Engine.planetState(numericProfile(state.profile), p) : null;
+  return `<tr data-id="${p.id || ''}">
+    ${cell('name', 'name')}${cell('galaxy')}${cell('system')}${cell('position')}${cell('temp_max')}
+    ${cell('metal_mine')}${cell('crystal_mine')}${cell('deut_synth')}${cell('solar_plant')}${cell('fusion_reactor')}${cell('solar_satellites')}
+    <td><input data-f="energy_balance" type="number" class="${st && st.balance < 0 ? 'neg' : ''}" value="${p.energy_balance ?? ''}" placeholder="—"></td>
+    <td><button class="secondary" data-save style="padding:6px 10px">Salva</button> <button class="danger" data-del style="padding:6px 10px">✕</button></td>
+  </tr>`;
+}
+function renderPlanetTable() {
+  $('#planet-rows').innerHTML = state.planets.map(planetRowHTML).join('');
+  bindPlanetRows();
+}
+function bindPlanetRows() {
+  $$('#planet-rows tr').forEach(tr => {
+    tr.querySelector('[data-save]').onclick = () => savePlanetRow(tr);
+    tr.querySelector('[data-del]').onclick = () => deletePlanetRow(tr);
+  });
+}
+$('#add-planet-row').addEventListener('click', () => {
+  $('#planet-rows').insertAdjacentHTML('beforeend', planetRowHTML({ position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0 }));
+  bindPlanetRows();
+});
+async function savePlanetRow(tr) {
+  const p = readPlanetInputs(tr), msgEl = $('#planets-msg');
+  const err = validatePlanet(p); if (err) return message(msgEl, err);
+  const id = tr.dataset.id;
+  const r = id
+    ? await sb.from('planets').update(p).eq('id', id).select().single()
+    : await sb.from('planets').insert({ ...p, sort_order: state.planets.length }).select().single();
+  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
+  if (id) Object.assign(state.planets.find(x => x.id === id), r.data); else state.planets.push(r.data);
+  message(msgEl, `${p.name} salvato.`, 'ok');
+  renderApp();
+  setTimeout(() => message($('#planets-msg'), ''), 2500);
+}
+async function deletePlanetRow(tr) {
+  const id = tr.dataset.id;
+  if (!id) { tr.remove(); return; }
+  const pl = state.planets.find(x => x.id === id);
+  if (!confirm(`Eliminare ${pl.name}?`)) return;
+  const r = await sb.from('planets').delete().eq('id', id);
+  if (r.error) return message($('#planets-msg'), 'Errore: ' + r.error.message);
+  state.planets = state.planets.filter(x => x.id !== id);
+  renderApp();
+}
+
+/* Settings */
+function renderSettings() {
+  const p = state.profile;
+  $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
+}
+$('#save-settings').addEventListener('click', async () => {
+  const patch = {};
+  $$('[data-s]').forEach(el => { patch[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
+  NUM_FIELDS.forEach(k => (patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]));
+  const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
+  if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
+  state.profile = r.data;
+  message($('#settings-msg'), 'Impostazioni salvate.', 'ok');
+  renderApp();
+  setTimeout(() => message($('#settings-msg'), ''), 2500);
+});
+</script>
+</body>
+</html>
