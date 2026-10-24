@@ -178,6 +178,7 @@
       <div id="wiz-planets" class="stack"></div>
       <div class="row">
         <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
+        <button class="secondary" id="wiz-copy-mines" type="button">Copia le miniere del primo su tutti</button>
       </div>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e inizia</button></div>
@@ -213,7 +214,7 @@
 
     <section data-panel="planets" class="stack hidden">
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div>
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="copy-mines-row">Copia miniere del primo su tutti</button><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
         <p class="muted small">Modifica i valori e premi Salva sulla riga. L'energia è quella mostrata nella Visuale impero.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th>Energia</th><th></th></tr></thead>
@@ -427,6 +428,19 @@ function addWizardPlanet(p = {}) {
 }
 $('#wiz-add-planet').addEventListener('click', () => addWizardPlanet());
 
+// Mines are often kept at the same level on every planet: copy them from the first one
+const MINE_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth'];
+function copyMinesFromFirst(rows) {
+  if (rows.length < 2) return 0;
+  const src = MINE_FIELDS.map(f => rows[0].querySelector(`[data-f="${f}"]`).value);
+  rows.slice(1).forEach(r => MINE_FIELDS.forEach((f, i) => (r.querySelector(`[data-f="${f}"]`).value = src[i])));
+  return rows.length - 1;
+}
+$('#wiz-copy-mines').addEventListener('click', () => {
+  const n = copyMinesFromFirst($$('#wiz-planets .planet-card'));
+  message($('#wiz-msg'), n ? `Livelli delle miniere copiati su ${n} pianeti. Correggi quelli diversi.` : 'Aggiungi prima almeno due pianeti.', n ? 'ok' : 'err');
+});
+
 $('#wiz-finish').addEventListener('click', async () => {
   const msgEl = $('#wiz-msg');
   const profile = { user_id: state.user.id, onboarded: true };
@@ -560,6 +574,23 @@ function bindPlanetRows() {
 $('#add-planet-row').addEventListener('click', () => {
   $('#planet-rows').insertAdjacentHTML('beforeend', planetRowHTML({ position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0 }));
   bindPlanetRows();
+});
+$('#copy-mines-row').addEventListener('click', async () => {
+  const rows = $$('#planet-rows tr').filter(tr => tr.dataset.id);
+  const msgEl = $('#planets-msg');
+  if (rows.length < 2) return message(msgEl, 'Servono almeno due pianeti salvati.');
+  const first = rows[0].querySelector('[data-f="name"]').value;
+  if (!confirm(`Copiare i livelli delle miniere di ${first} su tutti gli altri ${rows.length - 1} pianeti e salvare?`)) return;
+  copyMinesFromFirst(rows);
+  const src = readPlanetInputs(rows[0]);
+  const patch = Object.fromEntries(MINE_FIELDS.map(f => [f, src[f]]));
+  const ids = rows.map(tr => tr.dataset.id); // first row included, in case it was edited without saving
+  const r = await sb.from('planets').update(patch).in('id', ids).select();
+  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
+  r.data.forEach(row => Object.assign(state.planets.find(x => x.id === row.id), row));
+  renderApp();
+  message($('#planets-msg'), `Miniere copiate su ${ids.length - 1} pianeti.`, 'ok');
+  setTimeout(() => message($('#planets-msg'), ''), 2500);
 });
 async function savePlanetRow(tr) {
   const p = readPlanetInputs(tr), msgEl = $('#planets-msg');
