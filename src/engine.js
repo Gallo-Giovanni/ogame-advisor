@@ -37,6 +37,10 @@ const Engine = (() => {
     crystal_mine: L => Math.ceil(10 * g(L)),
     deut_synth:   L => Math.ceil(20 * g(L)),
   };
+  // Lifeform technologies can lower the energy used by the mines (e.g. -5%)
+  const consFactor = profile => 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
+  // The fusion reactor burns deuterium: 10 x L x 1.1^L per hour, times the economy speed
+  const fusionDeut = L => 10 * g(L);
   const solarEnergy = L => Math.floor(20 * g(L));
   const fusionEnergy = (L, energyTech) => Math.floor(30 * L * Math.pow(1.05 + 0.01 * energyTech, L));
   const satelliteEnergy = tMax => Math.max(1, Math.floor((tMax + 140) / 6));
@@ -48,20 +52,26 @@ const Engine = (() => {
     return { metal, crystal, deut: 0 };
   }
 
+  // How OGame stacks bonuses (checked against the in-game "Impostazioni risorse" page):
+  // mine row = base x (1 + position bonus); plasma, geologist, staff, class, alliance, lifeforms and
+  // items are each a percentage of that mine row, added together.
   // withItems: include temporary item boosters set on the planet (percent values)
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
     const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
-      + (profile.player_class === 'collector' ? 0.25 : 0);
+      + (profile.player_class === 'collector' ? 0.25 : 0)
+      + (profile.alliance_trader ? 0.05 : 0);
     const p = profile.plasma_tech || 0;
     return {
-      metal:   1 + pos.metal + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100 + it('item_metal'),
-      crystal: 1 + pos.crystal + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100 + it('item_crystal'),
+      posMetal: 1 + pos.metal, posCrystal: 1 + pos.crystal,
+      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100 + it('item_metal')),
+      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100 + it('item_crystal')),
       deut:    1 + common + p * 0.0033 + (+profile.lf_bonus_deut || 0) / 100 + it('item_deut'),
       energy:  1 + (profile.engineer ? 0.10 : 0) + (profile.commanding_staff ? 0.02 : 0)
-               + (profile.player_class === 'collector' ? 0.10 : 0) + (+profile.lf_bonus_energy || 0) / 100 + it('item_energy'),
+               + (profile.player_class === 'collector' ? 0.10 : 0) + (profile.alliance_trader ? 0.05 : 0)
+               + (+profile.lf_bonus_energy || 0) / 100 + it('item_energy'),
     };
   }
 
@@ -76,9 +86,9 @@ const Engine = (() => {
     const mult = multipliers(profile, planet);
     // Upgrades last forever, items expire: the player decides whether rankings count them
     const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
-    const need = consumption.metal_mine(planet.metal_mine)
+    const need = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
-      + consumption.deut_synth(planet.deut_synth);
+      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile));
 
     let balance;
     if (planet.energy_balance !== null && planet.energy_balance !== undefined && planet.energy_balance !== '') {
@@ -98,7 +108,11 @@ const Engine = (() => {
       baseProd.crystal_mine(planet.crystal_mine) * mult.crystal * speed,
       Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * mult.deut * speed,
     ];
-    return { mult, multRank, need, balance, factor, full, actual: full.map(x => x * factor) };
+    // What the planet really yields per hour: mines at the energy factor, plus base income, minus fusion fuel
+    const income = [30 * speed * mult.posMetal, 15 * speed * mult.posCrystal, 0];
+    const fuel = fusionDeut(planet.fusion_reactor || 0) * speed;
+    const actual = full.map((x, i) => x * factor + income[i] - (i === 2 ? fuel : 0));
+    return { mult, multRank, need, balance, factor, full, income, fuel, actual };
   }
 
   // Cheapest way to add `energy` units on a planet: satellites or solar plant levels
@@ -172,7 +186,7 @@ const Engine = (() => {
     const astroCost = cost.slice();
     add(COLONY_SHIP);
     MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
-    const needEnergy = consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth);
+    const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile));
     const fix = energyFix(profile, colony, needEnergy);
     if (fix) add(fix.cost);
 
@@ -224,7 +238,7 @@ const Engine = (() => {
         const next = L + 1;
         if (overCap(profile[m.cap], next)) return; // player's "stop at level"
         const cost = levelCost(m.key, next);
-        const extraNeed = consumption[m.key](next) - consumption[m.key](L);
+        const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
         const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
@@ -255,8 +269,9 @@ const Engine = (() => {
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
       const s = profile.economy_speed;
-      plasmaGain[0] += baseProd.metal_mine(planet.metal_mine) * 0.01 * s;
-      plasmaGain[1] += baseProd.crystal_mine(planet.crystal_mine) * 0.0066 * s;
+      const pos = positionBonus(planet.position);
+      plasmaGain[0] += baseProd.metal_mine(planet.metal_mine) * (1 + pos.metal) * 0.01 * s;
+      plasmaGain[1] += baseProd.crystal_mine(planet.crystal_mine) * (1 + pos.crystal) * 0.0066 * s;
       plasmaGain[2] += Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * 0.0033 * s;
     });
     const pEq = toMetalEq(plasmaCost, profile), pGain = gainEq(plasmaGain);
@@ -284,7 +299,7 @@ const Engine = (() => {
     let balance = st.balance;
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
-      balance -= consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1);
+      balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile));
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;

@@ -47,7 +47,7 @@ assert.ok(legnoPatch.planet.energy_balance >= 0);
 // Items: a +40% metal booster raises production; excluding items from rankings keeps gains unchanged
 const boosted = { ...planets[0], item_metal: 40 };
 const base = E.planetState(profile, planets[0]).full[0];
-assert.ok(Math.abs(E.planetState(profile, boosted).full[0] / base - (1 + 0.40 / 1.23)) < 1e-9);
+assert.ok(Math.abs(E.planetState(profile, boosted).full[0] / base - 1.40) < 1e-9); // items are a % of the mine row
 const gainWith = E.recommendations(profile, [boosted]).find(r => r.key === 'metal_mine').gainEq;
 const gainWithout = E.recommendations({ ...profile, items_in_ranking: false }, [boosted]).find(r => r.key === 'metal_mine').gainEq;
 const gainPlain = E.recommendations(profile, [planets[0]]).find(r => r.key === 'metal_mine').gainEq;

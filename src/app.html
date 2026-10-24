@@ -158,19 +158,22 @@
         <label class="check"><input type="checkbox" data-p="geologist"> Geologo attivo</label>
         <label class="check"><input type="checkbox" data-p="engineer"> Ingegnere attivo</label>
         <label class="check"><input type="checkbox" data-p="commanding_staff"> Staff di comando completo</label>
+        <label class="check"><input type="checkbox" data-p="alliance_trader"> Alleanza di classe Mercante (+5%)</label>
       </div>
       <div class="row"><button data-next="2">Avanti</button></div>
     </div>
 
     <div class="card stack hidden" data-wiz="2">
       <h2>2 · Bonus e valore delle risorse</h2>
-      <p class="muted small">Bonus delle forme di vita: apri <b>Risorse → Impostazioni di produzione</b> e somma le percentuali delle righe "Forme di vita". Se non le usi lascia 0. Gli oggetti temporanei (booster) non vanno inseriti.</p>
+      <p class="muted small">Bonus delle forme di vita: in gioco apri <b>Risorse → Impostazioni risorse</b>. Il bonus è la somma delle righe degli edifici delle forme di vita (es. Fusione magmatica, Cristalleria) e della riga "Bonus Tecnologia Forme di vita", in percentuale della riga della miniera. Usa il calcolatore qui sotto: copi i numeri e la percentuale si compila da sola. Se non usi le forme di vita lascia 0. Gli item non vanno inseriti qui.</p>
       <div class="grid">
         <div><label>Bonus forme di vita metallo %</label><input data-p="lf_bonus_metal" type="number" step="0.01" min="0" value="0"></div>
         <div><label>Bonus forme di vita cristallo %</label><input data-p="lf_bonus_crystal" type="number" step="0.01" min="0" value="0"></div>
         <div><label>Bonus forme di vita deuterio %</label><input data-p="lf_bonus_deut" type="number" step="0.01" min="0" value="0"></div>
         <div><label>Bonus forme di vita energia %</label><input data-p="lf_bonus_energy" type="number" step="0.01" min="0" value="0"></div>
+        <div><label>Riduzione consumo energia miniere %</label><input data-p="energy_consumption_reduction" type="number" step="0.01" min="0" max="100" value="0"></div>
       </div>
+      <div class="lf-helper" data-prefix="p"></div>
       <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
       <div class="grid">
         <div><label>Metallo</label><input data-p="ratio_metal" type="number" step="0.1" min="0.1" value="1"></div>
@@ -261,6 +264,10 @@
           <div><label>Forme di vita cristallo %</label><input data-s="lf_bonus_crystal" type="number" step="0.01" min="0"></div>
           <div><label>Forme di vita deuterio %</label><input data-s="lf_bonus_deut" type="number" step="0.01" min="0"></div>
           <div><label>Forme di vita energia %</label><input data-s="lf_bonus_energy" type="number" step="0.01" min="0"></div>
+          <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
+        </div>
+        <div class="lf-helper" data-prefix="s"></div>
+        <div class="grid">
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore deuterio</label><input data-s="ratio_deut" type="number" step="0.1" min="0.1"></div>
@@ -279,6 +286,7 @@
           <label class="check"><input type="checkbox" data-s="geologist"> Geologo</label>
           <label class="check"><input type="checkbox" data-s="engineer"> Ingegnere</label>
           <label class="check"><input type="checkbox" data-s="commanding_staff"> Staff di comando</label>
+          <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
         </div>
         <div id="settings-msg" class="msg hidden"></div>
@@ -319,13 +327,14 @@ const state = { user: null, profile: null, planets: [], authMode: 'login' };
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, commanding_staff: false, items_in_ranking: true,
+  geologist: false, engineer: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true,
+  energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
-const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'lf_bonus_metal', 'lf_bonus_crystal', 'lf_bonus_deut', 'lf_bonus_energy', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
+const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'lf_bonus_metal', 'lf_bonus_crystal', 'lf_bonus_deut', 'lf_bonus_energy', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
 const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'energy_balance'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
@@ -747,6 +756,25 @@ async function deletePlanetRow(tr) {
   tr.remove();
   renderApp(); // the table keeps any unsaved edits
 }
+
+/* Lifeform bonus helper: from the numbers on the in-game "Impostazioni risorse" page to percentages */
+document.querySelectorAll('.lf-helper').forEach(box => {
+  const pre = box.dataset.prefix;
+  const rows = [['metal', 'Metallo', 'Miniera di Metallo'], ['crystal', 'Cristallo', 'Miniera di Cristalli'], ['deut', 'Deuterio', 'Sintetizzatore di deuterio']];
+  box.innerHTML = `<details class="card" style="background:var(--bg2)">
+    <summary style="cursor:pointer"><b>Calcolatore bonus forme di vita</b> <span class="muted small">(apri se non conosci le percentuali)</span></summary>
+    <p class="muted small">Dalla pagina Impostazioni risorse di un pianeta copia: il valore della riga della miniera e la somma delle righe forme di vita della stessa colonna (edifici come Fusione magmatica + "Bonus Tecnologia Forme di vita").</p>
+    <div class="grid">${rows.map(([k, l, row]) => `
+      <div><label>${row}</label><input type="number" min="0" data-lfrow="${k}" placeholder="es. 232127"></div>
+      <div><label>Forme di vita ${l.toLowerCase()} (somma)</label><input type="number" min="0" data-lfsum="${k}" placeholder="es. 112483"></div>`).join('')}
+    </div></details>`;
+  const calc = k => {
+    const row = +box.querySelector(`[data-lfrow="${k}"]`).value, sum = +box.querySelector(`[data-lfsum="${k}"]`).value;
+    if (row > 0 && sum >= 0)
+      document.querySelectorAll(`[data-${pre}="lf_bonus_${k}"]`).forEach(el => { el.value = (sum / row * 100).toFixed(2); });
+  };
+  box.addEventListener('input', e => { const k = e.target.dataset.lfrow || e.target.dataset.lfsum; if (k) calc(k); });
+});
 
 /* Updates ("Novità"): each user sees the entries with an id above the last one they confirmed */
 const LATEST_UPDATE = Math.max(0, ...CHANGELOG.map(u => u.id));

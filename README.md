@@ -21,7 +21,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 | User interface and Supabase calls | `src/app.html` |
 | App updates shown to users | `src/changelog.js` |
 | Build: inlines engine and changelog into the page | `build.js` → `index.html` |
-| Engine tests | `tests/engine.test.js` |
+| Engine tests, incl. a check against real game numbers | `tests/engine.test.js`, `tests/betulla.test.js` |
 
 Resources are converted to metal-equivalent with the player's ratio (default 1 : 1.5 : 2.5), then:
 
@@ -32,6 +32,7 @@ payback (hours) = cost in metal-eq / extra production per hour in metal-eq
 ## Run
 ```
 node tests/engine.test.js      # engine tests
+node tests/betulla.test.js     # engine vs real game numbers
 node tests/changelog.test.js   # changelog checks
 node build.js               # build index.html
 ```
@@ -44,5 +45,8 @@ Add an entry at the top of `src/changelog.js` with the next `id`, a date, a titl
 - `profiles`: one row per user (class, speed, technologies, officers, bonuses, resource values)
 - `planets`: one row per planet (coordinates, temperature, building levels, satellites, in-game energy balance)
 
+## Accuracy
+`tests/betulla.test.js` reproduces a real in-game "Impostazioni risorse" page (metal, crystal, deuterium and energy per hour) within a few units. Bonus stacking follows the game: the position bonus multiplies the mine's base output, and every other bonus (plasma, officers, class, Trader alliance, lifeforms, items) is a percentage of that value.
+
 ## Limits
-Standard OGame formulas. Lifeform buildings and technologies are modelled only as percentage bonuses entered by the user; temporary items are ignored.
+Lifeform buildings and technologies are entered as one percentage per resource (an in-app calculator derives it from the game page), so planets with very different lifeform buildings are approximated by the same value.

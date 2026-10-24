@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 12, date: '2026-10-24', title: 'Calcoli verificati con il gioco',
+    text: 'Le formule sono state confrontate con la pagina "Impostazioni risorse" del gioco e ora coincidono. Il bonus di posizione moltiplica la miniera e gli altri bonus si calcolano su quel valore; aggiunti l\'alleanza Mercante (+5%), la riduzione del consumo di energia, il reddito base e il deuterio consumato dalla centrale a fusione. In Impostazioni c\'è un calcolatore per i bonus delle forme di vita: controlla i tuoi valori.',
+  },
+  {
     id: 11, date: '2026-10-24', title: 'Vista per singolo pianeta',
     text: 'In Consigli, dal menu "Mostra" scegli un pianeta: vedi solo la sua produzione (all\'ora e al giorno), la sua energia e i suoi upgrade. Con "Tutto l\'impero" torni alla vista completa. L\'app ricorda la tua scelta.',
   },
