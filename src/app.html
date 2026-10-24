@@ -174,7 +174,7 @@
 
     <div class="card stack hidden" data-wiz="3">
       <h2>3 · Pianeti</h2>
-      <p class="muted small">Copia i livelli dalla <b>Visuale impero</b>. L'energia è il numero sotto il pianeta (anche negativo): se lo inserisci, i calcoli sono molto più precisi.</p>
+      <p class="muted small">Copia i livelli dalla <b>Visuale impero</b>. Delle coordinate serve solo la posizione (il terzo numero, es. 8 in [1:364:8]): decide il bonus di produzione. L'energia è il numero sotto il pianeta (anche negativo): se lo inserisci, i calcoli sono molto più precisi.</p>
       <div id="wiz-planets" class="stack"></div>
       <div class="row">
         <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
@@ -372,14 +372,14 @@ function readPlanetInputs(container) {
     if (!el) return;
     const v = el.value.trim();
     if (f === 'name') p[f] = v;
-    else if (f === 'energy_balance') p[f] = v === '' ? null : parseInt(v, 10);
+    else if (['energy_balance', 'galaxy', 'system'].includes(f)) p[f] = v === '' ? null : parseInt(v, 10);
     else p[f] = v === '' ? 0 : parseInt(v, 10);
   });
   return p;
 }
 function validatePlanet(p) {
   if (!p.name) return 'Ogni pianeta deve avere un nome.';
-  if (!(p.galaxy >= 1) || !(p.system >= 1)) return `${p.name}: coordinate non valide.`;
+  if ((p.galaxy !== null && !(p.galaxy >= 1)) || (p.system !== null && !(p.system >= 1))) return `${p.name}: galassia e sistema devono essere maggiori di 0 (oppure lasciali vuoti).`;
   if (!(p.position >= 1 && p.position <= 15)) return `${p.name}: la posizione va da 1 a 15.`;
   for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'])
     if (!(p[f] >= 0)) return `${p.name}: valori non validi.`;
@@ -410,7 +410,7 @@ function planetFieldsHTML(p = {}) {
   return `
     <div class="grid">
       <div><label>Nome</label><input data-f="name" value="${v('name')}" placeholder="Es. Betulla"></div>
-      ${f('galaxy', 'Galassia', 'min="1"')}${f('system', 'Sistema', 'min="1"')}${f('position', 'Posizione', 'min="1" max="15"')}
+      ${f('galaxy', 'Galassia (facoltativa)', 'min="1"')}${f('system', 'Sistema (facoltativo)', 'min="1"')}${f('position', 'Posizione (1–15)', 'min="1" max="15"')}
       ${f('temp_max', 'Temperatura max °C')}
       ${f('metal_mine', 'Miniera metallo', 'min="0"')}${f('crystal_mine', 'Miniera cristallo', 'min="0"')}${f('deut_synth', 'Sintetizzatore deuterio', 'min="0"')}
       ${f('solar_plant', 'Centrale solare', 'min="0"')}${f('fusion_reactor', 'Centrale a fusione', 'min="0"')}${f('solar_satellites', 'Satelliti solari', 'min="0"')}
