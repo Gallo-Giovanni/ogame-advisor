@@ -158,10 +158,10 @@
       <h2>2 · Bonus e valore delle risorse</h2>
       <p class="muted small">Bonus delle forme di vita: apri <b>Risorse → Impostazioni di produzione</b> e somma le percentuali delle righe "Forme di vita". Se non le usi lascia 0. Gli oggetti temporanei (booster) non vanno inseriti.</p>
       <div class="grid">
-        <div><label>Bonus forme di vita metallo %</label><input data-p="lf_bonus_metal" type="number" step="0.01" value="0"></div>
-        <div><label>Bonus forme di vita cristallo %</label><input data-p="lf_bonus_crystal" type="number" step="0.01" value="0"></div>
-        <div><label>Bonus forme di vita deuterio %</label><input data-p="lf_bonus_deut" type="number" step="0.01" value="0"></div>
-        <div><label>Bonus forme di vita energia %</label><input data-p="lf_bonus_energy" type="number" step="0.01" value="0"></div>
+        <div><label>Bonus forme di vita metallo %</label><input data-p="lf_bonus_metal" type="number" step="0.01" min="0" value="0"></div>
+        <div><label>Bonus forme di vita cristallo %</label><input data-p="lf_bonus_crystal" type="number" step="0.01" min="0" value="0"></div>
+        <div><label>Bonus forme di vita deuterio %</label><input data-p="lf_bonus_deut" type="number" step="0.01" min="0" value="0"></div>
+        <div><label>Bonus forme di vita energia %</label><input data-p="lf_bonus_energy" type="number" step="0.01" min="0" value="0"></div>
       </div>
       <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
       <div class="grid">
@@ -238,10 +238,10 @@
           <div><label>Velocità di sviluppo</label><input data-s="economy_speed" type="number" min="1" max="20"></div>
           <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
-          <div><label>Forme di vita metallo %</label><input data-s="lf_bonus_metal" type="number" step="0.01"></div>
-          <div><label>Forme di vita cristallo %</label><input data-s="lf_bonus_crystal" type="number" step="0.01"></div>
-          <div><label>Forme di vita deuterio %</label><input data-s="lf_bonus_deut" type="number" step="0.01"></div>
-          <div><label>Forme di vita energia %</label><input data-s="lf_bonus_energy" type="number" step="0.01"></div>
+          <div><label>Forme di vita metallo %</label><input data-s="lf_bonus_metal" type="number" step="0.01" min="0"></div>
+          <div><label>Forme di vita cristallo %</label><input data-s="lf_bonus_crystal" type="number" step="0.01" min="0"></div>
+          <div><label>Forme di vita deuterio %</label><input data-s="lf_bonus_deut" type="number" step="0.01" min="0"></div>
+          <div><label>Forme di vita energia %</label><input data-s="lf_bonus_energy" type="number" step="0.01" min="0"></div>
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore deuterio</label><input data-s="ratio_deut" type="number" step="0.1" min="0.1"></div>
@@ -284,6 +284,28 @@ const PROFILE_DEFAULTS = {
 };
 const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'lf_bonus_metal', 'lf_bonus_crystal', 'lf_bonus_deut', 'lf_bonus_energy', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
 const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'energy_balance'];
+
+// Allowed range of each planet field. Temperature and energy can be negative in OGame.
+const FIELD_LIMITS = {
+  galaxy: 'min="1"', system: 'min="1"', position: 'min="1" max="15"',
+  metal_mine: 'min="0"', crystal_mine: 'min="0"', deut_synth: 'min="0"',
+  solar_plant: 'min="0"', fusion_reactor: 'min="0"', solar_satellites: 'min="0"',
+};
+
+// Number fields with a minimum >= 0 refuse the minus sign, and out-of-range values are corrected.
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (el.tagName === 'INPUT' && el.type === 'number' && el.min !== '' && +el.min >= 0 && ['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.tagName !== 'INPUT' || el.type !== 'number' || el.value === '') return;
+  let v = Number(el.value);
+  if (el.min !== '' && v < +el.min) v = +el.min;
+  if (el.max !== '' && v > +el.max) v = +el.max;
+  if (el.step !== 'any' && !el.step.includes('.') && el.dataset.f) v = Math.trunc(v);
+  if (String(v) !== el.value) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }
+});
 
 function show(view) {
   ['loading', 'auth', 'onboarding', 'app'].forEach(v => $('#view-' + v).classList.toggle('hidden', v !== view));
@@ -388,7 +410,7 @@ function validatePlanet(p) {
   if ((p.galaxy !== null && !(p.galaxy >= 1)) || (p.system !== null && !(p.system >= 1))) return `${p.name}: galassia e sistema devono essere maggiori di 0 (oppure lasciali vuoti).`;
   if (!(p.position >= 1 && p.position <= 15)) return `${p.name}: la posizione va da 1 a 15.`;
   for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'])
-    if (!(p[f] >= 0)) return `${p.name}: valori non validi.`;
+    if (!(p[f] >= 0)) return `${p.name}: i livelli e i satelliti non possono essere negativi.`;
   return null;
 }
 
@@ -416,7 +438,7 @@ function planetFieldsHTML(p = {}) {
   return `
     <div class="grid">
       <div><label>Nome</label><input data-f="name" value="${v('name')}" placeholder="Es. Betulla"></div>
-      ${f('galaxy', 'Galassia (facoltativa)', 'min="1"')}${f('system', 'Sistema (facoltativo)', 'min="1"')}${f('position', 'Posizione (1–15)', 'min="1" max="15"')}
+      ${f('galaxy', 'Galassia (facoltativa)', FIELD_LIMITS.galaxy)}${f('system', 'Sistema (facoltativo)', FIELD_LIMITS.system)}${f('position', 'Posizione (1–15)', FIELD_LIMITS.position)}
       ${f('temp_max', 'Temperatura max °C')}
       ${f('metal_mine', 'Miniera metallo', 'min="0"')}${f('crystal_mine', 'Miniera cristallo', 'min="0"')}${f('deut_synth', 'Sintetizzatore deuterio', 'min="0"')}
       ${f('solar_plant', 'Centrale solare', 'min="0"')}${f('fusion_reactor', 'Centrale a fusione', 'min="0"')}${f('solar_satellites', 'Satelliti solari', 'min="0"')}
@@ -564,7 +586,7 @@ async function completeRec(rec, btn) {
 
 /* Planets table: edits stay in the table until "Salva tutte le modifiche" */
 function planetRowHTML(p) {
-  const cell = (k, cls = '') => `<td><input data-f="${k}" class="${cls}" ${k === 'name' ? '' : 'type="number"'} value="${esc(p[k] ?? '')}"></td>`;
+  const cell = (k, cls = '') => `<td><input data-f="${k}" class="${cls}" ${k === 'name' ? '' : 'type="number" ' + (FIELD_LIMITS[k] || '')} value="${esc(p[k] ?? '')}"></td>`;
   const st = p.id ? Engine.planetState(numericProfile(state.profile), p) : null;
   return `<tr data-id="${p.id || ''}">
     <td><button class="ghost" data-up title="Sposta su" aria-label="Sposta su">▲</button><button class="ghost" data-down title="Sposta giù" aria-label="Sposta giù">▼</button></td>
