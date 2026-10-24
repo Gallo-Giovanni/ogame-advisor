@@ -215,11 +215,15 @@
     <section data-panel="planets" class="stack hidden">
       <div class="card">
         <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="copy-mines-row">Copia miniere e centrali del primo su tutti</button><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
-        <p class="muted small">Modifica i valori e premi Salva sulla riga. L'energia è quella mostrata nella Visuale impero.</p>
+        <p class="muted small">Modifica, aggiungi o riordina i pianeti, poi premi <b>Salva tutte le modifiche</b> in fondo. L'energia è quella mostrata nella Visuale impero.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Ordine</th><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th>Energia</th><th></th></tr></thead>
           <tbody id="planet-rows"></tbody>
         </table></div>
+        <div class="row" style="margin-top:12px;justify-content:space-between">
+          <span id="unsaved-note" class="small hidden" style="color:var(--warn)">Hai modifiche non salvate</span>
+          <button id="save-all-planets" style="margin-left:auto">Salva tutte le modifiche</button>
+        </div>
         <div id="planets-msg" class="msg hidden" style="margin-top:10px"></div>
       </div>
     </section>
@@ -354,6 +358,7 @@ async function loadUserData() {
   if (e1 || e2) { alert('Errore nel caricamento: ' + (e1 || e2).message); show('auth'); return; }
   state.profile = profile;
   state.planets = planets || [];
+  setDirty(false);
   if (!profile || !profile.onboarded) startOnboarding();
   else renderApp();
 }
@@ -546,13 +551,18 @@ async function completeRec(rec, btn) {
     if (!r.error) state.profile = r.data;
   } else {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
-    if (!r.error) Object.assign(planet, r.data);
+    if (!r.error) {
+      Object.assign(planet, r.data);
+      // keep an unsaved planets table in sync, so "Save all" doesn't overwrite this change
+      const tr = document.querySelector(`#planet-rows tr[data-id="${planet.id}"]`);
+      if (tr) Object.entries(patch.planet).forEach(([k, v]) => { const el = tr.querySelector(`[data-f="${k}"]`); if (el) el.value = v ?? ''; });
+    }
   }
   if (r.error) { alert('Errore: ' + r.error.message); btn.disabled = false; return; }
   renderApp();
 }
 
-/* Planets table */
+/* Planets table: edits stay in the table until "Salva tutte le modifiche" */
 function planetRowHTML(p) {
   const cell = (k, cls = '') => `<td><input data-f="${k}" class="${cls}" ${k === 'name' ? '' : 'type="number"'} value="${esc(p[k] ?? '')}"></td>`;
   const st = p.id ? Engine.planetState(numericProfile(state.profile), p) : null;
@@ -561,83 +571,85 @@ function planetRowHTML(p) {
     ${cell('name', 'name')}${cell('galaxy')}${cell('system')}${cell('position')}${cell('temp_max')}
     ${cell('metal_mine')}${cell('crystal_mine')}${cell('deut_synth')}${cell('solar_plant')}${cell('fusion_reactor')}${cell('solar_satellites')}
     <td><input data-f="energy_balance" type="number" class="${st && st.balance < 0 ? 'neg' : ''}" value="${p.energy_balance ?? ''}" placeholder="—"></td>
-    <td><button class="secondary" data-save style="padding:6px 10px">Salva</button> <button class="danger" data-del style="padding:6px 10px">✕</button></td>
+    <td><button class="danger" data-del title="Elimina" aria-label="Elimina" style="padding:6px 10px">✕</button></td>
   </tr>`;
 }
+function setDirty(dirty) {
+  state.tableDirty = dirty;
+  $('#save-all-planets').textContent = dirty ? 'Salva tutte le modifiche •' : 'Salva tutte le modifiche';
+  $('#unsaved-note').classList.toggle('hidden', !dirty);
+}
 function renderPlanetTable() {
+  if (state.tableDirty) return; // never throw away unsaved edits
   $('#planet-rows').innerHTML = state.planets.map(planetRowHTML).join('');
   bindPlanetRows();
 }
 function bindPlanetRows() {
   $$('#planet-rows tr').forEach(tr => {
-    tr.querySelector('[data-save]').onclick = () => savePlanetRow(tr);
     tr.querySelector('[data-del]').onclick = () => deletePlanetRow(tr);
-    tr.querySelector('[data-up]').onclick = () => movePlanetRow(tr, -1);
-    tr.querySelector('[data-down]').onclick = () => movePlanetRow(tr, 1);
+    tr.querySelector('[data-up]').onclick = () => moveRow(tr, -1);
+    tr.querySelector('[data-down]').onclick = () => moveRow(tr, 1);
   });
 }
-// Moves the row in the table (keeping any unsaved edits) and saves the new order
-async function movePlanetRow(tr, dir) {
+$('#planet-rows').addEventListener('input', () => setDirty(true));
+window.addEventListener('beforeunload', e => { if (state.tableDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function moveRow(tr, dir) {
   const sibling = dir < 0 ? tr.previousElementSibling : tr.nextElementSibling;
   if (!sibling) return;
   if (dir < 0) sibling.before(tr); else sibling.after(tr);
-  const ids = $$('#planet-rows tr').map(r => r.dataset.id).filter(Boolean);
-  const changed = [];
-  ids.forEach((id, i) => {
-    const pl = state.planets.find(x => x.id === id);
-    if (pl.sort_order !== i) { pl.sort_order = i; changed.push(pl); }
-  });
-  state.planets.sort((a, b) => a.sort_order - b.sort_order);
-  const results = await Promise.all(changed.map(pl => sb.from('planets').update({ sort_order: pl.sort_order }).eq('id', pl.id)));
-  const err = results.find(r => r.error);
-  if (err) message($('#planets-msg'), 'Errore nel salvare l\'ordine: ' + err.error.message);
-  const cur = $('#filter-planet').value;
-  $('#filter-planet').innerHTML = '<option value="">Tutti i pianeti</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
-  $('#filter-planet').value = cur;
+  setDirty(true);
 }
 $('#add-planet-row').addEventListener('click', () => {
   $('#planet-rows').insertAdjacentHTML('beforeend', planetRowHTML({ position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0 }));
   bindPlanetRows();
+  setDirty(true);
+  $('#planet-rows tr:last-child [data-f="name"]').focus();
 });
-$('#copy-mines-row').addEventListener('click', async () => {
-  const rows = $$('#planet-rows tr').filter(tr => tr.dataset.id);
-  const msgEl = $('#planets-msg');
-  if (rows.length < 2) return message(msgEl, 'Servono almeno due pianeti salvati.');
-  const first = rows[0].querySelector('[data-f="name"]').value;
-  if (!confirm(`Copiare miniere, centrali e satelliti di ${first} su tutti gli altri ${rows.length - 1} pianeti e salvare?`)) return;
-  copyMinesFromFirst(rows);
-  const src = readPlanetInputs(rows[0]);
-  const patch = Object.fromEntries(MINE_FIELDS.map(f => [f, src[f]]));
-  const ids = rows.map(tr => tr.dataset.id); // first row included, in case it was edited without saving
-  const r = await sb.from('planets').update(patch).in('id', ids).select();
-  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
-  r.data.forEach(row => Object.assign(state.planets.find(x => x.id === row.id), row));
-  renderApp();
-  message($('#planets-msg'), `Miniere, centrali e satelliti copiati su ${ids.length - 1} pianeti.`, 'ok');
-  setTimeout(() => message($('#planets-msg'), ''), 2500);
+$('#copy-mines-row').addEventListener('click', () => {
+  const rows = $$('#planet-rows tr');
+  const n = copyMinesFromFirst(rows);
+  if (!n) return message($('#planets-msg'), 'Servono almeno due pianeti.');
+  setDirty(true);
+  message($('#planets-msg'), `Valori copiati su ${n} pianeti. Premi "Salva tutte le modifiche" per confermare.`, 'ok');
 });
-async function savePlanetRow(tr) {
-  const p = readPlanetInputs(tr), msgEl = $('#planets-msg');
-  const err = validatePlanet(p); if (err) return message(msgEl, err);
-  const id = tr.dataset.id;
-  const r = id
-    ? await sb.from('planets').update(p).eq('id', id).select().single()
-    : await sb.from('planets').insert({ ...p, sort_order: state.planets.length }).select().single();
-  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
-  if (id) Object.assign(state.planets.find(x => x.id === id), r.data); else state.planets.push(r.data);
-  message(msgEl, `${p.name} salvato.`, 'ok');
-  renderApp();
-  setTimeout(() => message($('#planets-msg'), ''), 2500);
-}
+
+$('#save-all-planets').addEventListener('click', async () => {
+  const msgEl = $('#planets-msg'), btn = $('#save-all-planets');
+  const rows = $$('#planet-rows tr');
+  const items = rows.map((tr, i) => ({ id: tr.dataset.id || null, data: { ...readPlanetInputs(tr), sort_order: i } }));
+  for (const it of items) { const err = validatePlanet(it.data); if (err) return message(msgEl, err); }
+  btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
+  try {
+    const saved = [];
+    for (const it of items) {
+      const r = it.id
+        ? await sb.from('planets').update(it.data).eq('id', it.id).select().single()
+        : await sb.from('planets').insert(it.data).select().single();
+      if (r.error) throw r.error;
+      saved.push(r.data);
+      if (!it.id) rows[items.indexOf(it)].dataset.id = r.data.id; // avoids a duplicate if a later row fails
+    }
+    state.planets = saved;
+    setDirty(false);
+    renderApp();
+    message(msgEl, `Salvati ${saved.length} pianeti.`, 'ok');
+    setTimeout(() => message($('#planets-msg'), ''), 2500);
+  } catch (err) {
+    message(msgEl, 'Errore: ' + err.message + '. Le modifiche sono ancora nella tabella: riprova.');
+  } finally { btn.disabled = false; }
+});
+
 async function deletePlanetRow(tr) {
   const id = tr.dataset.id;
+  const name = tr.querySelector('[data-f="name"]').value || 'questo pianeta';
   if (!id) { tr.remove(); return; }
-  const pl = state.planets.find(x => x.id === id);
-  if (!confirm(`Eliminare ${pl.name}?`)) return;
+  if (!confirm(`Eliminare ${name}? L'operazione è immediata.`)) return;
   const r = await sb.from('planets').delete().eq('id', id);
   if (r.error) return message($('#planets-msg'), 'Errore: ' + r.error.message);
   state.planets = state.planets.filter(x => x.id !== id);
-  renderApp();
+  tr.remove();
+  renderApp(); // the table keeps any unsaved edits
 }
 
 /* Settings */
