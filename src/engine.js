@@ -46,18 +46,20 @@ const Engine = (() => {
     return { metal, crystal, deut: 0 };
   }
 
-  function multipliers(profile, planet) {
+  // withItems: include temporary item boosters set on the planet (percent values)
+  function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
+    const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
       + (profile.player_class === 'collector' ? 0.25 : 0);
     const p = profile.plasma_tech || 0;
     return {
-      metal:   1 + pos.metal + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100,
-      crystal: 1 + pos.crystal + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100,
-      deut:    1 + common + p * 0.0033 + (+profile.lf_bonus_deut || 0) / 100,
+      metal:   1 + pos.metal + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100 + it('item_metal'),
+      crystal: 1 + pos.crystal + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100 + it('item_crystal'),
+      deut:    1 + common + p * 0.0033 + (+profile.lf_bonus_deut || 0) / 100 + it('item_deut'),
       energy:  1 + (profile.engineer ? 0.10 : 0) + (profile.commanding_staff ? 0.02 : 0)
-               + (profile.player_class === 'collector' ? 0.10 : 0) + (+profile.lf_bonus_energy || 0) / 100,
+               + (profile.player_class === 'collector' ? 0.10 : 0) + (+profile.lf_bonus_energy || 0) / 100 + it('item_energy'),
     };
   }
 
@@ -70,6 +72,8 @@ const Engine = (() => {
   function planetState(profile, planet) {
     const speed = profile.economy_speed;
     const mult = multipliers(profile, planet);
+    // Upgrades last forever, items expire: the player decides whether rankings count them
+    const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
     const need = consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
       + consumption.deut_synth(planet.deut_synth);
@@ -92,13 +96,13 @@ const Engine = (() => {
       baseProd.crystal_mine(planet.crystal_mine) * mult.crystal * speed,
       Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * mult.deut * speed,
     ];
-    return { mult, need, balance, factor, full, actual: full.map(x => x * factor) };
+    return { mult, multRank, need, balance, factor, full, actual: full.map(x => x * factor) };
   }
 
   // Cheapest way to add `energy` units on a planet: satellites or solar plant levels
   function energyFix(profile, planet, energy) {
     if (energy <= 0) return null;
-    const mult = multipliers(profile, planet);
+    const mult = multipliers(profile, planet, profile.items_in_ranking !== false);
     const perSat = Math.floor(satelliteEnergy(planet.temp_max) * mult.energy);
     const sats = Math.ceil(energy / perSat);
     const satCost = SATELLITE_COST.map(x => x * sats);
@@ -156,7 +160,7 @@ const Engine = (() => {
         const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
 
         const prodDelta = [0, 0, 0];
-        const mult = [st.mult.metal, st.mult.crystal, st.mult.deut][m.res];
+        const mult = [st.multRank.metal, st.multRank.crystal, st.multRank.deut][m.res];
         const base = m.key === 'deut_synth'
           ? Math.max(0, baseProd.deut_synth(next, planet.temp_max)) - Math.max(0, baseProd.deut_synth(L, planet.temp_max))
           : baseProd[m.key](next) - baseProd[m.key](L);

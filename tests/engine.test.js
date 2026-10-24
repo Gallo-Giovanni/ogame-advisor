@@ -44,6 +44,15 @@ const legnoPatch = E.applyRecommendation(profile, planets[2], legnoMetal);
 assert.strictEqual(legnoPatch.planet.metal_mine, 37);
 assert.ok(legnoPatch.planet.energy_balance >= 0);
 
+// Items: a +40% metal booster raises production; excluding items from rankings keeps gains unchanged
+const boosted = { ...planets[0], item_metal: 40 };
+const base = E.planetState(profile, planets[0]).full[0];
+assert.ok(Math.abs(E.planetState(profile, boosted).full[0] / base - (1 + 0.40 / 1.23)) < 1e-9);
+const gainWith = E.recommendations(profile, [boosted]).find(r => r.key === 'metal_mine').gainEq;
+const gainWithout = E.recommendations({ ...profile, items_in_ranking: false }, [boosted]).find(r => r.key === 'metal_mine').gainEq;
+const gainPlain = E.recommendations(profile, [planets[0]]).find(r => r.key === 'metal_mine').gainEq;
+assert.ok(gainWith > gainPlain && Math.abs(gainWithout - gainPlain) < 1e-9);
+
 recs.slice(0, 8).forEach(r =>
   console.log(r.planet.padEnd(16), r.title.padEnd(34), 'ammortamento', (r.payback).toFixed(1), 'h |', r.detail));
 console.log('\nAll tests passed');

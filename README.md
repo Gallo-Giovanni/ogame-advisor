@@ -6,6 +6,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - Email login (Supabase Auth); every user only sees their own data (Row Level Security)
 - First-run wizard: account, class, speed, plasma, officers, lifeform bonuses, resource values, planets
 - Recommendations ranked by payback time, with energy included: if an upgrade needs more energy, the cheapest fix (solar satellites or solar plant levels) is added to its cost
+- Per-planet item boosters (metal, crystal, deuterium, energy %); the player chooses whether rankings count them, since items expire and upgrades don't
 - Energy deficits are flagged first, because they cut production on the whole planet
 - "Done" button: updates the planet and re-ranks instantly
 - Single HTML file, works on desktop and mobile
