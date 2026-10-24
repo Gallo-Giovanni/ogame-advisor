@@ -7,6 +7,8 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - First-run wizard: account, class, speed, plasma, officers, lifeform bonuses, resource values, planets
 - Recommendations ranked by payback time, with energy included: if an upgrade needs more energy, the cheapest fix (solar satellites or solar plant levels) is added to its cost
 - Per-planet item boosters (metal, crystal, deuterium, energy %); the player chooses whether rankings count them, since items expire and upgrades don't
+- New colony option: Astrophysics levels actually needed for one more planet, colony ship, mines up to the empire average and the energy to run them, compared with the output of an average planet
+- "Stop at level" caps for each mine, Plasma and Astrophysics: capped upgrades are never suggested
 - Energy deficits are flagged first, because they cut production on the whole planet
 - "Done" button: updates the planet and re-ranks instantly
 - Single HTML file, works on desktop and mobile

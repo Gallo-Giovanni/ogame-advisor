@@ -14,9 +14,11 @@ const Engine = (() => {
   };
   const SATELLITE_COST = [0, 2000, 500];
   const PLASMA = { base: [2000, 4000, 1000], factor: 2 };
+  const ASTRO = { base: [4000, 8000, 4000], factor: 1.75 };
+  const COLONY_SHIP = [10000, 20000, 10000];
 
   function levelCost(key, level) {
-    const b = key === 'plasma' ? PLASMA : BUILD[key];
+    const b = key === 'plasma' ? PLASMA : key === 'astro' ? ASTRO : BUILD[key];
     const m = Math.pow(b.factor, level - 1);
     return b.base.map(x => Math.floor(x * m));
   }
@@ -109,7 +111,7 @@ const Engine = (() => {
     const satOpt = { kind: 'satellites', count: sats, added: sats * perSat, cost: satCost, eq: toMetalEq(satCost, profile) };
 
     let lvl = planet.solar_plant, added = 0, solarCost = [0, 0, 0];
-    while (added < energy && lvl < planet.solar_plant + 15) {
+    while (added < energy && lvl < planet.solar_plant + 50) {
       lvl++;
       solarCost = solarCost.map((x, i) => x + levelCost('solar_plant', lvl)[i]);
       added = Math.floor((solarEnergy(lvl) - solarEnergy(planet.solar_plant)) * mult.energy);
@@ -121,10 +123,77 @@ const Engine = (() => {
   }
 
   const MINES = [
-    { key: 'metal_mine',   label: 'Miniera di metallo',   res: 0 },
-    { key: 'crystal_mine', label: 'Miniera di cristallo', res: 1 },
-    { key: 'deut_synth',   label: 'Sintetizzatore di deuterio', res: 2 },
+    { key: 'metal_mine',   label: 'Miniera di metallo',   res: 0, cap: 'cap_metal' },
+    { key: 'crystal_mine', label: 'Miniera di cristallo', res: 1, cap: 'cap_crystal' },
+    { key: 'deut_synth',   label: 'Sintetizzatore di deuterio', res: 2, cap: 'cap_deut' },
   ];
+
+  // A cap is "stop at level N": levels above N are never suggested. Empty = no limit.
+  const overCap = (cap, level) => cap !== null && cap !== undefined && cap !== '' && level > +cap;
+
+  // ---- Astrophysics: planets allowed = 1 + ceil(level / 2) ----
+  const maxPlanets = astro => 1 + Math.ceil(astro / 2);
+  // Astrophysics levels to research before one more planet can be colonized
+  function astroLevelsForNextPlanet(astro, planetCount) {
+    let lvl = astro;
+    while (maxPlanets(lvl) <= planetCount) lvl++;
+    return lvl - astro;
+  }
+
+  // Cost of building a mine from level 0 up to `level`
+  const buildUpCost = (key, level) => {
+    let t = [0, 0, 0];
+    for (let n = 1; n <= level; n++) t = t.map((x, i) => x + levelCost(key, n)[i]);
+    return t;
+  };
+
+  function colonyRecommendation(profile, planets, gainEq) {
+    if (!planets.length) return null;
+    const astro = profile.astro_tech || 0;
+    const steps = astroLevelsForNextPlanet(astro, planets.length);
+    if (steps > 0 && overCap(profile.cap_astro, astro + steps)) return null;
+
+    // Typical new colony: average levels of the empire (capped), average temperature, position 8
+    const avg = k => Math.floor(planets.reduce((s, p) => s + (+p[k] || 0), 0) / planets.length);
+    const cap = (k, v) => (overCap(profile[k], v) ? +profile[k] : v);
+    const target = {
+      metal_mine: cap('cap_metal', avg('metal_mine')),
+      crystal_mine: cap('cap_crystal', avg('crystal_mine')),
+      deut_synth: cap('cap_deut', avg('deut_synth')),
+    };
+    const colony = {
+      name: 'Nuova colonia', position: 8, temp_max: Math.round(planets.reduce((s, p) => s + (+p.temp_max || 0), 0) / planets.length),
+      ...target, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0,
+    };
+
+    let cost = [0, 0, 0];
+    const add = c => (cost = cost.map((x, i) => x + c[i]));
+    for (let n = astro + 1; n <= astro + steps; n++) add(levelCost('astro', n));
+    const astroCost = cost.slice();
+    add(COLONY_SHIP);
+    MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
+    const needEnergy = consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth);
+    const fix = energyFix(profile, colony, needEnergy);
+    if (fix) add(fix.cost);
+
+    // Output of the new planet at 100% (no items: a new planet has none active)
+    const mult = multipliers(profile, colony, false);
+    const s = profile.economy_speed;
+    const prod = [
+      baseProd.metal_mine(target.metal_mine) * mult.metal * s,
+      baseProd.crystal_mine(target.crystal_mine) * mult.crystal * s,
+      Math.max(0, baseProd.deut_synth(target.deut_synth, colony.temp_max)) * mult.deut * s,
+    ];
+    const gain = gainEq(prod);
+    const eq = toMetalEq(cost, profile);
+    const astroText = steps ? `Astrofisica ${astro} → ${astro + steps}` : 'hai già uno slot libero';
+    return {
+      type: 'colony', planet: 'Nuovo pianeta', title: steps ? `Nuova colonia (${astroText})` : 'Colonizza lo slot libero',
+      detail: `${steps ? astroText + ' + ' : ''}nave colonizzatrice + miniere ${target.metal_mine}/${target.crystal_mine}/${target.deut_synth}${fix ? ' + ' + fixText(fix) : ''} (pianeta medio in posizione 8)`,
+      cost, astroCost, costEq: eq, gainPerHour: prod, gainEq: gain,
+      payback: gain > 0 ? eq / gain : Infinity, nextLevel: astro + steps, colony,
+    };
+  }
 
   // ---- All candidate actions, ranked by payback time ----
   function recommendations(profile, planets) {
@@ -153,6 +222,7 @@ const Engine = (() => {
       MINES.forEach(m => {
         const L = planet[m.key];
         const next = L + 1;
+        if (overCap(profile[m.cap], next)) return; // player's "stop at level"
         const cost = levelCost(m.key, next);
         const extraNeed = consumption[m.key](next) - consumption[m.key](L);
         const marginAfter = Math.max(0, st.balance) - extraNeed;
@@ -180,6 +250,7 @@ const Engine = (() => {
 
     // 3) Plasma technology (global)
     const nextPlasma = (profile.plasma_tech || 0) + 1;
+    const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
     const plasmaCost = levelCost('plasma', nextPlasma);
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
@@ -189,12 +260,16 @@ const Engine = (() => {
       plasmaGain[2] += Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * 0.0033 * s;
     });
     const pEq = toMetalEq(plasmaCost, profile), pGain = gainEq(plasmaGain);
-    out.push({
+    if (plasmaAllowed) out.push({
       type: 'plasma', planet: 'Tutti i pianeti', title: `Tecnologia Plasma ${nextPlasma - 1} → ${nextPlasma}`,
       detail: 'ricerca: aumenta la produzione di tutte le miniere',
       cost: plasmaCost, costEq: pEq, gainPerHour: plasmaGain, gainEq: pGain,
       payback: pGain > 0 ? pEq / pGain : Infinity, nextLevel: nextPlasma,
     });
+
+    // 4) New colony: Astrophysics (if needed) + colony ship + mines up to the empire average + energy
+    const colony = colonyRecommendation(profile, planets, gainEq);
+    if (colony) out.push(colony);
 
     return out.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || a.payback - b.payback);
   }
@@ -203,6 +278,7 @@ const Engine = (() => {
   // Returns { planet: {...patch}, profile: {...patch} }
   function applyRecommendation(profile, planet, rec) {
     if (rec.type === 'plasma') return { profile: { plasma_tech: rec.nextLevel } };
+    if (rec.type === 'colony') return { profile: { astro_tech: rec.nextLevel }, newPlanet: rec.colony };
     const st = planetState(profile, planet);
     const patch = {};
     let balance = st.balance;
@@ -238,7 +314,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

@@ -53,6 +53,25 @@ const gainWithout = E.recommendations({ ...profile, items_in_ranking: false }, [
 const gainPlain = E.recommendations(profile, [planets[0]]).find(r => r.key === 'metal_mine').gainEq;
 assert.ok(gainWith > gainPlain && Math.abs(gainWithout - gainPlain) < 1e-9);
 
+// Astrophysics: 1 + ceil(level/2) planets
+assert.deepStrictEqual([0, 1, 2, 3, 20].map(E.maxPlanets), [1, 2, 2, 3, 11]);
+assert.strictEqual(E.astroLevelsForNextPlanet(20, 11), 1); // level 21 opens slot 12
+assert.strictEqual(E.astroLevelsForNextPlanet(19, 11), 2); // 20 gives nothing, 21 does
+assert.strictEqual(E.astroLevelsForNextPlanet(21, 11), 0); // free slot already
+assert.deepStrictEqual(E.levelCost('astro', 1), [4000, 8000, 4000]);
+assert.deepStrictEqual(E.buildUpCost('metal_mine', 2), [150, 37, 0]);
+
+const empire = Array.from({ length: 11 }, (_, i) => ({ ...planets[0], id: 'p' + i, name: 'P' + i, position: 8, energy_balance: 3000 }));
+const colony = E.recommendations({ ...profile, astro_tech: 20 }, empire).find(r => r.type === 'colony');
+assert.ok(colony && colony.nextLevel === 21 && colony.astroCost[0] === Math.floor(4000 * Math.pow(1.75, 20)));
+console.log('Colony:', colony.detail, '| ammortamento', (colony.payback / 24).toFixed(1), 'giorni');
+// Caps: no suggestion above the chosen level; astro cap blocks the colony
+const capped = E.recommendations({ ...profile, cap_metal: 37, cap_plasma: 0, cap_astro: 20, astro_tech: 20 }, empire);
+assert.ok(!capped.some(r => r.key === 'metal_mine' || r.type === 'plasma' || r.type === 'colony'));
+assert.ok(capped.some(r => r.key === 'crystal_mine'));
+// Colony "done" raises Astrophysics and returns the planet to add
+assert.strictEqual(E.applyRecommendation(profile, null, colony).profile.astro_tech, 21);
+
 recs.slice(0, 8).forEach(r =>
   console.log(r.planet.padEnd(16), r.title.padEnd(34), 'ammortamento', (r.payback).toFixed(1), 'h |', r.detail));
 console.log('\nAll tests passed');
