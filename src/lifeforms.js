@@ -137,7 +137,30 @@ const LIFEFORMS = {
         // Network Aggiornamento, Centro Calcolo Quantistico, Centro Assemblaggio Automatizzato (ship build time),
         // Linea di produzione Microchip, Sala Catena di Montaggio, Nanobot Riparazione
       },
-      techs: null, // todo
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
+      techs: [
+        { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, used: true },
+        { slot: 2,  tier: 1, key: 'plasma_drive',            it: 'Unità al plasma',                  perLevel: { ship_speed: 0.002 }, used: false }, // not the Deathstar
+        { slot: 3,  tier: 1, key: 'efficiency_module',       it: 'Modulo Efficienza',                perLevel: { fleet_fuel: -0.0003 }, used: false }, // max -90% of base, server setting
+        { slot: 4,  tier: 1, key: 'depot_ai',                it: 'IA deposito',                      perLevel: { alliance_depot_cost: -0.001, alliance_depot_time: -0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'light_fighter_overhaul',  it: 'Revisione generale (Caccia leggero)', perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 6,  tier: 1, key: 'automated_transport_lines', it: 'Linee di trasporto automatizzate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 7,  tier: 2, key: 'improved_drone_ai',       it: 'IA Droni migliorata',              perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 8,  tier: 2, key: 'experimental_recycling',  it: 'Tecnica sperimentale Rigenerazione', perLevel: { ship: 'recycler', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
+        { slot: 9,  tier: 2, key: 'cruiser_overhaul',        it: 'Revisione generale (Incrociatore)', perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'slingshot_autopilot',     it: 'Pilota automatico Slingshot',      perLevel: { recall_fuel_recovered: 0.0015 }, used: false },
+        { slot: 11, tier: 2, key: 'high_temperature_superconductors', it: 'Superconduttore Alta temperatura', perLevel: { energy_tech_cost: -0.001, energy_tech_time: -0.002 }, used: false },
+        { slot: 12, tier: 2, key: 'battleship_overhaul',     it: 'Revisione generale (Nave da battaglia)', perLevel: { ship: 'battleship', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 13, tier: 3, key: 'artificial_swarm_intelligence', it: 'Intelligenza collettiva artificiale', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 14, tier: 3, key: 'battlecruiser_overhaul',  it: 'Revisione generale (Incrociatore da battaglia)', perLevel: { ship: 'battlecruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 15, tier: 3, key: 'bomber_overhaul',         it: 'Revisione generale (Bombardiere)', perLevel: { ship: 'bomber', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 16, tier: 3, key: 'destroyer_overhaul',      it: 'Revisione generale (Corazzata)',   perLevel: { ship: 'destroyer', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'experimental_weapons_tech', it: 'Tecnologia Armi sperimentale',   perLevel: { weapons_tech_cost: -0.002, weapons_tech_time: -0.002 }, used: false },
+        // raises the General class bonuses (fleet), except the ones listed in the game description
+        { slot: 18, tier: 3, key: 'mechan_general_enhancement', it: 'Rinforzo generale Mecha',      perLevel: { general_class_bonus: 0.002 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo
     },
     kaelesh: {
       name: 'Kaelesh',
