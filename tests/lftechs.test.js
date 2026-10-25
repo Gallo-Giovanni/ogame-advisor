@@ -3,7 +3,7 @@
 // The game shows thousands with one decimal (9.8k) and smaller values in full (975).
 const assert = require('assert');
 const E = require('../src/engine.js');
-const shown = x => (x >= 1000 ? Math.round(x / 100) * 100 : Math.round(x));
+const shown = x => (x >= 1e6 ? Math.round(x / 1e4) * 1e4 : x >= 1000 ? Math.round(x / 100) * 100 : Math.round(x));
 const cases = [
   ['mechas', 1, [9800, 5900, 975], [29300, 17600, 2900]],
   ['humans', 2, [6800, 9800, 4900], [20500, 29300, 14600]],
@@ -22,6 +22,19 @@ for (const [race, slot, l1, l2] of cases) {
   const t = E.LF.races[race].techs[slot - 1];
   assert.deepStrictEqual(E.lfTechCost(t, 1, 0.025).map(shown), l1, t.it + ' level 1');
   assert.deepStrictEqual(E.lfTechCost(t, 2, 0.025).map(shown), l2, t.it + ' level 2');
+}
+// Higher levels (the game shows millions with two decimals): the formula holds up to level 10
+const high = [
+  ['mechas', 1, 8, [1330000, 799600, 133300]],
+  ['humans', 2, 10, [2620000, 3750000, 1870000]],
+  ['rocktal', 3, 6, [666400, 444200, 222100]],
+  ['kaelesh', 4, 6, [888500, 666400, 333200]],
+  ['kaelesh', 5, 10, [9370000, 7500000, 3750000]],
+  ['mechas', 6, 6, [2220000, 2220000, 888500]],
+];
+for (const [race, slot, L, exp] of high) {
+  const t = E.LF.races[race].techs[slot - 1];
+  assert.deepStrictEqual(E.lfTechCost(t, L, 0.025).map(shown), exp, t.it + ' level ' + L);
 }
 // Tecnologicus Runarum 10 = -2.5% research cost on its planet
 assert.ok(Math.abs(E.researchDisc({ lf_race: 'rocktal', lf_buildings: { tecnologicus_runarum: 10 } }) - 0.025) < 1e-12);
