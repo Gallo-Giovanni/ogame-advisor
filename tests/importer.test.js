@@ -7,7 +7,7 @@ const LF = require('../src/lifeforms.js');
 const planet = {
   name: 'Alfa', galaxy: 2, system: 100, position: 8, temperature: 'da -10°C a 30°C',
   energy: "<div title='x'><span class='overmark'>-1.250</span></div>",
-  1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11,
+  1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 14: 10, 15: 5, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11,
 };
 const set = (id, lvl, active) => { planet[id] = lvl; planet[id + '_html'] = active ? `<a title="Sviluppa">${lvl}</a>` : `<span class='disabled darkgrey'>(${lvl})</span>`; };
 for (let i = 1; i <= 12; i++) { set(11100 + i, i === 1 ? 7 : 0, false); set(12100 + i, 0, true); }
@@ -32,6 +32,7 @@ assert.strictEqual(d.lf_race, 'rocktal');
 assert.deepStrictEqual(d.lf_buildings, { magma_forge: 12, monolith: 3 });
 assert.strictEqual(d.mrc_level, 2);
 assert.deepStrictEqual(d.lf_techs, { 1: { race: 'mechas', level: 4 }, 7: { race: 'rocktal', level: 0 } });
+assert.deepStrictEqual([d.robotics_factory, d.nanite_factory], [10, 5]);
 assert.deepStrictEqual([d.metal_mine, d.crystal_mine, d.deut_synth, d.solar_plant, d.fusion_reactor, d.solar_satellites, d.crawlers], [30, 25, 26, 24, 9, 400, 50]);
 
 // Matching: coordinates first, then name; planets not on the page are reported

@@ -126,7 +126,8 @@ const Engine = (() => {
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
   // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
-  function techEffect(profile, planet, slot, entry) {
+  // keys: which effects to return (default: those used by production); 'all' = every numeric effect of the tech
+  function techEffect(profile, planet, slot, entry, keys = LF_KEYS) {
     const out = {};
     if (!LF || !entry || !LF.races[entry.race] || !(+entry.level > 0)) return out;
     const tech = LF.races[entry.race].techs[slot - 1];
@@ -134,7 +135,8 @@ const Engine = (() => {
     const be = buildingEffects(planet);
     const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
     const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
-    for (const k of LF_KEYS) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    const ks = keys === 'all' ? Object.keys(tech.perLevel).filter(k => typeof tech.perLevel[k] === 'number') : keys;
+    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
     return out;
   }
   // Lifeform techs act on every planet: sum them over the whole account (all planets, also excluded ones)
@@ -146,6 +148,15 @@ const Engine = (() => {
         const eff = techEffect(profile, p, +slot, techs[slot]);
         for (const k of LF_KEYS) t[k] += eff[k] || 0;
       }
+    }
+    return t;
+  }
+  // Every numeric effect of all lifeform techs of the account (expeditions, research time, ...), summed over planets
+  function allTechTotals(profile, planets) {
+    const t = {};
+    for (const p of planets) for (const [slot, e] of Object.entries(p.lf_techs || {})) {
+      const eff = techEffect(profile, p, +slot, e, 'all');
+      for (const k in eff) t[k] = (t[k] || 0) + eff[k];
     }
     return t;
   }
@@ -569,7 +580,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

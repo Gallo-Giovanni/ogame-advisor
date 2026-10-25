@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 33, date: '2026-10-25', title: 'Scheda Bonus',
+    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con i vantaggi della classe e le ricerche forme di vita di tutto l\'account.',
+  },
+  {
     id: 32, date: '2026-10-25', title: 'Simboli nei consigli',
     text: 'Ogni consiglio ha un simbolo che dice al volo di cosa si tratta: piccone per le miniere, edificio verde per gli edifici forme di vita, provetta viola per le ricerche forme di vita, atomo per il Plasma, pianeta per una nuova colonia e fulmine per l\'energia. Gli stessi simboli sono sui pulsanti del filtro.',
   },

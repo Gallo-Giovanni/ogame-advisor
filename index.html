@@ -148,6 +148,14 @@
   .kind { flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; }
   .kind svg { width: 16px; height: 16px; }
   .kchip svg { width: 14px; height: 14px; display: block; }
+  .bh { margin: 0; display: flex; align-items: center; gap: 10px; }
+  .btable { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .btable th, .btable td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .btable th:first-child, .btable td:first-child { text-align: left; white-space: normal; }
+  .btable th { color: var(--muted); font-weight: 500; font-size: .78rem; border-top: none; }
+  .btable tr.tot td { font-weight: 700; color: var(--text); }
+  .btable td.na { color: var(--muted); }
+  .bwrap { overflow-x: auto; }
   .chip .box { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid #4a5786; display: grid; place-items: center; font-size: 10px; line-height: 1; }
   .chip[aria-pressed="true"] { border-color: var(--accent); color: #fff; background: #2b2410; }
   .chip[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); color: #1a1200; }
@@ -331,6 +339,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
       <button class="tab" data-tab="planets">Pianeti</button>
+      <button class="tab" data-tab="bonus">Bonus</button>
       <button class="tab" data-tab="settings">Impostazioni</button>
     </div>
 
@@ -463,6 +472,8 @@
         </div>
       </div>
     </section>
+
+    <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
 
     <section data-panel="settings" class="stack hidden">
       <div class="card stack" id="import-card">
@@ -960,7 +971,8 @@ const Engine = (() => {
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
   // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
-  function techEffect(profile, planet, slot, entry) {
+  // keys: which effects to return (default: those used by production); 'all' = every numeric effect of the tech
+  function techEffect(profile, planet, slot, entry, keys = LF_KEYS) {
     const out = {};
     if (!LF || !entry || !LF.races[entry.race] || !(+entry.level > 0)) return out;
     const tech = LF.races[entry.race].techs[slot - 1];
@@ -968,7 +980,8 @@ const Engine = (() => {
     const be = buildingEffects(planet);
     const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
     const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
-    for (const k of LF_KEYS) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    const ks = keys === 'all' ? Object.keys(tech.perLevel).filter(k => typeof tech.perLevel[k] === 'number') : keys;
+    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
     return out;
   }
   // Lifeform techs act on every planet: sum them over the whole account (all planets, also excluded ones)
@@ -980,6 +993,15 @@ const Engine = (() => {
         const eff = techEffect(profile, p, +slot, techs[slot]);
         for (const k of LF_KEYS) t[k] += eff[k] || 0;
       }
+    }
+    return t;
+  }
+  // Every numeric effect of all lifeform techs of the account (expeditions, research time, ...), summed over planets
+  function allTechTotals(profile, planets) {
+    const t = {};
+    for (const p of planets) for (const [slot, e] of Object.entries(p.lf_techs || {})) {
+      const eff = techEffect(profile, p, +slot, e, 'all');
+      for (const k in eff) t[k] = (t[k] || 0) + eff[k];
     }
     return t;
   }
@@ -1403,7 +1425,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 
@@ -1456,7 +1478,7 @@ function grabEmpire(html, meta) {
       return {
         n: p.name, g: +p.galaxy, s: +p.system, p: +p.position, t: temps.length ? +temps[temps.length - 1] : null,
         e: num(p.energy),
-        b: { 1: p['1'], 2: p['2'], 3: p['3'], 4: p['4'], 12: p['12'], 212: p['212'], 217: p['217'] },
+        b: { 1: p['1'], 2: p['2'], 3: p['3'], 4: p['4'], 12: p['12'], 14: p['14'], 15: p['15'], 212: p['212'], 217: p['217'] },
         lf,
       };
     }),
@@ -1507,7 +1529,7 @@ function mapImport(snap, existing, LF) {
     const data = {
       name: ip.n, galaxy: ip.g, system: ip.s, position: ip.p,
       metal_mine: +ip.b[1] || 0, crystal_mine: +ip.b[2] || 0, deut_synth: +ip.b[3] || 0,
-      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
+      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, robotics_factory: +ip.b[14] || 0, nanite_factory: +ip.b[15] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
       lf_race: race,
     };
     if (ip.t != null) data.temp_max = ip.t;
@@ -1542,6 +1564,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
+  {
+    id: 33, date: '2026-10-25', title: 'Scheda Bonus',
+    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con i vantaggi della classe e le ricerche forme di vita di tutto l\'account.',
+  },
   {
     id: 32, date: '2026-10-25', title: 'Simboli nei consigli',
     text: 'Ogni consiglio ha un simbolo che dice al volo di cosa si tratta: piccone per le miniere, edificio verde per gli edifici forme di vita, provetta viola per le ricerche forme di vita, atomo per il Plasma, pianeta per una nuova colonia e fulmine per l\'energia. Gli stessi simboli sono sui pulsanti del filtro.',
@@ -1895,7 +1921,7 @@ function renderApp() {
   let saved = cur;
   if (!saved) { try { saved = localStorage.getItem('ogadv-planet') || ''; } catch (e) {} }
   sel.value = state.planets.some(pl => pl.id === saved) ? saved : '';
-  renderAdvice(); renderPlanetCards(); renderSettings(); renderUpdatesBadge();
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
 
@@ -2561,7 +2587,7 @@ function dropImport() { state.importRaw = null; try { sessionStorage.removeItem(
 const IMPORT_LABELS = {
   name: 'Nome', galaxy: 'Galassia', system: 'Sistema', position: 'Posizione', temp_max: 'Temperatura max',
   metal_mine: 'Miniera di metallo', crystal_mine: 'Miniera di cristallo', deut_synth: 'Sintetizzatore di deuterio',
-  solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
+  solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
   astro_tech: 'Astrofisica', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
@@ -2664,6 +2690,107 @@ $('#wiz4-finish').addEventListener('click', async () => {
   if (r.error) return message($('#wiz4-msg'), 'Errore: ' + r.error.message);
   await loadUserData();
 });
+
+/* Bonus: every active bonus, grouped (mines, energy, times, expeditions) */
+function renderBonus() {
+  const prof = numericProfile(state.profile);
+  const planets = Engine.active(state.planets);
+  const lf = prof._lf && prof._lf.computed;
+  const all = Engine.allTechTotals(prof, state.planets);
+  const P = v => (v ? `${v > 0 ? '+' : ''}${(v * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%` : '—');
+  const cls = prof.player_class;
+  const row = (label, vals, extra = '') => `<tr${extra}><td>${label}</td>${vals.map(v => `<td>${typeof v === 'string' ? v : P(v)}</td>`).join('')}</tr>`;
+  const table = (heads, rows) => `<div class="bwrap"><table class="btable"><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
+  const sum = rs => rs.reduce((t, r) => t.map((x, i) => x + (r[i] || 0)), [0, 0, 0]);
+  const resHead = ['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`];
+  let h = '';
+
+  // Mines: bonuses equal on every planet
+  const p = prof.plasma_tech || 0;
+  const common = [
+    [`Tecnologia Plasma ${p}`, [p * 0.01, p * 0.0066, p * 0.0033]],
+    prof.geologist && ['Geologo', [0.10, 0.10, 0.10]],
+    prof.commanding_staff && ['Staff di comando', [0.02, 0.02, 0.02]],
+    cls === 'collector' && ['Classe Collezionista', [0.25, 0.25, 0.25]],
+    prof.alliance_trader && ['Alleanza Mercante', [0.05, 0.05, 0.05]],
+    lf && ['Ricerche forme di vita (tutto l\'account)', [prof._lf.tech.metal, prof._lf.tech.crystal, prof._lf.tech.deut]],
+  ].filter(Boolean);
+  const commonTot = sum(common.map(c => c[1]));
+  const perPlanet = planets.map(pl => {
+    const be = lf ? Engine.buildingEffects(pl) : { metal: (+pl.lf_metal || 0) / 100, crystal: (+pl.lf_crystal || 0) / 100, deut: (+pl.lf_deut || 0) / 100 };
+    const cr = Engine.crawlerBonus(prof, pl);
+    const it = ['item_metal', 'item_crystal', 'item_deut'].map(k => ((+pl[k] || 0) + (+pl.item_all || 0)) / 100);
+    const pos = Engine.positionBonus(+pl.position);
+    const own = [be.metal, be.crystal, be.deut].map((x, i) => x + cr + it[i]);
+    return { pl, be, cr, it, pos, tot: own.map((x, i) => x + commonTot[i]) };
+  });
+  h += `<div class="card stack"><h2 class="bh">${kindBadge('mine')} Produzione miniere</h2>
+    <p class="muted small" style="margin:0">Percentuali sulla produzione della miniera (dopo il bonus di posizione), come nella pagina Impostazioni risorse del gioco.</p>
+    <b class="small">Uguali su tutti i pianeti</b>
+    ${table(resHead, [...common.map(c => row(c[0], c[1])), row('Totale', commonTot, ' class="tot"')])}
+    <b class="small">Per pianeta</b>
+    ${table(['Pianeta', 'Posizione M / C', `Edifici forme di vita M / C / D`, 'Crawler', 'Item M / C / D', 'Totale M / C / D'],
+      perPlanet.map(x => `<tr><td>${esc(x.pl.name)}</td><td>${P(x.pos.metal)} / ${P(x.pos.crystal)}</td><td>${[x.be.metal, x.be.crystal, x.be.deut].map(P).join(' / ')}</td><td>${P(x.cr)}</td><td>${x.it.map(P).join(' / ')}</td><td><b>${x.tot.map(P).join(' / ')}</b></td></tr>`))}
+  </div>`;
+
+  // Energy
+  const eCommon = [
+    prof.engineer && ['Ingegnere', 0.10], prof.commanding_staff && ['Staff di comando', 0.02],
+    cls === 'collector' && ['Classe Collezionista', 0.10], prof.alliance_trader && ['Alleanza Mercante', 0.05],
+    lf && ['Ricerche forme di vita (tutto l\'account)', prof._lf.tech.energy],
+  ].filter(Boolean);
+  const eTot = eCommon.reduce((t, c) => t + c[1], 0);
+  h += `<div class="card stack"><h2 class="bh">${kindBadge('energy')} Energia</h2>
+    ${table(['', 'Produzione di energia'], [...eCommon.map(c => row(c[0], [c[1]])), row('Totale', [eTot], ' class="tot"')])}
+    <b class="small">Per pianeta</b>
+    ${table(['Pianeta', 'Edifici forme di vita', 'Item', 'Totale produzione', 'Consumo miniere'], planets.map(pl => {
+      const be = lf ? Engine.buildingEffects(pl) : { energy: (+pl.lf_energy || 0) / 100, mineConsumption: 0 };
+      const it = (+pl.item_energy || 0) / 100;
+      return `<tr><td>${esc(pl.name)}</td><td>${P(be.energy)}</td><td>${P(it)}</td><td><b>${P(eTot + be.energy + it)}</b></td><td>${P(be.mineConsumption)}</td></tr>`;
+    }))}
+  </div>`;
+
+  // Times
+  const tRows = [];
+  if (cls === 'explorer') tRows.push(row('Classe Esploratore: durata ricerche', [-0.25]));
+  if (all.research_time) tRows.push(row('Ricerche forme di vita: tempo delle ricerche', [-Math.abs(all.research_time)]));
+  if (all.lf_research_time) tRows.push(row('Ricerche forme di vita: tempo delle ricerche forme di vita', [-Math.abs(all.lf_research_time)]));
+  if (all.astrophysics_research_time) tRows.push(row('Ricerche forme di vita: tempo dell\'Astrofisica', [-Math.abs(all.astrophysics_research_time)]));
+  if (all.plasma_tech_time) tRows.push(row('Concentratore astrale: tempo del Plasma', [-Math.abs(all.plasma_tech_time)]));
+  if (cls === 'explorer') tRows.push(row('Classe Esploratore: sconto accelerazione ricerche (MO)', [-0.10]));
+  if (cls === 'collector') tRows.push(row('Classe Collezionista: sconto accelerazione edifici (MO)', [-0.10]));
+  if (cls === 'general') tRows.push(row('Classe Generale: sconto accelerazione cantieri navali (MO)', [-0.10]));
+  const hasFactories = planets.some(pl => +pl.robotics_factory || +pl.nanite_factory);
+  h += `<div class="card stack"><h2 class="bh">${kindBadge('lft')} Tempi di costruzione e ricerca</h2>
+    ${tRows.length ? table(['', 'Tempo'], tRows) : '<p class="muted small" style="margin:0">Nessun bonus sui tempi.</p>'}
+    <b class="small">Per pianeta</b>
+    ${table(['Pianeta', 'Robot / Naniti', 'Edifici più veloci', 'Edificio di ricerca FV: tempo ricerche FV', 'Monolite: edifici Rock\'tal'], planets.map(pl => {
+      const R = +pl.robotics_factory || 0, N = +pl.nanite_factory || 0;
+      const rb = pl.lf_race && Engine.LF.races[pl.lf_race] ? Object.entries(Engine.LF.races[pl.lf_race].buildings).filter(([, b]) => b && b.effect && b.effect.techTime) : [];
+      const tt = rb.reduce((t, [k, b]) => t + b.effect.techTime * (+(pl.lf_buildings || {})[k] || 0), 0);
+      const mono = Engine.monolithDisc(pl);
+      return `<tr><td>${esc(pl.name)}</td><td>${hasFactories ? `${R} / ${N}` : '—'}</td><td>${hasFactories ? '×' + fmt((1 + R) * Math.pow(2, N)) : '—'}</td><td>${P(Math.max(-0.99, tt))}</td><td>${mono ? P(-mono) : '—'}</td></tr>`;
+    }))}
+    ${hasFactories ? '' : '<p class="muted small" style="margin:0">Fabbrica di robot e Naniti arrivano con l\'importazione dalla Vista impero.</p>'}
+  </div>`;
+
+  // Expeditions
+  const xRows = [];
+  if (cls === 'explorer') {
+    xRows.push(row('Classe Esploratore: spedizioni in più', ['+2']));
+    xRows.push(row('Classe Esploratore: utili delle spedizioni riuscite', ['aumentati (il gioco non dice di quanto)']));
+    xRows.push(row('Classe Esploratore: probabilità di incontrare nemici', [-0.5]));
+    xRows.push(row('Classe Esploratore: campi detriti delle spedizioni visibili in galassia', ['sì']));
+  }
+  const X = { expedition_resources: 'risorse trovate', expedition_ships_found: 'navi trovate', expedition_fleet_speed: 'velocità della flotta in spedizione',
+    expedition_ship_loss: 'perdita di navi', expedition_dark_matter: 'Materia Oscura trovata', explorer_class_bonus: 'bonus della classe Esploratore' };
+  for (const [k, l] of Object.entries(X)) if (all[k]) xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
+  h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
+    ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
+    <p class="muted small" style="margin:0">Le ricerche forme di vita valgono per tutto l'account: qui c'è la somma di tutti i pianeti, con i potenziamenti degli edifici e del livello della razza.</p>
+  </div>`;
+  $('#bonus-panel').innerHTML = h;
+}
 
 /* Settings */
 function renderSettings() {

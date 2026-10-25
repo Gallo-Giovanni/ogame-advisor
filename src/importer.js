@@ -43,7 +43,7 @@ function grabEmpire(html, meta) {
       return {
         n: p.name, g: +p.galaxy, s: +p.system, p: +p.position, t: temps.length ? +temps[temps.length - 1] : null,
         e: num(p.energy),
-        b: { 1: p['1'], 2: p['2'], 3: p['3'], 4: p['4'], 12: p['12'], 212: p['212'], 217: p['217'] },
+        b: { 1: p['1'], 2: p['2'], 3: p['3'], 4: p['4'], 12: p['12'], 14: p['14'], 15: p['15'], 212: p['212'], 217: p['217'] },
         lf,
       };
     }),
@@ -94,7 +94,7 @@ function mapImport(snap, existing, LF) {
     const data = {
       name: ip.n, galaxy: ip.g, system: ip.s, position: ip.p,
       metal_mine: +ip.b[1] || 0, crystal_mine: +ip.b[2] || 0, deut_synth: +ip.b[3] || 0,
-      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
+      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, robotics_factory: +ip.b[14] || 0, nanite_factory: +ip.b[15] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
       lf_race: race,
     };
     if (ip.t != null) data.temp_max = ip.t;
