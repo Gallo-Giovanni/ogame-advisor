@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 14, date: '2026-10-25', title: 'Una scheda per ogni pianeta',
+    text: 'La tabella dei pianeti è sostituita da un elenco a schede: apri un pianeta per modificarlo in sezioni (Generale, Miniere, Energia, Item, Forme di vita), con la sua produzione calcolata mentre scrivi e i pulsanti Precedente/Successivo. I bonus delle forme di vita ora sono per pianeta (i tuoi valori sono stati riportati su ogni pianeta). Puoi escludere un pianeta dai calcoli, e in "Copia" scegli cosa copiare.',
+  },
+  {
     id: 13, date: '2026-10-24', title: 'Copia da un pianeta a scelta',
     text: 'Ogni pianeta ha il suo pulsante "Copia": scegli su quali altri pianeti copiare miniere, centrali, satelliti e item (anche tutti con "Seleziona tutti"). Sostituisce il vecchio "Copia dal primo su tutti".',
   },

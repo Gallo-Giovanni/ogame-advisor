@@ -59,6 +59,8 @@ const Engine = (() => {
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
     const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
+    // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
+    const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
       + (profile.player_class === 'collector' ? 0.25 : 0)
@@ -66,12 +68,12 @@ const Engine = (() => {
     const p = profile.plasma_tech || 0;
     return {
       posMetal: 1 + pos.metal, posCrystal: 1 + pos.crystal,
-      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100 + it('item_metal')),
-      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100 + it('item_crystal')),
-      deut:    1 + common + p * 0.0033 + (+profile.lf_bonus_deut || 0) / 100 + it('item_deut'),
+      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + lf('lf_metal', 'lf_bonus_metal') + it('item_metal')),
+      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + lf('lf_crystal', 'lf_bonus_crystal') + it('item_crystal')),
+      deut:    1 + common + p * 0.0033 + lf('lf_deut', 'lf_bonus_deut') + it('item_deut'),
       energy:  1 + (profile.engineer ? 0.10 : 0) + (profile.commanding_staff ? 0.02 : 0)
                + (profile.player_class === 'collector' ? 0.10 : 0) + (profile.alliance_trader ? 0.05 : 0)
-               + (+profile.lf_bonus_energy || 0) / 100 + it('item_energy'),
+               + lf('lf_energy', 'lf_bonus_energy') + it('item_energy'),
     };
   }
 
@@ -168,7 +170,12 @@ const Engine = (() => {
     if (steps > 0 && overCap(profile.cap_astro, astro + steps)) return null;
 
     // Typical new colony: average levels of the empire (capped), average temperature, position 8
-    const avg = k => Math.floor(planets.reduce((s, p) => s + (+p[k] || 0), 0) / planets.length);
+    // Median level of the empire: robust to one planet far behind or ahead
+    const avg = k => {
+      const v = planets.map(p => +p[k] || 0).sort((a, b) => a - b);
+      const m = v.length >> 1;
+      return v.length % 2 ? v[m] : Math.floor((v[m - 1] + v[m]) / 2);
+    };
     const cap = (k, v) => (overCap(profile[k], v) ? +profile[k] : v);
     const target = {
       metal_mine: cap('cap_metal', avg('metal_mine')),
@@ -178,6 +185,7 @@ const Engine = (() => {
     const colony = {
       name: 'Nuova colonia', position: 8, temp_max: Math.round(planets.reduce((s, p) => s + (+p.temp_max || 0), 0) / planets.length),
       ...target, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0,
+      lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, // a new colony has no lifeform buildings yet
     };
 
     let cost = [0, 0, 0];
@@ -210,7 +218,11 @@ const Engine = (() => {
   }
 
   // ---- All candidate actions, ranked by payback time ----
-  function recommendations(profile, planets) {
+  // Planets the player excluded from calculations are ignored everywhere
+  const active = planets => planets.filter(p => p.included !== false);
+
+  function recommendations(profile, allPlanets) {
+    const planets = active(allPlanets);
     const out = [];
     const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(r => r / profile.ratio_metal);
     const gainEq = arr => arr.reduce((s, x, i) => s + x * ratio[i], 0);
@@ -323,13 +335,13 @@ const Engine = (() => {
 
   function totals(profile, planets) {
     const t = [0, 0, 0];
-    planets.forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
+    active(planets).forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
     return t;
   }
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

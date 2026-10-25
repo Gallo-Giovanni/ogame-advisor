@@ -105,7 +105,20 @@
   .upd .date { font-size: .8rem; color: var(--muted); }
   .upd.new .title::after { content: 'NUOVO'; margin-left: 8px; font-size: .7rem; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: #1a1200; vertical-align: middle; }
   .badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 99px; background: var(--accent); color: #1a1200; font-size: .75rem; line-height: 18px; text-align: center; }
+  .pgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .pcard { cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s; }
+  .pcard:hover, .pcard:focus-visible { border-color: var(--accent); outline: none; }
+  .pcard.off { opacity: .55; }
+  .pcard .levels { display: flex; gap: 10px; font: 600 1.05rem Rajdhani, sans-serif; }
+  .pcard .move { display: flex; gap: 2px; }
+  .pcard .move button { padding: 2px 8px; }
+  .pe-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .pe-grid h3 { margin: 0; }
+  .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
+  .pe-actions #pe-delete { margin-left: auto; }
   @media (max-width: 600px) {
+    .pe-grid { grid-template-columns: 1fr; }
+    .pe-actions button { padding: 8px 10px; font-size: .85rem; }
     .rec { grid-template-columns: 32px 1fr; }
     .rec .side { grid-column: 2; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
     .payback { text-align: left; }
@@ -145,8 +158,8 @@
       <h2>1 · Account</h2>
       <p class="muted small">Li trovi nel gioco: classe e tecnologie nella pagina Ricerca, la velocità nelle impostazioni del server.</p>
       <div class="grid">
-        <div><label>Nome in gioco</label><input data-p="nickname" placeholder="Es. Giovanni"></div>
-        <div><label>Universo</label><input data-p="universe" placeholder="Es. West s278-it"></div>
+        <div><label>Nome in gioco</label><input data-p="nickname" placeholder="Es. Comandante"></div>
+        <div><label>Universo</label><input data-p="universe" placeholder="Es. Universo 1"></div>
         <div><label>Classe</label><select data-p="player_class">
           <option value="explorer">Esploratore</option><option value="collector">Collezionista</option><option value="general">Generale</option></select></div>
         <div><label>Velocità di sviluppo (economia)</label><input data-p="economy_speed" type="number" min="1" max="20" value="1"></div>
@@ -165,15 +178,10 @@
 
     <div class="card stack hidden" data-wiz="2">
       <h2>2 · Bonus e valore delle risorse</h2>
-      <p class="muted small">Bonus delle forme di vita: in gioco apri <b>Risorse → Impostazioni risorse</b>. Il bonus è la somma delle righe degli edifici delle forme di vita (es. Fusione magmatica, Cristalleria) e della riga "Bonus Tecnologia Forme di vita", in percentuale della riga della miniera. Usa il calcolatore qui sotto: copi i numeri e la percentuale si compila da sola. Se non usi le forme di vita lascia 0. Gli item non vanno inseriti qui.</p>
+      <p class="muted small">Se usi le forme di vita, indica la riduzione del consumo di energia delle miniere data dalle loro tecnologie (0 se non ce l'hai). I bonus di produzione delle forme di vita si inseriscono pianeta per pianeta.</p>
       <div class="grid">
-        <div><label>Bonus forme di vita metallo %</label><input data-p="lf_bonus_metal" type="number" step="0.01" min="0" value="0"></div>
-        <div><label>Bonus forme di vita cristallo %</label><input data-p="lf_bonus_crystal" type="number" step="0.01" min="0" value="0"></div>
-        <div><label>Bonus forme di vita deuterio %</label><input data-p="lf_bonus_deut" type="number" step="0.01" min="0" value="0"></div>
-        <div><label>Bonus forme di vita energia %</label><input data-p="lf_bonus_energy" type="number" step="0.01" min="0" value="0"></div>
         <div><label>Riduzione consumo energia miniere %</label><input data-p="energy_consumption_reduction" type="number" step="0.01" min="0" max="100" value="0"></div>
       </div>
-      <div class="lf-helper" data-prefix="p"></div>
       <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
       <div class="grid">
         <div><label>Metallo</label><input data-p="ratio_metal" type="number" step="0.1" min="0.1" value="1"></div>
@@ -181,21 +189,16 @@
         <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
       </div>
       <label class="check"><input type="checkbox" data-p="items_in_ranking" checked> Considera gli item attivi nel calcolo degli upgrade</label>
-      <p class="muted small" style="margin-top:0">Gli item (booster) si inseriscono pianeta per pianeta nel passo successivo. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
+      <p class="muted small" style="margin-top:0">Gli item (booster) si inseriscono nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
       <div class="row"><button class="secondary" data-next="1">Indietro</button><button data-next="3">Avanti</button></div>
     </div>
 
     <div class="card stack hidden" data-wiz="3">
       <h2>3 · Pianeti</h2>
-      <p class="muted small">Copia i livelli dalla <b>Visuale impero</b>. Delle coordinate serve solo la posizione (il terzo numero, es. 8 in [1:364:8]): decide il bonus di produzione. L'energia è il numero sotto il pianeta (anche negativo): se lo inserisci, i calcoli sono molto più precisi.</p>
-      <p class="muted small">Booster delle risorse: di solito +10%, +20%, +30% o +40% (bronzo, argento, oro, platino). Lascia 0 se non ne hai.</p>
-      <div id="wiz-planets" class="stack"></div>
-      
-      <div class="row">
-        <button class="secondary" id="wiz-add-planet" type="button">+ Aggiungi pianeta</button>
-      </div>
+      <p>Ora aggiungi i tuoi pianeti, uno alla volta. Ogni pianeta ha la sua scheda con le sezioni Generale, Miniere, Energia, Item e Forme di vita.</p>
+      <p class="muted small">Ti basta la <b>Visuale impero</b> del gioco. Dopo il primo pianeta puoi usare <b>Copia</b> per riportare gli stessi livelli sugli altri e correggere solo quello che cambia.</p>
       <div id="wiz-msg" class="msg hidden"></div>
-      <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e inizia</button></div>
+      <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e aggiungi i pianeti</button></div>
     </div>
   </div>
 
@@ -233,18 +236,88 @@
     </section>
 
     <section data-panel="planets" class="stack hidden">
-      <div class="card">
-        <div class="row" style="justify-content:space-between"><h2 style="margin:0">I tuoi pianeti</h2><div class="row" style="gap:8px"><button class="secondary" id="add-planet-row">+ Aggiungi pianeta</button></div></div>
-        <p class="muted small">Modifica, aggiungi o riordina i pianeti, poi premi <b>Salva tutte le modifiche</b> in fondo. L'energia è quella mostrata nella Visuale impero. Le colonne Item sono i booster attivi in percentuale.</p>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Ordine</th><th>Nome</th><th>G</th><th>S</th><th>Pos</th><th>T max</th><th>Metallo</th><th>Cristallo</th><th>Deuterio</th><th>Solare</th><th>Fusione</th><th>Satelliti</th><th title="Booster metallo attivo">Item M%</th><th title="Booster cristallo attivo">Item C%</th><th title="Booster deuterio attivo">Item D%</th><th title="Booster energia attivo">Item E%</th><th>Energia</th><th></th></tr></thead>
-          <tbody id="planet-rows"></tbody>
-        </table></div>
-        <div class="row" style="margin-top:12px;justify-content:space-between">
-          <span id="unsaved-note" class="small hidden" style="color:var(--warn)">Hai modifiche non salvate</span>
-          <button id="save-all-planets" style="margin-left:auto">Salva tutte le modifiche</button>
+      <div id="planets-list-view" class="stack">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">I tuoi pianeti</h2>
+          <button id="add-planet">+ Aggiungi pianeta</button>
         </div>
-        <div id="planets-msg" class="msg hidden" style="margin-top:10px"></div>
+        <p class="muted small" style="margin:0">Apri un pianeta per vedere e modificare la sua scheda. Con ▲ ▼ cambi l'ordine.</p>
+        <div id="planets-msg" class="msg hidden"></div>
+        <div id="planet-cards" class="pgrid"></div>
+      </div>
+
+      <div id="planet-editor" class="stack hidden">
+        <div class="row" style="justify-content:space-between">
+          <button class="ghost" id="pe-back">← Tutti i pianeti</button>
+          <div class="row" style="gap:4px"><button class="ghost" id="pe-prev">‹ Precedente</button><button class="ghost" id="pe-next">Successivo ›</button></div>
+        </div>
+        <div class="row" style="justify-content:space-between;align-items:baseline">
+          <h2 id="pe-title" style="margin:0"></h2>
+          <span id="pe-dirty" class="small hidden" style="color:var(--warn)">Modifiche non salvate</span>
+        </div>
+        <div id="pe-msg" class="msg hidden"></div>
+        <div id="pe-preview" class="grid"></div>
+        <form id="pe-form" class="pe-grid" autocomplete="off" onsubmit="return false">
+          <div class="card stack">
+            <h3>Generale</h3>
+            <div class="grid">
+              <div><label>Nome</label><input data-f="name" placeholder="Es. Colonia 1"></div>
+              <div><label>Posizione (1–15)</label><input data-f="position" type="number" min="1" max="15"></div>
+              <div><label>Galassia (facoltativa)</label><input data-f="galaxy" type="number" min="1"></div>
+              <div><label>Sistema (facoltativo)</label><input data-f="system" type="number" min="1"></div>
+              <div><label>Temperatura max °C</label><input data-f="temp_max" type="number"></div>
+            </div>
+            <p class="muted small" style="margin:0">Delle coordinate [galassia:sistema:posizione] ai calcoli serve solo la posizione: decide il bonus di produzione. La temperatura serve per il deuterio e i satelliti.</p>
+            <label class="check"><input type="checkbox" data-f="included"> Includi questo pianeta nei calcoli</label>
+          </div>
+          <div class="card stack">
+            <h3>Miniere</h3>
+            <div class="grid">
+              <div><label>Miniera di metallo</label><input data-f="metal_mine" type="number" min="0"></div>
+              <div><label>Miniera di cristallo</label><input data-f="crystal_mine" type="number" min="0"></div>
+              <div><label>Sintetizzatore di deuterio</label><input data-f="deut_synth" type="number" min="0"></div>
+            </div>
+          </div>
+          <div class="card stack">
+            <h3>Energia</h3>
+            <div class="grid">
+              <div><label>Centrale solare</label><input data-f="solar_plant" type="number" min="0"></div>
+              <div><label>Centrale a fusione</label><input data-f="fusion_reactor" type="number" min="0"></div>
+              <div><label>Satelliti solari</label><input data-f="solar_satellites" type="number" min="0"></div>
+              <div><label>Energia in gioco (facoltativa)</label><input data-f="energy_balance" type="number" placeholder="es. -500"></div>
+            </div>
+            <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Visuale impero, anche negativo. Se la inserisci i calcoli usano quella, che è il valore più preciso.</p>
+          </div>
+          <div class="card stack">
+            <h3>Item attivi</h3>
+            <div class="grid">
+              <div><label>Booster metallo</label><select data-f="item_metal"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
+              <div><label>Booster cristallo</label><select data-f="item_crystal"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
+              <div><label>Booster deuterio</label><select data-f="item_deut"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
+              <div><label>Booster energia %</label><input data-f="item_energy" type="number" min="0" max="1000"></div>
+            </div>
+          </div>
+          <div class="card stack">
+            <h3>Forme di vita</h3>
+            <p class="muted small" style="margin:0">Bonus di produzione di questo pianeta, in percentuale. Se non li conosci usa il calcolatore qui sotto. Lascia 0 se non usi le forme di vita.</p>
+            <div class="grid">
+              <div><label>Metallo %</label><input data-f="lf_metal" type="number" step="0.01" min="0" max="1000"></div>
+              <div><label>Cristallo %</label><input data-f="lf_crystal" type="number" step="0.01" min="0" max="1000"></div>
+              <div><label>Deuterio %</label><input data-f="lf_deut" type="number" step="0.01" min="0" max="1000"></div>
+              <div><label>Energia %</label><input data-f="lf_energy" type="number" step="0.01" min="0" max="1000"></div>
+            </div>
+            <details class="card" style="background:var(--bg2)">
+              <summary style="cursor:pointer"><b>Calcolatore</b> <span class="muted small">dalla pagina Impostazioni risorse del gioco</span></summary>
+              <p class="muted small">Apri <b>Risorse → Impostazioni risorse</b> di questo pianeta. Per ogni colonna copia il valore della riga della miniera e la somma delle righe delle forme di vita (gli edifici delle forme di vita e la riga "Bonus Tecnologia Forme di vita"). La percentuale si compila da sola.</p>
+              <div class="grid" id="lf-calc"></div>
+            </details>
+          </div>
+        </form>
+        <div class="card pe-actions">
+          <button id="pe-save">Salva</button>
+          <button class="secondary" id="pe-copy">Copia su altri pianeti…</button>
+          <button class="danger" id="pe-delete">Elimina</button>
+        </div>
       </div>
     </section>
 
@@ -259,13 +332,8 @@
           <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
-          <div><label>Forme di vita metallo %</label><input data-s="lf_bonus_metal" type="number" step="0.01" min="0"></div>
-          <div><label>Forme di vita cristallo %</label><input data-s="lf_bonus_crystal" type="number" step="0.01" min="0"></div>
-          <div><label>Forme di vita deuterio %</label><input data-s="lf_bonus_deut" type="number" step="0.01" min="0"></div>
-          <div><label>Forme di vita energia %</label><input data-s="lf_bonus_energy" type="number" step="0.01" min="0"></div>
           <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
         </div>
-        <div class="lf-helper" data-prefix="s"></div>
         <div class="grid">
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.1" min="0.1"></div>
@@ -292,7 +360,7 @@
         <div class="row"><button id="save-settings">Salva impostazioni</button></div>
       </div>
       <div class="card small muted">
-        Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). Edifici e tecnologie delle forme di vita entrano solo come percentuale di bonus. Usa i risultati come guida e confrontali con i valori del gioco.
+        Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). I bonus delle forme di vita si inseriscono nella scheda di ogni pianeta, come percentuale. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
     </section>
   </div>
@@ -301,8 +369,18 @@
 <div id="copy-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="copy-title">
   <div class="card modal">
     <h2 id="copy-title" style="margin:0"></h2>
-    <p class="muted small" style="margin:8px 0 0">Vengono copiati miniere, centrali, satelliti e item. Nome, coordinate, temperatura ed energia restano quelli di ogni pianeta.</p>
-    <div id="copy-list" class="list stack"></div>
+    <p class="muted small" style="margin:8px 0 0">Nome, coordinate, temperatura ed energia in gioco restano quelli di ogni pianeta.</p>
+    <div class="list stack">
+      <b class="small">Cosa copiare</b>
+      <div class="row" style="gap:12px">
+        <label class="check"><input type="checkbox" data-group="mines" checked> Miniere</label>
+        <label class="check"><input type="checkbox" data-group="energy" checked> Centrali e satelliti</label>
+        <label class="check"><input type="checkbox" data-group="items" checked> Item</label>
+        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita</label>
+      </div>
+      <b class="small" style="margin-top:8px">Su quali pianeti</b>
+      <div id="copy-list" class="stack"></div>
+    </div>
     <div class="row" style="justify-content:flex-end"><button class="secondary" id="copy-cancel">Annulla</button><button id="copy-ok">Copia sui selezionati</button></div>
   </div>
 </div>
@@ -377,6 +455,8 @@ const Engine = (() => {
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
     const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
+    // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
+    const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
       + (profile.player_class === 'collector' ? 0.25 : 0)
@@ -384,12 +464,12 @@ const Engine = (() => {
     const p = profile.plasma_tech || 0;
     return {
       posMetal: 1 + pos.metal, posCrystal: 1 + pos.crystal,
-      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + (+profile.lf_bonus_metal || 0) / 100 + it('item_metal')),
-      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + (+profile.lf_bonus_crystal || 0) / 100 + it('item_crystal')),
-      deut:    1 + common + p * 0.0033 + (+profile.lf_bonus_deut || 0) / 100 + it('item_deut'),
+      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + lf('lf_metal', 'lf_bonus_metal') + it('item_metal')),
+      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + lf('lf_crystal', 'lf_bonus_crystal') + it('item_crystal')),
+      deut:    1 + common + p * 0.0033 + lf('lf_deut', 'lf_bonus_deut') + it('item_deut'),
       energy:  1 + (profile.engineer ? 0.10 : 0) + (profile.commanding_staff ? 0.02 : 0)
                + (profile.player_class === 'collector' ? 0.10 : 0) + (profile.alliance_trader ? 0.05 : 0)
-               + (+profile.lf_bonus_energy || 0) / 100 + it('item_energy'),
+               + lf('lf_energy', 'lf_bonus_energy') + it('item_energy'),
     };
   }
 
@@ -486,7 +566,12 @@ const Engine = (() => {
     if (steps > 0 && overCap(profile.cap_astro, astro + steps)) return null;
 
     // Typical new colony: average levels of the empire (capped), average temperature, position 8
-    const avg = k => Math.floor(planets.reduce((s, p) => s + (+p[k] || 0), 0) / planets.length);
+    // Median level of the empire: robust to one planet far behind or ahead
+    const avg = k => {
+      const v = planets.map(p => +p[k] || 0).sort((a, b) => a - b);
+      const m = v.length >> 1;
+      return v.length % 2 ? v[m] : Math.floor((v[m - 1] + v[m]) / 2);
+    };
     const cap = (k, v) => (overCap(profile[k], v) ? +profile[k] : v);
     const target = {
       metal_mine: cap('cap_metal', avg('metal_mine')),
@@ -496,6 +581,7 @@ const Engine = (() => {
     const colony = {
       name: 'Nuova colonia', position: 8, temp_max: Math.round(planets.reduce((s, p) => s + (+p.temp_max || 0), 0) / planets.length),
       ...target, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0,
+      lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, // a new colony has no lifeform buildings yet
     };
 
     let cost = [0, 0, 0];
@@ -528,7 +614,11 @@ const Engine = (() => {
   }
 
   // ---- All candidate actions, ranked by payback time ----
-  function recommendations(profile, planets) {
+  // Planets the player excluded from calculations are ignored everywhere
+  const active = planets => planets.filter(p => p.included !== false);
+
+  function recommendations(profile, allPlanets) {
+    const planets = active(allPlanets);
     const out = [];
     const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(r => r / profile.ratio_metal);
     const gainEq = arr => arr.reduce((s, x, i) => s + x * ratio[i], 0);
@@ -641,13 +731,13 @@ const Engine = (() => {
 
   function totals(profile, planets) {
     const t = [0, 0, 0];
-    planets.forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
+    active(planets).forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
     return t;
   }
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 
@@ -659,6 +749,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
+  {
+    id: 14, date: '2026-10-25', title: 'Una scheda per ogni pianeta',
+    text: 'La tabella dei pianeti è sostituita da un elenco a schede: apri un pianeta per modificarlo in sezioni (Generale, Miniere, Energia, Item, Forme di vita), con la sua produzione calcolata mentre scrivi e i pulsanti Precedente/Successivo. I bonus delle forme di vita ora sono per pianeta (i tuoi valori sono stati riportati su ogni pianeta). Puoi escludere un pianeta dai calcoli, e in "Copia" scegli cosa copiare.',
+  },
   {
     id: 13, date: '2026-10-24', title: 'Copia da un pianeta a scelta',
     text: 'Ogni pianeta ha il suo pulsante "Copia": scegli su quali altri pianeti copiare miniere, centrali, satelliti e item (anche tutti con "Seleziona tutti"). Sostituisce il vecchio "Copia dal primo su tutti".',
@@ -737,8 +831,8 @@ const PROFILE_DEFAULTS = {
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
-const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'lf_bonus_metal', 'lf_bonus_crystal', 'lf_bonus_deut', 'lf_bonus_energy', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
-const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'energy_balance'];
+const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'energy_balance', 'included'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
 const FIELD_LIMITS = {
@@ -837,9 +931,15 @@ async function loadUserData() {
   if (e1 || e2) { alert('Errore nel caricamento: ' + (e1 || e2).message); show('auth'); return; }
   state.profile = profile;
   state.planets = planets || [];
-  setDirty(false);
-  if (!profile || !profile.onboarded) startOnboarding();
-  else { renderApp(); openUpdates(true); }
+  state.editing = null;
+  if (!profile || !profile.onboarded) { startOnboarding(); return; }
+  renderApp();
+  if (!state.planets.length) {
+    goToTab('planets');
+    openPlanet(null);
+    message($('#pe-msg'), 'Inserisci il tuo primo pianeta e premi Salva. Poi aggiungi gli altri da "Tutti i pianeti".', 'ok');
+  }
+  openUpdates(true);
 }
 
 const numericProfile = p => {
@@ -855,10 +955,11 @@ function readPlanetInputs(container) {
   PLANET_FIELDS.forEach(f => {
     const el = container.querySelector(`[data-f="${f}"]`);
     if (!el) return;
+    if (el.type === 'checkbox') { p[f] = el.checked; return; }
     const v = el.value.trim();
     if (f === 'name') p[f] = v;
     else if (['energy_balance', 'galaxy', 'system'].includes(f)) p[f] = v === '' ? null : parseInt(v, 10);
-    else if (f.startsWith('item_')) p[f] = v === '' ? 0 : Number(v);
+    else if (f.startsWith('item_') || f.startsWith('lf_')) p[f] = v === '' ? 0 : Math.max(0, Number(v));
     else p[f] = v === '' ? 0 : parseInt(v, 10);
   });
   return p;
@@ -869,6 +970,7 @@ function validatePlanet(p) {
   if (!(p.position >= 1 && p.position <= 15)) return `${p.name}: la posizione va da 1 a 15.`;
   for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'])
     if (!(p[f] >= 0)) return `${p.name}: i livelli e i satelliti non possono essere negativi.`;
+  if (!Number.isFinite(p.temp_max)) return `${p.name}: inserisci la temperatura massima.`;
   return null;
 }
 
@@ -878,8 +980,6 @@ function startOnboarding() {
   $$('[data-p]').forEach(el => {
     if (el.type === 'checkbox') el.checked = !!p[el.dataset.p]; else el.value = p[el.dataset.p] ?? '';
   });
-  $('#wiz-planets').innerHTML = '';
-  if (state.planets.length) state.planets.forEach(addWizardPlanet); else addWizardPlanet();
   goStep(1);
   show('onboarding');
 }
@@ -890,92 +990,26 @@ function goStep(n) {
 }
 $$('[data-next]').forEach(b => b.addEventListener('click', () => goStep(+b.dataset.next)));
 
-function planetFieldsHTML(p = {}) {
-  const v = k => esc(p[k] ?? '');
-  const f = (key, label, extra = '') => `<div><label>${label}</label><input data-f="${key}" type="number" value="${v(key)}" ${extra}></div>`;
-  return `
-    <div class="grid">
-      <div><label>Nome</label><input data-f="name" value="${v('name')}" placeholder="Es. Betulla"></div>
-      ${f('galaxy', 'Galassia (facoltativa)', FIELD_LIMITS.galaxy)}${f('system', 'Sistema (facoltativo)', FIELD_LIMITS.system)}${f('position', 'Posizione (1–15)', FIELD_LIMITS.position)}
-      ${f('temp_max', 'Temperatura max °C')}
-      ${f('metal_mine', 'Miniera metallo', 'min="0"')}${f('crystal_mine', 'Miniera cristallo', 'min="0"')}${f('deut_synth', 'Sintetizzatore deuterio', 'min="0"')}
-      ${f('solar_plant', 'Centrale solare', 'min="0"')}${f('fusion_reactor', 'Centrale a fusione', 'min="0"')}${f('solar_satellites', 'Satelliti solari', 'min="0"')}
-      ${f('item_metal', 'Item metallo %', FIELD_LIMITS.item_metal)}${f('item_crystal', 'Item cristallo %', FIELD_LIMITS.item_crystal)}${f('item_deut', 'Item deuterio %', FIELD_LIMITS.item_deut)}${f('item_energy', 'Item energia %', FIELD_LIMITS.item_energy)}
-      <div><label>Energia in gioco (facoltativa)</label><input data-f="energy_balance" type="number" value="${p.energy_balance ?? ''}" placeholder="Es. -833"></div>
-    </div>`;
-}
-function addWizardPlanet(p = {}) {
-  const div = document.createElement('div');
-  div.className = 'planet-card stack';
-  if (p.id) div.dataset.id = p.id;
-  div.innerHTML = `<div class="row" style="justify-content:space-between"><b>Pianeta</b><div><button type="button" class="ghost" data-up title="Sposta su" aria-label="Sposta su">▲</button><button type="button" class="ghost" data-down title="Sposta giù" aria-label="Sposta giù">▼</button><button type="button" class="ghost" data-copy>Copia</button><button type="button" class="ghost" data-remove>Rimuovi</button></div></div>` + planetFieldsHTML(p);
-  div.querySelector('[data-remove]').addEventListener('click', () => div.remove());
-  div.querySelector('[data-copy]').addEventListener('click', () =>
-    openCopyDialog(div, $$('#wiz-planets .planet-card'), n => message($('#wiz-msg'), `Valori copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Correggi quelli diversi.`, 'ok')));
-  div.querySelector('[data-up]').addEventListener('click', () => { const s = div.previousElementSibling; if (s) s.before(div); });
-  div.querySelector('[data-down]').addEventListener('click', () => { const s = div.nextElementSibling; if (s) s.after(div); });
-  $('#wiz-planets').appendChild(div);
-}
-$('#wiz-add-planet').addEventListener('click', () => addWizardPlanet());
-
-// Mines, energy buildings and items are often the same on many planets: copy one planet onto the ones you pick
-const COPY_FIELDS = ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy'];
-const planetLabel = (el, i) => el.querySelector('[data-f="name"]').value.trim() || `Pianeta ${i + 1} (senza nome)`;
-function openCopyDialog(source, all, onDone) {
-  const targets = all.filter(el => el !== source);
-  const srcName = planetLabel(source, all.indexOf(source));
-  if (!targets.length) return alert('Aggiungi almeno un altro pianeta su cui copiare.');
-  $('#copy-title').textContent = `Copia i valori di ${srcName}`;
-  $('#copy-list').innerHTML = `<label class="check"><input type="checkbox" id="copy-all"> <b>Seleziona tutti</b></label>` +
-    targets.map(el => `<label class="check"><input type="checkbox" data-target="${all.indexOf(el)}"> ${esc(planetLabel(el, all.indexOf(el)))}</label>`).join('');
-  const boxes = () => $$('#copy-list [data-target]');
-  $('#copy-all').onchange = e => boxes().forEach(b => (b.checked = e.target.checked));
-  $('#copy-list').onchange = e => { if (e.target.dataset.target) $('#copy-all').checked = boxes().every(b => b.checked); };
-  $('#copy-ok').onclick = () => {
-    const chosen = boxes().filter(b => b.checked).map(b => all[+b.dataset.target]);
-    if (!chosen.length) return alert('Scegli almeno un pianeta.');
-    const values = COPY_FIELDS.map(f => source.querySelector(`[data-f="${f}"]`).value);
-    chosen.forEach(el => COPY_FIELDS.forEach((f, i) => (el.querySelector(`[data-f="${f}"]`).value = values[i])));
-    $('#copy-modal').classList.add('hidden');
-    onDone(chosen.length);
-  };
-  $('#copy-modal').classList.remove('hidden');
-  $('#copy-all').focus();
-}
-$('#copy-cancel').addEventListener('click', () => $('#copy-modal').classList.add('hidden'));
-$('#copy-modal').addEventListener('click', e => { if (e.target.id === 'copy-modal') $('#copy-modal').classList.add('hidden'); });
-
 $('#wiz-finish').addEventListener('click', async () => {
   const msgEl = $('#wiz-msg');
   const profile = { user_id: state.user.id, onboarded: true };
   $$('[data-p]').forEach(el => { profile[el.dataset.p] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
-  NUM_FIELDS.forEach(k => (profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]));
-  const cards = $$('#wiz-planets .planet-card');
-  if (!cards.length) return message(msgEl, 'Aggiungi almeno un pianeta.');
-  const planets = cards.map((c, i) => ({ ...readPlanetInputs(c), sort_order: i, _id: c.dataset.id }));
-  for (const p of planets) { const err = validatePlanet(p); if (err) return message(msgEl, err); }
-
+  NUM_FIELDS.forEach(k => { if (k in profile) profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]; });
   const btn = $('#wiz-finish'); btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
-  try {
-    let r = await sb.from('profiles').upsert(profile);
-    if (r.error) throw r.error;
-    const keep = planets.filter(p => p._id).map(p => p._id);
-    const toDelete = state.planets.filter(p => !keep.includes(p.id)).map(p => p.id);
-    if (toDelete.length) { r = await sb.from('planets').delete().in('id', toDelete); if (r.error) throw r.error; }
-    for (const p of planets) {
-      const { _id, ...row } = p;
-      r = _id ? await sb.from('planets').update(row).eq('id', _id) : await sb.from('planets').insert(row);
-      if (r.error) throw r.error;
-    }
-    await loadUserData();
-  } catch (err) { message(msgEl, 'Errore: ' + err.message); }
-  finally { btn.disabled = false; }
+  const r = await sb.from('profiles').upsert(profile);
+  btn.disabled = false;
+  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
+  await loadUserData();
 });
 
 /* ---------------- MAIN APP ---------------- */
+function goToTab(tab) {
+  $$('[data-tab]').forEach(x => x.classList.toggle('active', x.dataset.tab === tab));
+  $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
+}
 $$('[data-tab]').forEach(b => b.addEventListener('click', () => {
-  $$('[data-tab]').forEach(x => x.classList.toggle('active', x === b));
-  $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== b.dataset.tab));
+  if (b.dataset.tab !== 'planets' && !confirmLeavePlanet()) return;
+  goToTab(b.dataset.tab);
 }));
 
 function renderApp() {
@@ -987,7 +1021,7 @@ function renderApp() {
   let saved = cur;
   if (!saved) { try { saved = localStorage.getItem('ogadv-planet') || ''; } catch (e) {} }
   sel.value = state.planets.some(pl => pl.id === saved) ? saved : '';
-  renderAdvice(); renderPlanetTable(); renderSettings(); renderUpdatesBadge();
+  renderAdvice(); renderPlanetCards(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
 
@@ -1019,7 +1053,8 @@ function renderAdvice() {
     $('#stats').innerHTML = resStat('Metallo', 'res-m', st.actual[0]) + resStat('Cristallo', 'res-c', st.actual[1]) + resStat('Deuterio', 'res-d', st.actual[2]) + `
       <div class="card stat"><div class="muted small">Energia</div><div class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</div><div class="muted small">miniere al ${pct}%</div></div>`;
     const coords = [sel.galaxy, sel.system, sel.position].map(x => x ?? '?').join(':');
-    $('#planet-info').textContent = `[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`;
+    $('#planet-info').innerHTML = `${esc(`[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`)} <button class="ghost" id="open-sel-planet">Apri scheda</button>`;
+    $('#open-sel-planet').onclick = () => { goToTab('planets'); openPlanet(sel.id); };
   } else {
     const tot = Engine.totals(profile, planets);
     const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
@@ -1067,129 +1102,236 @@ async function completeRec(rec, btn) {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
     if (!r.error) {
       Object.assign(planet, r.data);
-      // keep an unsaved planets table in sync, so "Save all" doesn't overwrite this change
-      const tr = document.querySelector(`#planet-rows tr[data-id="${planet.id}"]`);
-      if (tr) Object.entries(patch.planet).forEach(([k, v]) => { const el = tr.querySelector(`[data-f="${k}"]`); if (el) el.value = v ?? ''; });
+      // an open page of this planet shows the new values (unsaved edits there are kept)
+      if (state.editing?.id === planet.id && !state.editing.dirty) fillPlanetForm(planet);
     }
   }
   if (r.error) { alert('Errore: ' + r.error.message); btn.disabled = false; return; }
   renderApp();
-  if (patch.newPlanet) {
-    // the colony itself must be added by the player: open the table with a prefilled row
-    $('[data-tab="planets"]').click();
-    $('#planet-rows').insertAdjacentHTML('beforeend', planetRowHTML({ ...patch.newPlanet, metal_mine: 0, crystal_mine: 0, deut_synth: 0, item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0 }));
-    bindPlanetRows();
-    setDirty(true);
-    message($('#planets-msg'), 'Astrofisica aggiornata. Inserisci nome, posizione e livelli della nuova colonia, poi premi "Salva tutte le modifiche".', 'ok');
-    $('#planet-rows tr:last-child [data-f="name"]').select();
+  if (patch.newPlanet && confirmLeavePlanet()) {
+    // the colony itself is added by the player: open a new planet page
+    goToTab('planets');
+    openPlanet(null, { ...NEW_PLANET, position: patch.newPlanet.position, temp_max: patch.newPlanet.temp_max });
+    message($('#pe-msg'), 'Astrofisica aggiornata. Inserisci i dati della nuova colonia e premi Salva.', 'ok');
   }
 }
 
-/* Planets table: edits stay in the table until "Salva tutte le modifiche" */
-function planetRowHTML(p) {
-  const cell = (k, cls = '') => `<td><input data-f="${k}" class="${cls}" ${k === 'name' ? '' : 'type="number" ' + (FIELD_LIMITS[k] || '')} value="${esc(p[k] ?? '')}"></td>`;
-  const st = p.id ? Engine.planetState(numericProfile(state.profile), p) : null;
-  return `<tr data-id="${p.id || ''}">
-    <td><button class="ghost" data-up title="Sposta su" aria-label="Sposta su">▲</button><button class="ghost" data-down title="Sposta giù" aria-label="Sposta giù">▼</button></td>
-    ${cell('name', 'name')}${cell('galaxy')}${cell('system')}${cell('position')}${cell('temp_max')}
-    ${cell('metal_mine')}${cell('crystal_mine')}${cell('deut_synth')}${cell('solar_plant')}${cell('fusion_reactor')}${cell('solar_satellites')}
-    ${cell('item_metal')}${cell('item_crystal')}${cell('item_deut')}${cell('item_energy')}
-    <td><input data-f="energy_balance" type="number" class="${st && st.balance < 0 ? 'neg' : ''}" value="${p.energy_balance ?? ''}" placeholder="—"></td>
-    <td><button class="secondary" data-copy style="padding:6px 10px">Copia</button> <button class="danger" data-del title="Elimina" aria-label="Elimina" style="padding:6px 10px">✕</button></td>
-  </tr>`;
+/* Planets: a list of cards, and one page per planet */
+const NEW_PLANET = {
+  name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
+  solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
+  item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, included: true,
+};
+const coordsText = p => (p.galaxy || p.system ? `[${p.galaxy ?? '?'}:${p.system ?? '?'}:${p.position}]` : `posizione ${p.position}`);
+
+function renderPlanetCards() {
+  const profile = numericProfile(state.profile);
+  $('#planet-cards').innerHTML = state.planets.map((p, i) => {
+    const st = Engine.planetState(profile, p);
+    const off = p.included === false;
+    return `<div class="card pcard ${off ? 'off' : ''}" tabindex="0" role="button" data-open="${p.id}" aria-label="Apri ${esc(p.name)}">
+      <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+        <div><b>${esc(p.name)}</b> <span class="muted small">${esc(coordsText(p))}</span></div>
+        <div class="move">
+          <button class="ghost" data-move="-1" data-id="${p.id}" ${i === 0 ? 'disabled' : ''} title="Sposta su" aria-label="Sposta su">▲</button>
+          <button class="ghost" data-move="1" data-id="${p.id}" ${i === state.planets.length - 1 ? 'disabled' : ''} title="Sposta giù" aria-label="Sposta giù">▼</button>
+        </div>
+      </div>
+      <div class="levels"><span class="res-m">M ${p.metal_mine}</span><span class="res-c">C ${p.crystal_mine}</span><span class="res-d">D ${p.deut_synth}</span></div>
+      <div class="small"><span class="${st.balance < 0 ? 'neg' : 'muted'}">Energia ${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span>
+        <span class="muted"> · ${p.temp_max}°C</span>${off ? ' <span class="tag">escluso dai calcoli</span>' : ''}</div>
+    </div>`;
+  }).join('') || '<p class="muted">Nessun pianeta. Premi "+ Aggiungi pianeta".</p>';
 }
-function setDirty(dirty) {
-  state.tableDirty = dirty;
-  $('#save-all-planets').textContent = dirty ? 'Salva tutte le modifiche •' : 'Salva tutte le modifiche';
-  $('#unsaved-note').classList.toggle('hidden', !dirty);
+$('#planet-cards').addEventListener('click', e => {
+  const mv = e.target.closest('[data-move]');
+  if (mv) { e.stopPropagation(); return movePlanet(mv.dataset.id, +mv.dataset.move); }
+  const card = e.target.closest('[data-open]');
+  if (card) openPlanet(card.dataset.open);
+});
+$('#planet-cards').addEventListener('keydown', e => {
+  const card = e.target.closest('[data-open]');
+  if (card && (e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); openPlanet(card.dataset.open); }
+});
+
+// Reorder: swap with the neighbour and save both positions
+async function movePlanet(id, dir) {
+  const i = state.planets.findIndex(p => p.id === id), j = i + dir;
+  if (j < 0 || j >= state.planets.length) return;
+  [state.planets[i], state.planets[j]] = [state.planets[j], state.planets[i]];
+  state.planets.forEach((p, k) => (p.sort_order = k));
+  renderApp();
+  const res = await Promise.all([i, j].map(k => sb.from('planets').update({ sort_order: k }).eq('id', state.planets[k].id)));
+  const err = res.find(r => r.error);
+  if (err) message($('#planets-msg'), 'Errore nel salvare l\'ordine: ' + err.error.message);
 }
-function renderPlanetTable() {
-  if (state.tableDirty) return; // never throw away unsaved edits
-  $('#planet-rows').innerHTML = state.planets.map(planetRowHTML).join('');
-  bindPlanetRows();
-}
-function bindPlanetRows() {
-  $$('#planet-rows tr').forEach(tr => {
-    tr.querySelector('[data-del]').onclick = () => deletePlanetRow(tr);
-    tr.querySelector('[data-copy]').onclick = () => openCopyDialog(tr, $$('#planet-rows tr'), n => {
-      setDirty(true);
-      message($('#planets-msg'), `Valori copiati su ${n} ${n === 1 ? 'pianeta' : 'pianeti'}. Premi "Salva tutte le modifiche" per confermare.`, 'ok');
-    });
-    tr.querySelector('[data-up]').onclick = () => moveRow(tr, -1);
-    tr.querySelector('[data-down]').onclick = () => moveRow(tr, 1);
+
+$('#add-planet').addEventListener('click', () => openPlanet(null));
+
+/* Planet page */
+function fillPlanetForm(p) {
+  $$('#pe-form [data-f]').forEach(el => {
+    const k = el.dataset.f, v = p[k];
+    if (el.type === 'checkbox') { el.checked = v !== false; return; }
+    if (el.tagName === 'SELECT' && v && ![...el.options].some(o => +o.value === +v))
+      el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // unusual value kept
+    el.value = v ?? (el.tagName === 'SELECT' ? '0' : '');
   });
+  $$('#lf-calc input').forEach(el => (el.value = ''));
 }
-$('#planet-rows').addEventListener('input', () => setDirty(true));
-window.addEventListener('beforeunload', e => { if (state.tableDirty) { e.preventDefault(); e.returnValue = ''; } });
+function setPlanetDirty(d) {
+  if (state.editing) state.editing.dirty = d;
+  $('#pe-dirty').classList.toggle('hidden', !d);
+  $('#pe-save').textContent = d ? 'Salva •' : 'Salva';
+}
+function confirmLeavePlanet() {
+  if (!state.editing?.dirty) return true;
+  if (!confirm('Ci sono modifiche non salvate su questo pianeta. Vuoi uscire senza salvarle?')) return false;
+  setPlanetDirty(false);
+  return true;
+}
+function openPlanet(id, prefill) {
+  if (state.editing && !confirmLeavePlanet()) return;
+  const p = id ? state.planets.find(x => x.id === id) : { ...NEW_PLANET, ...(prefill || {}) };
+  if (!p) return;
+  state.editing = { id: id || null, dirty: false };
+  fillPlanetForm(p);
+  setPlanetDirty(false);
+  message($('#pe-msg'), '');
+  const i = state.planets.findIndex(x => x.id === id);
+  $('#pe-title').textContent = id ? `${p.name} ${coordsText(p)}` : 'Nuovo pianeta';
+  $('#pe-prev').disabled = !id || i <= 0;
+  $('#pe-next').disabled = !id || i >= state.planets.length - 1;
+  $('#pe-delete').textContent = id ? 'Elimina' : 'Annulla';
+  $('#planets-list-view').classList.add('hidden');
+  $('#planet-editor').classList.remove('hidden');
+  renderPlanetPreview();
+  window.scrollTo(0, 0);
+  if (!id) $('#pe-form [data-f="name"]').focus();
+}
+function closePlanet() {
+  if (!confirmLeavePlanet()) return;
+  state.editing = null;
+  $('#planet-editor').classList.add('hidden');
+  $('#planets-list-view').classList.remove('hidden');
+  renderPlanetCards();
+}
+$('#pe-back').addEventListener('click', closePlanet);
+const stepPlanet = d => {
+  const i = state.planets.findIndex(x => x.id === state.editing?.id);
+  const next = state.planets[i + d];
+  if (next) openPlanet(next.id);
+};
+$('#pe-prev').addEventListener('click', () => stepPlanet(-1));
+$('#pe-next').addEventListener('click', () => stepPlanet(1));
+$('#pe-form').addEventListener('input', () => { setPlanetDirty(true); renderPlanetPreview(); });
+$('#pe-form').addEventListener('change', () => { setPlanetDirty(true); renderPlanetPreview(); });
+window.addEventListener('beforeunload', e => { if (state.editing?.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-function moveRow(tr, dir) {
-  const sibling = dir < 0 ? tr.previousElementSibling : tr.nextElementSibling;
-  if (!sibling) return;
-  if (dir < 0) sibling.before(tr); else sibling.after(tr);
-  setDirty(true);
+// Live production of the planet being edited, to compare with the game while typing
+function renderPlanetPreview() {
+  const p = { ...NEW_PLANET, ...readPlanetInputs($('#pe-form')) };
+  if (!(p.position >= 1 && p.position <= 15) || !Number.isFinite(p.temp_max)) { $('#pe-preview').innerHTML = ''; return; }
+  const st = Engine.planetState(numericProfile(state.profile), p);
+  const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
+  $('#pe-preview').innerHTML =
+    box('Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
+    box('Cristallo / ora', 'res-c', fmt(st.actual[1]), fmt(st.actual[1] * 24) + ' al giorno') +
+    box('Deuterio / ora', 'res-d', fmt(st.actual[2]), fmt(st.actual[2] * 24) + ' al giorno') +
+    box('Energia', st.balance < 0 ? 'neg' : '', (st.balance > 0 ? '+' : '') + fmt(st.balance), `miniere al ${Math.round(st.factor * 100)}%`);
 }
-$('#add-planet-row').addEventListener('click', () => {
-  $('#planet-rows').insertAdjacentHTML('beforeend', planetRowHTML({ position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0 }));
-  bindPlanetRows();
-  setDirty(true);
-  $('#planet-rows tr:last-child [data-f="name"]').focus();
+
+$('#pe-save').addEventListener('click', async () => {
+  const msgEl = $('#pe-msg'), btn = $('#pe-save');
+  const data = readPlanetInputs($('#pe-form'));
+  const err = validatePlanet(data); if (err) return message(msgEl, err);
+  const id = state.editing.id;
+  btn.disabled = true;
+  const r = id
+    ? await sb.from('planets').update(data).eq('id', id).select().single()
+    : await sb.from('planets').insert({ ...data, sort_order: state.planets.length }).select().single();
+  btn.disabled = false;
+  if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
+  if (id) Object.assign(state.planets.find(x => x.id === id), r.data);
+  else state.planets.push(r.data);
+  state.editing = { id: r.data.id, dirty: false };
+  setPlanetDirty(false);
+  renderApp();
+  const i = state.planets.findIndex(x => x.id === r.data.id);
+  $('#pe-title').textContent = `${r.data.name} ${coordsText(r.data)}`;
+  $('#pe-prev').disabled = i <= 0; $('#pe-next').disabled = i >= state.planets.length - 1;
+  $('#pe-delete').textContent = 'Elimina';
+  message(msgEl, id ? `${r.data.name} salvato.` : `${r.data.name} aggiunto. Puoi aggiungere un altro pianeta da "Tutti i pianeti" o usare "Copia su altri pianeti".`, 'ok');
 });
 
-$('#save-all-planets').addEventListener('click', async () => {
-  const msgEl = $('#planets-msg'), btn = $('#save-all-planets');
-  const rows = $$('#planet-rows tr');
-  const items = rows.map((tr, i) => ({ id: tr.dataset.id || null, data: { ...readPlanetInputs(tr), sort_order: i } }));
-  for (const it of items) { const err = validatePlanet(it.data); if (err) return message(msgEl, err); }
-  btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
-  try {
-    const saved = [];
-    for (const it of items) {
-      const r = it.id
-        ? await sb.from('planets').update(it.data).eq('id', it.id).select().single()
-        : await sb.from('planets').insert(it.data).select().single();
-      if (r.error) throw r.error;
-      saved.push(r.data);
-      if (!it.id) rows[items.indexOf(it)].dataset.id = r.data.id; // avoids a duplicate if a later row fails
-    }
-    state.planets = saved;
-    setDirty(false);
-    renderApp();
-    message(msgEl, `Salvati ${saved.length} pianeti.`, 'ok');
-    setTimeout(() => message($('#planets-msg'), ''), 2500);
-  } catch (err) {
-    message(msgEl, 'Errore: ' + err.message + '. Le modifiche sono ancora nella tabella: riprova.');
-  } finally { btn.disabled = false; }
-});
-
-async function deletePlanetRow(tr) {
-  const id = tr.dataset.id;
-  const name = tr.querySelector('[data-f="name"]').value || 'questo pianeta';
-  if (!id) { tr.remove(); return; }
-  if (!confirm(`Eliminare ${name}? L'operazione è immediata.`)) return;
+$('#pe-delete').addEventListener('click', async () => {
+  const id = state.editing?.id;
+  if (!id) { setPlanetDirty(false); return closePlanet(); }
+  const pl = state.planets.find(x => x.id === id);
+  if (!confirm(`Eliminare ${pl.name}? L'operazione non si può annullare.`)) return;
   const r = await sb.from('planets').delete().eq('id', id);
-  if (r.error) return message($('#planets-msg'), 'Errore: ' + r.error.message);
+  if (r.error) return message($('#pe-msg'), 'Errore: ' + r.error.message);
   state.planets = state.planets.filter(x => x.id !== id);
-  tr.remove();
-  renderApp(); // the table keeps any unsaved edits
-}
+  setPlanetDirty(false);
+  closePlanet();
+  renderApp();
+  message($('#planets-msg'), `${pl.name} eliminato.`, 'ok');
+});
 
-/* Lifeform bonus helper: from the numbers on the in-game "Impostazioni risorse" page to percentages */
-document.querySelectorAll('.lf-helper').forEach(box => {
-  const pre = box.dataset.prefix;
-  const rows = [['metal', 'Metallo', 'Miniera di Metallo'], ['crystal', 'Cristallo', 'Miniera di Cristalli'], ['deut', 'Deuterio', 'Sintetizzatore di deuterio']];
-  box.innerHTML = `<details class="card" style="background:var(--bg2)">
-    <summary style="cursor:pointer"><b>Calcolatore bonus forme di vita</b> <span class="muted small">(apri se non conosci le percentuali)</span></summary>
-    <p class="muted small">Dalla pagina Impostazioni risorse di un pianeta copia: il valore della riga della miniera e la somma delle righe forme di vita della stessa colonna (edifici come Fusione magmatica + "Bonus Tecnologia Forme di vita").</p>
-    <div class="grid">${rows.map(([k, l, row]) => `
-      <div><label>${row}</label><input type="number" min="0" data-lfrow="${k}" placeholder="es. 232127"></div>
-      <div><label>Forme di vita ${l.toLowerCase()} (somma)</label><input type="number" min="0" data-lfsum="${k}" placeholder="es. 112483"></div>`).join('')}
-    </div></details>`;
-  const calc = k => {
-    const row = +box.querySelector(`[data-lfrow="${k}"]`).value, sum = +box.querySelector(`[data-lfsum="${k}"]`).value;
-    if (row > 0 && sum >= 0)
-      document.querySelectorAll(`[data-${pre}="lf_bonus_${k}"]`).forEach(el => { el.value = (sum / row * 100).toFixed(2); });
+/* Copy: from the open planet to the planets the player picks */
+const COPY_GROUPS = {
+  mines: ['metal_mine', 'crystal_mine', 'deut_synth'],
+  energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
+  items: ['item_metal', 'item_crystal', 'item_deut', 'item_energy'],
+  lf: ['lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy'],
+};
+$('#pe-copy').addEventListener('click', () => {
+  const id = state.editing?.id;
+  if (!id || state.editing.dirty) return message($('#pe-msg'), 'Salva prima questo pianeta, poi copia i suoi valori.');
+  const src = state.planets.find(x => x.id === id);
+  const targets = state.planets.filter(x => x.id !== id);
+  if (!targets.length) return message($('#pe-msg'), 'Aggiungi almeno un altro pianeta su cui copiare.');
+  $('#copy-title').textContent = `Copia i valori di ${src.name}`;
+  $('#copy-list').innerHTML = `<label class="check"><input type="checkbox" id="copy-all"> <b>Seleziona tutti</b></label>` +
+    targets.map(t => `<label class="check"><input type="checkbox" data-target="${t.id}"> ${esc(t.name)} <span class="muted small">${esc(coordsText(t))}</span></label>`).join('');
+  const boxes = () => $$('#copy-list [data-target]');
+  $('#copy-all').onchange = e => boxes().forEach(b => (b.checked = e.target.checked));
+  $('#copy-list').onchange = e => { if (e.target.dataset.target) $('#copy-all').checked = boxes().every(b => b.checked); };
+  $('#copy-ok').onclick = async () => {
+    const ids = boxes().filter(b => b.checked).map(b => b.dataset.target);
+    const fields = $$('[data-group]').filter(b => b.checked).flatMap(b => COPY_GROUPS[b.dataset.group]);
+    if (!fields.length) return alert('Scegli cosa copiare.');
+    if (!ids.length) return alert('Scegli almeno un pianeta.');
+    const patch = Object.fromEntries(fields.map(f => [f, src[f]]));
+    // the game energy of the targets changes with their buildings: recompute it instead of keeping an old value
+    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null;
+    $('#copy-ok').disabled = true;
+    const r = await sb.from('planets').update(patch).in('id', ids).select();
+    $('#copy-ok').disabled = false;
+    if (r.error) return alert('Errore: ' + r.error.message);
+    r.data.forEach(row => Object.assign(state.planets.find(x => x.id === row.id), row));
+    $('#copy-modal').classList.add('hidden');
+    renderApp();
+    message($('#pe-msg'), `Valori di ${src.name} copiati su ${ids.length} ${ids.length === 1 ? 'pianeta' : 'pianeti'}.${'energy_balance' in patch ? ' La loro energia in gioco è stata svuotata: inseriscila di nuovo se la conosci.' : ''}`, 'ok');
   };
-  box.addEventListener('input', e => { const k = e.target.dataset.lfrow || e.target.dataset.lfsum; if (k) calc(k); });
+  $('#copy-modal').classList.remove('hidden');
+  $('#copy-all').focus();
+});
+$('#copy-cancel').addEventListener('click', () => $('#copy-modal').classList.add('hidden'));
+$('#copy-modal').addEventListener('click', e => { if (e.target.id === 'copy-modal') $('#copy-modal').classList.add('hidden'); });
+
+/* Lifeform calculator: from the game's "Impostazioni risorse" numbers to the planet percentages */
+$('#lf-calc').innerHTML = [['metal', 'Metallo', 'Miniera di Metallo'], ['crystal', 'Cristallo', 'Miniera di Cristalli'], ['deut', 'Deuterio', 'Sintetizzatore di deuterio']]
+  .map(([k, l, row]) => `<div><label>Riga "${row}"</label><input type="number" min="0" data-lfrow="${k}"></div>
+    <div><label>Forme di vita ${l.toLowerCase()} (somma)</label><input type="number" min="0" data-lfsum="${k}"></div>`).join('');
+$('#lf-calc').addEventListener('input', e => {
+  e.stopPropagation();
+  const k = e.target.dataset.lfrow || e.target.dataset.lfsum; if (!k) return;
+  const row = +$(`[data-lfrow="${k}"]`).value, sum = +$(`[data-lfsum="${k}"]`).value;
+  if (row > 0 && sum >= 0) {
+    $(`#pe-form [data-f="lf_${k}"]`).value = (sum / row * 100).toFixed(2);
+    setPlanetDirty(true); renderPlanetPreview();
+  }
 });
 
 /* Updates ("Novità"): each user sees the entries with an id above the last one they confirmed */
