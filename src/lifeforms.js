@@ -15,6 +15,9 @@ const LIFEFORMS = {
     raceSwitchCooldownHours: 48,         // guide
     // Effective tech bonus = base x (1 + tech-boost building of the planet) x (1 + race level bonus)  (guide example 2, recomputed: 1.599 vs 1.598 shown)
     techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
+    // Cost of a lifeform building at level L = base x factor^(L-1) x L (checked on levels 1 and 2 of five
+    // Rock'tal buildings; the game page showed them 5% cheaper, most likely the Monolith: to confirm)
+    buildingCostFormula: 'base * factor^(L-1) * L',
     levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
   },
 
@@ -25,13 +28,17 @@ const LIFEFORMS = {
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level.
       buildings: {
         magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [10000, 8000, 1000], factor: 1.4 },
           energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
         crystal_refinery:   { it: 'Cristalleria', effect: { crystal: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [85000, 44000, 25000], factor: 1.4 },
           energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
         deuterium_tuner:    { it: 'Sintonizzatore di deuterio', effect: { deut: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [120000, 50000, 20000], factor: 1.4 },
           energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
         // +1.5% energy and -0.5% energy used by the mines per level (level 10 = +15% / -5%)
-        disruption_chamber: { it: 'Camera di Disgregazione', effect: { energy: 0.015, mineConsumption: -0.005 }, perLevel: true, source: 'game' },
+        disruption_chamber: { it: 'Camera di Disgregazione', effect: { energy: 0.015, mineConsumption: -0.005 }, perLevel: true, source: 'game',
+          cost: { base: [20000, 15000, 10000], factor: 1.2 } },
         // -0.5% cost of resource buildings per level; the game shows it rounded up (level 1 = -1%, level 3 = -2%)
         mineral_centre:     { it: 'Centro di Mineralogia', effect: { mineCost: -0.005 }, perLevel: true, level1Cost: [250000, 150000, 100000], source: 'game',
           energy: [120, 405, 790, 1370, 2227, 3475, 5270, 7831, 11452, 16543, 23656, 33549, 47248, 66147, 92134] },
@@ -41,6 +48,7 @@ const LIFEFORMS = {
           energy: { 3: 527, 4: 913, 5: 1485, 6: 2316, 7: 3513, 8: 5220, 9: 7635, 10: 11028, 11: 15771, 12: 22366, 13: 31499, 14: 44098, 15: 61423, 16: 85173, 17: 117645 } },
         // Rock'tal research building: -0.25% research cost and -2% research time per level (half the cost effect of the Human one)
         tecnologicus_runarum: { it: 'Tecnologicus Runarum', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          cost: { base: [40000, 10000, 15000], factor: 1.3 },
           energy: { 8: 257, 9: 318, 10: 389, 11: 470, 12: 564, 13: 673, 14: 797, 15: 939, 16: 1102, 17: 1288, 18: 1501, 19: 1743, 20: 2018, 21: 2331, 22: 2686 } },
         tech_boost: null, // no Rock'tal building boosts lifeform techs (game building list)
         // No effect on production, energy or costs (game descriptions): Enclave di Meditazione, Produzione di cristalli,
