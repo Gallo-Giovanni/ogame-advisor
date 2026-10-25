@@ -2898,7 +2898,7 @@ function renderBonus() {
       ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
       <p class="muted small" style="margin:0">Primo in classifica tra 50 e 75 milioni di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}.</p>`;
   }
-  h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
+  const expHtml = `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
     ${maxHtml}
     <p class="muted small" style="margin:0">Le ricerche forme di vita valgono per tutto l'account: qui c'è la somma di tutti i pianeti, con i potenziamenti degli edifici e del livello della razza.</p>
@@ -2914,8 +2914,8 @@ function renderBonus() {
     h = `<div class="card stack"><h2 class="bh">Classe ${CLASS[0]}</h2>
       ${table(['', 'Bonus'], CLASS[2].map(([l, v]) => row(l, [v])).concat(enh ? [row('Potenziamento della classe dalle ricerche forme di vita', [enh], ' class="tot"')] : []))}
       <p class="muted small" style="margin:0">Valori della pagina "Bonus classe personaggio" del gioco${enh ? '' : '. Il potenziamento della classe arriva con le ricerche forme di vita T3 dedicate'}.</p>
-    </div>` + h;
-  }
+    </div>` + expHtml + h;
+  } else h = expHtml + h;
   if (all.recon_fleet_speed) h += `<div class="card stack"><h2 class="bh">Altro</h2>${table(['', 'Bonus'], [row('Velocità delle flotte nei voli di ricognizione', [all.recon_fleet_speed])])}</div>`;
   $('#bonus-panel').innerHTML = h;
 }
