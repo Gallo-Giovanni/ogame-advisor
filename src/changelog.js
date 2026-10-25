@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 29, date: '2026-10-25', title: 'Importa dalla Vista impero',
+    text: 'In Impostazioni trovi il pulsante "OGame Advisor" da trascinare nei preferiti del browser (da PC). Premilo sulla Vista impero del gioco: l\'app legge miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica, ti mostra cosa cambia e salva solo se confermi. Il pulsante legge solo la pagina aperta: non fa richieste al gioco.',
+  },
+  {
     id: 28, date: '2026-10-25', title: 'Ricerche forme di vita nei consigli',
     text: 'Le ricerche forme di vita T1 e T2 che aumentano la produzione (metallo, cristallo, deuterio) entrano nella classifica, con la sigla dello slot (per esempio T2-1 · Sondaggio da alte profondità 6). Il guadagno conta tutti i pianeti, perché la ricerca vale per tutto l\'account, e il costo è già scontato dall\'edificio di ricerca del pianeta. Fatto alza il livello della ricerca. Le T3 arriveranno quando avremo i loro costi.',
   },

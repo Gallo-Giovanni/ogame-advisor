@@ -110,6 +110,11 @@
   .modal-back { position: fixed; inset: 0; background: #050814cc; display: grid; place-items: center; padding: 16px; z-index: 50; }
   .modal { width: min(560px, 100%); max-height: 85vh; display: flex; flex-direction: column; }
   .modal .list { overflow-y: auto; margin: 12px 0; padding-right: 4px; }
+  .bm { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #0b1020 !important; font-weight: 700; text-decoration: none; cursor: grab; }
+  .imp { border-top: 1px solid var(--line); padding-top: 8px; }
+  .imp .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: var(--bg2); color: var(--muted); margin-left: 6px; }
+  .imp .tag.new { background: var(--accent2); color: #0b1020; }
+  .imp ul { margin: 4px 0 0; padding-left: 18px; }
   .upd + .upd { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
   .upd .date { font-size: .8rem; color: var(--muted); }
   .upd.new .title::after { content: 'NUOVO'; margin-left: 8px; font-size: .7rem; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: #1a1200; vertical-align: middle; }
@@ -411,6 +416,16 @@
     </section>
 
     <section data-panel="settings" class="stack hidden">
+      <div class="card stack" id="import-card">
+        <h2>Importa dal gioco</h2>
+        <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica. Prima di salvare ti mostra cosa cambia.</p>
+        <ol class="small" style="margin:0;padding-left:20px">
+          <li>Trascina questo pulsante sulla barra dei preferiti: <a id="bm-link" class="bm" href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
+          <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
+          <li>Premi <b>OGame Advisor</b> nei preferiti: si apre questa app con l'anteprima dell'importazione.</li>
+        </ol>
+        <p class="muted small" style="margin:0">Il pulsante legge solo la pagina che hai aperto: non fa richieste al gioco, non clicca nulla e non legge la sessione. Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+      </div>
       <div class="card stack" id="settings-form">
         <h2>Account e bonus</h2>
         <div class="grid">
@@ -482,6 +497,15 @@
   </div>
 </div>
 
+<div id="import-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
+  <div class="card modal">
+    <h2 id="import-title" style="margin:0">Importa dalla Vista impero</h2>
+    <div id="import-list" class="list stack small"></div>
+    <div id="import-msg" class="msg hidden"></div>
+    <div class="row" style="justify-content:flex-end"><button class="secondary" id="import-cancel">Annulla</button><button id="import-ok">Importa</button></div>
+  </div>
+</div>
+
 <div id="updates-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="updates-title">
   <div class="card modal">
     <h2 id="updates-title" style="margin:0"></h2>
@@ -495,6 +519,9 @@
 </script>
 <script>
 /*ENGINE*/
+</script>
+<script>
+/*IMPORTER*/
 </script>
 <script>
 /*CHANGELOG*/
@@ -624,6 +651,7 @@ async function loadUserData() {
   state.editing = null;
   if (!profile || !profile.onboarded) { startOnboarding(); return; }
   renderApp();
+  if (pendingImport()) { openImport(); return; }
   if (!state.planets.length) {
     goToTab('planets');
     openPlanet(null);
@@ -1325,6 +1353,105 @@ $('#updates-ok').addEventListener('click', closeUpdates);
 $('#updates-modal').addEventListener('click', e => { if (e.target.id === 'updates-modal') closeUpdates(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#updates-modal').classList.contains('hidden')) closeUpdates(); });
 $('#open-updates').addEventListener('click', () => openUpdates(false));
+
+/* Import from the game's empire view (bookmarklet) */
+// The bookmarklet opens the app with #import=<data>: keep it until the user is logged in, then remove it from the URL
+function captureImport() {
+  const h = location.hash;
+  if (!h.startsWith('#import=')) return false;
+  try { sessionStorage.setItem('ogadv-import', decodeURIComponent(h.slice(8))); } catch (e) { state.importRaw = decodeURIComponent(h.slice(8)); }
+  history.replaceState(null, '', location.pathname + location.search);
+  return true;
+}
+captureImport();
+// app already open in this tab: import right away if logged in
+window.addEventListener('hashchange', () => { if (captureImport() && state.profile && state.profile.onboarded) openImport(); });
+function pendingImport() {
+  let raw = state.importRaw;
+  try { raw = sessionStorage.getItem('ogadv-import') || raw; } catch (e) {}
+  if (!raw) return null;
+  try { const snap = JSON.parse(raw); return snap && snap.v === 1 && Array.isArray(snap.pl) ? snap : null; } catch (e) { return null; }
+}
+function dropImport() { state.importRaw = null; try { sessionStorage.removeItem('ogadv-import'); } catch (e) {} }
+
+const IMPORT_LABELS = {
+  name: 'Nome', galaxy: 'Galassia', system: 'Sistema', position: 'Posizione', temp_max: 'Temperatura max',
+  metal_mine: 'Miniera di metallo', crystal_mine: 'Miniera di cristallo', deut_synth: 'Sintetizzatore di deuterio',
+  solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
+  energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
+  player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
+  astro_tech: 'Astrofisica', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+};
+const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
+  : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
+  : typeof v === 'boolean' ? (v ? 'sì' : 'no') : typeof v === 'number' ? fmt(v) : String(v);
+function importChanges(oldObj, data) {
+  const out = [];
+  for (const [k, v] of Object.entries(data)) {
+    if (k === 'lf_buildings' || k === 'lf_techs') continue;
+    const o = oldObj ? oldObj[k] : undefined;
+    if (oldObj && (o === v || (o !== null && o !== undefined && v !== null && String(o) === String(v)))) continue;
+    out.push(oldObj ? `${IMPORT_LABELS[k] || k}: ${showVal(k, o)} → <b>${showVal(k, v)}</b>` : `${IMPORT_LABELS[k] || k}: <b>${showVal(k, v)}</b>`);
+  }
+  if (data.lf_buildings) {
+    const keys = new Set([...Object.keys(data.lf_buildings), ...Object.keys((oldObj && oldObj.lf_buildings) || {})]);
+    const n = [...keys].filter(k => (+(oldObj?.lf_buildings || {})[k] || 0) !== (+data.lf_buildings[k] || 0)).length;
+    if (n) out.push(`Edifici forme di vita: <b>${n}</b> ${n === 1 ? 'cambiato' : 'cambiati'}`);
+  }
+  if (data.lf_techs) {
+    const a = (oldObj && oldObj.lf_techs) || {}, b = data.lf_techs;
+    const n = Array.from({ length: 18 }, (_, i) => i + 1).filter(sl => JSON.stringify([a[sl]?.race || null, +(a[sl]?.level) || 0]) !== JSON.stringify([b[sl]?.race || null, +(b[sl]?.level) || 0])).length;
+    if (n) out.push(`Ricerche forme di vita: <b>${n}</b> ${n === 1 ? 'slot cambiato' : 'slot cambiati'}`);
+  }
+  return out;
+}
+function openImport() {
+  const snap = pendingImport(); if (!snap) return;
+  const m = Importer.mapImport(snap, state.planets, Engine.LF);
+  state.importPlan = m;
+  const prof = importChanges(state.profile, m.profile);
+  let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
+  html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
+  m.planets.forEach(({ match, data }) => {
+    const nb = Object.keys(data.lf_buildings).length, nt = Object.keys(data.lf_techs).length;
+    const ch = match ? importChanges(match, data) : [`Miniere ${data.metal_mine}/${data.crystal_mine}/${data.deut_synth} · Solare ${data.solar_plant} · Fusione ${data.fusion_reactor} · Satelliti ${fmt(data.solar_satellites)}${data.crawlers ? ` · Crawler ${fmt(data.crawlers)}` : ''} · Temp. max ${data.temp_max}° · Energia ${fmt(data.energy_balance ?? 0)}${data.lf_race ? ` · ${RACE_NAMES[data.lf_race]}: ${nb} edifici, ${nt} ricerche` : ''}`];
+    html += `<div class="imp"><b>${esc(data.name)}</b> <span class="muted">[${data.galaxy}:${data.system}:${data.position}]</span>${match ? '' : '<span class="tag new">nuovo</span>'}
+      ${ch.length ? `<ul>${ch.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
+  });
+  if (m.unmatched.length) html += `<div class="imp muted">Non trovati nella Vista impero (restano come sono): ${m.unmatched.map(p => esc(p.name)).join(', ')}</div>`;
+  html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
+  $('#import-list').innerHTML = html;
+  message($('#import-msg'), '');
+  $('#import-modal').classList.remove('hidden');
+}
+function closeImport() { dropImport(); state.importPlan = null; $('#import-modal').classList.add('hidden'); openUpdates(true); }
+$('#import-cancel').addEventListener('click', closeImport);
+$('#import-ok').addEventListener('click', async () => {
+  const m = state.importPlan; if (!m) return;
+  const btn = $('#import-ok'); btn.disabled = true; message($('#import-msg'), 'Importazione…', 'ok');
+  const fail = e => { btn.disabled = false; message($('#import-msg'), 'Errore: ' + e.message); };
+  if (Object.keys(m.profile).length) {
+    const r = await sb.from('profiles').update(m.profile).eq('user_id', state.user.id).select().single();
+    if (r.error) return fail(r.error);
+    state.profile = r.data;
+  }
+  for (let i = 0; i < m.planets.length; i++) {
+    const { match, data } = m.planets[i];
+    const row = { ...data, sort_order: i };
+    const r = match
+      ? await sb.from('planets').update(row).eq('id', match.id).select().single()
+      : await sb.from('planets').insert({ ...NEW_PLANET, ...row }).select().single();
+    if (r.error) return fail(r.error);
+  }
+  for (let j = 0; j < m.unmatched.length; j++) await sb.from('planets').update({ sort_order: m.planets.length + j }).eq('id', m.unmatched[j].id);
+  btn.disabled = false;
+  dropImport(); state.importPlan = null;
+  $('#import-modal').classList.add('hidden');
+  await loadUserData();
+  message($('#planets-msg'), `Importati ${m.planets.length} pianeti dalla Vista impero.`, 'ok');
+});
+$('#bm-link').href = Importer.bookmarkletHref(location.origin + location.pathname);
+$('#bm-link').addEventListener('click', e => { if (!e.defaultPrevented) { e.preventDefault(); alert('Non cliccarlo qui: trascinalo sulla barra dei preferiti del browser, poi premilo sulla Vista impero di OGame.'); } });
 
 /* Settings */
 function renderSettings() {

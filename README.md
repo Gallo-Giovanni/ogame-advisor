@@ -11,6 +11,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - Rock'tal production buildings (Magma Forge, Crystal Refinery, Deuterium Tuner) ranked with the mines; costs and energy from formulas checked on the game, with the Monolith discount
 - Lifeform research (T1/T2 with known costs) ranked with the rest, tagged by slot (T2-1 …): the gain counts every planet, the cost includes the research building discount of the planet
 - In-game energy stays current: changing satellites, plants, mines or crawlers moves the entered value by the modelled difference
+- Import from the game's empire view: a bookmarklet reads the page the player has open (no requests to the game, no session), opens the app with the numbers and shows every change before saving (`src/importer.js`)
 - Per-planet Copy (choose what to copy and onto which planets) and per-planet "include in calculations"
 - New colony option: Astrophysics levels actually needed for one more planet, colony ship, mines up to the empire median and the energy to run them, compared with the output of an average planet
 - "Stop at level" caps for each mine, Plasma and Astrophysics: capped upgrades are never suggested
@@ -25,8 +26,9 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 | Calculation engine (costs, production, energy, bonuses, ranking) | `src/engine.js` |
 | User interface and Supabase calls | `src/app.html` |
 | Lifeform buildings and techs of all races, with sources | `src/lifeforms.js` |
+| Empire view import (bookmarklet and mapping) | `src/importer.js` |
 | App updates shown to users | `src/changelog.js` |
-| Build: inlines lifeform data, engine and changelog into the page | `build.js` → `index.html` |
+| Build: inlines lifeform data, engine, importer and changelog into the page | `build.js` → `index.html` |
 | Engine tests, incl. a check against numbers shown by the game | `tests/engine.test.js`, `tests/reference.test.js` |
 
 Resources are converted to metal-equivalent with the player's ratio (default 1 : 1.5 : 2.5), then:
@@ -41,6 +43,7 @@ node tests/engine.test.js      # engine tests
 node tests/reference.test.js   # engine vs numbers shown by the game
 node tests/lifeforms.test.js   # lifeform building costs and energy vs the game
 node tests/lftechs.test.js     # lifeform research costs vs the game, research recommendations
+node tests/importer.test.js    # empire view import
 node tests/changelog.test.js   # changelog checks
 node build.js               # build index.html
 ```
