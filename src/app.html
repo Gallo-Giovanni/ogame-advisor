@@ -344,6 +344,7 @@
       <button class="tab active" data-tab="advice">Consigli</button>
       <button class="tab" data-tab="planets">Pianeti</button>
       <button class="tab" data-tab="bonus">Bonus</button>
+      <button class="tab" data-tab="trade">Scambi</button>
       <button class="tab" data-tab="settings">Impostazioni</button>
     </div>
 
@@ -478,6 +479,22 @@
     </section>
 
     <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
+
+    <section data-panel="trade" class="stack hidden">
+      <div class="card stack">
+        <h2 style="margin:0">Scambio di risorse</h2>
+        <p class="small" style="margin:0">Il regolamento permette scambi tra giocatori solo con un rapporto metallo : cristallo : deuterio compreso tra <b>3 : 2 : 1</b> e <b>2 : 1 : 1</b>. Fuori da questi limiti lo scambio può essere considerato pushing e portare al ban. Lo scambio va completato entro 72 ore, salvo accordi comunicati prima a un GO.</p>
+        <div class="grid">
+          <div><label>Do</label><input id="tr-amount" type="number" min="0" step="1000" value="1000000"></div>
+          <div><label>Risorsa che do</label><select id="tr-give"><option value="0">Metallo</option><option value="1">Cristallo</option><option value="2">Deuterio</option></select></div>
+          <div><label>Risorsa che ricevo</label><select id="tr-get"><option value="0">Metallo</option><option value="1" selected>Cristallo</option><option value="2">Deuterio</option></select></div>
+        </div>
+        <div id="tr-result"></div>
+        <b class="small">Tabella dei cambi consentiti</b>
+        <div id="tr-table"></div>
+        <p class="muted small" style="margin:0">Limiti presi dalle regole di OGame sul commercio: controlla sempre il regolamento in vigore sul forum ufficiale del tuo paese.</p>
+      </div>
+    </section>
 
     <section data-panel="settings" class="stack hidden">
       <div class="card stack" id="import-card">
@@ -1718,6 +1735,33 @@ function renderBonus() {
   if (all.recon_fleet_speed) h += `<div class="card stack"><h2 class="bh">Altro</h2>${table(['', 'Bonus'], [row('Velocità delle flotte nei voli di ricognizione', [all.recon_fleet_speed])])}</div>`;
   $('#bonus-panel').innerHTML = h;
 }
+
+/* Trades: allowed range between the 3:2:1 and 2:1:1 ratios (metal : crystal : deuterium) */
+const TRADE_RATIOS = [[3, 2, 1], [2, 1, 1]];
+const RES_NAMES = ['Metallo', 'Cristallo', 'Deuterio'];
+const RES_KEYS = ['metal', 'crystal', 'deut'];
+// how many units of `get` you may receive for one unit of `give`: [min, max]
+function tradeRange(give, get) {
+  const v = TRADE_RATIOS.map(r => r[get] / r[give]);
+  return [Math.min(...v), Math.max(...v)];
+}
+function renderTrade() {
+  const give = +$('#tr-give').value, get = +$('#tr-get').value, amt = Math.max(0, Number($('#tr-amount').value) || 0);
+  const nf = x => x.toLocaleString('it-IT', { maximumFractionDigits: 3 });
+  if (give === get) $('#tr-result').innerHTML = '<p class="muted small" style="margin:0">Scegli due risorse diverse.</p>';
+  else {
+    const [lo, hi] = tradeRange(give, get);
+    $('#tr-result').innerHTML = `<div class="card" style="background:var(--bg2)">Per <b>${fmt(amt)}</b> ${ri(RES_KEYS[give])} ${RES_NAMES[give].toLowerCase()} puoi ricevere da <b>${fmt(Math.ceil(amt * lo))}</b> a <b>${fmt(Math.floor(amt * hi))}</b> ${ri(RES_KEYS[get])} ${RES_NAMES[get].toLowerCase()}.<div class="muted small">Rapporto consentito: 1 ${RES_NAMES[give].toLowerCase()} = da ${nf(lo)} a ${nf(hi)} ${RES_NAMES[get].toLowerCase()}.</div></div>`;
+  }
+  const rows = [];
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) if (a !== b) {
+    const [lo, hi] = tradeRange(a, b);
+    rows.push(`<tr><td>1 ${ri(RES_KEYS[a])} ${RES_NAMES[a]}</td><td>${ri(RES_KEYS[b])} ${RES_NAMES[b]}</td><td>${nf(lo)}</td><td>${nf(hi)}</td></tr>`);
+  }
+  $('#tr-table').innerHTML = `<div class="bwrap"><table class="btable"><tr><th>Do</th><th>Ricevo</th><th>Minimo</th><th>Massimo</th></tr>${rows.join('')}</table></div>`;
+}
+['#tr-amount', '#tr-give', '#tr-get'].forEach(id => $(id).addEventListener('input', renderTrade));
+renderTrade();
 
 /* Settings */
 function renderSettings() {

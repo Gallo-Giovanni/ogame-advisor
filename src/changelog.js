@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 35, date: '2026-10-25', title: 'Scambi di risorse',
+    text: 'Nuova scheda Scambi: scrivi quanto dai e quale risorsa vuoi in cambio, e l\'app ti dice il minimo e il massimo che puoi ricevere restando nei rapporti consentiti dal regolamento (tra 3:2:1 e 2:1:1), più la tabella di tutti i cambi.',
+  },
+  {
     id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
     text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento, con e senza Pathfinder, e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). Inserisci in Impostazioni i punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
   },
