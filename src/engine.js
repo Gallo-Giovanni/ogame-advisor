@@ -76,7 +76,8 @@ const Engine = (() => {
     return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile, planet));
   };
 
-  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
+  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper. The game's Tech Info table
+  // shows it rounded up (1, 1, 2, 2, 3 ... and 8 at level 14, where 14 x 0.5 = 7.000000001 in floating point).
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
   const MRC_LEVEL1 = [250000, 150000, 100000];
 
@@ -428,7 +429,7 @@ const Engine = (() => {
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
-            detail: `il Centro rende le miniere di questo pianeta più economiche dello 0,5%; ${fix2 ? 'serve anche energia: ' + fixText(fix2) : 'energia sufficiente'}`,
+            detail: `il Centro di Mineralogia rende le miniere di questo pianeta più economiche dello 0,5%; ${fix2 ? 'serve anche energia: ' + fixText(fix2) : 'energia sufficiente'}`,
             cost: bCost, buildCost: mc, costEq: bEq, payback: bEq / gain, fix: fix2,
           };
         }

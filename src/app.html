@@ -851,7 +851,7 @@ function costHTML(c) {
 const techTag = slot => `T${Math.ceil(slot / 6)}-${(slot - 1) % 6 + 1}`;
 function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
-  if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
+  if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro di Mineralogia 1' : ''}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
   if (r.type === 'lfbuilding') return `${Engine.LF.races.rocktal.buildings[r.key]?.it || r.key} ${r.nextLevel}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'lftech') return `${techTag(r.slot)} · ${Engine.LF.races[r.race]?.techs[r.slot - 1]?.it || r.key} ${r.nextLevel}`;

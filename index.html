@@ -948,7 +948,8 @@ const Engine = (() => {
     return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile, planet));
   };
 
-  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
+  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper. The game's Tech Info table
+  // shows it rounded up (1, 1, 2, 2, 3 ... and 8 at level 14, where 14 x 0.5 = 7.000000001 in floating point).
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
   const MRC_LEVEL1 = [250000, 150000, 100000];
 
@@ -1300,7 +1301,7 @@ const Engine = (() => {
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
-            detail: `il Centro rende le miniere di questo pianeta più economiche dello 0,5%; ${fix2 ? 'serve anche energia: ' + fixText(fix2) : 'energia sufficiente'}`,
+            detail: `il Centro di Mineralogia rende le miniere di questo pianeta più economiche dello 0,5%; ${fix2 ? 'serve anche energia: ' + fixText(fix2) : 'energia sufficiente'}`,
             cost: bCost, buildCost: mc, costEq: bEq, payback: bEq / gain, fix: fix2,
           };
         }
@@ -1993,7 +1994,7 @@ function costHTML(c) {
 const techTag = slot => `T${Math.ceil(slot / 6)}-${(slot - 1) % 6 + 1}`;
 function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
-  if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
+  if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro di Mineralogia 1' : ''}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
   if (r.type === 'lfbuilding') return `${Engine.LF.races.rocktal.buildings[r.key]?.it || r.key} ${r.nextLevel}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'lftech') return `${techTag(r.slot)} · ${Engine.LF.races[r.race]?.techs[r.slot - 1]?.it || r.key} ${r.nextLevel}`;
