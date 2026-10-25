@@ -146,8 +146,10 @@
   .lfb { display: grid; grid-template-columns: 1fr 70px 1.3fr; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
   .lfb:first-child { border-top: 0; }
   .lfb input { padding: 5px 6px; }
+  .lfb.unused > div:first-child { color: var(--muted); }
+  .star { color: var(--accent, #f5a524); }
   .tier { font: 700 .8rem Inter, sans-serif; color: var(--accent); margin: 10px 0 2px; letter-spacing: .05em; }
-  .trow { display: grid; grid-template-columns: 26px 1fr 64px 190px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .trow { display: grid; grid-template-columns: 40px 1fr 64px 190px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
   .trow input { padding: 5px 6px; }
   .trow .slot { color: var(--muted); font-weight: 600; }
   .tchip .r { font-weight: 700; font-size: .65rem; padding: 0 4px; border-radius: 4px; color: #0b1020; }
@@ -155,7 +157,7 @@
   .R-humans { background: #7fb2ff } .R-rocktal { background: #ff9a5c } .R-mechas { background: #6fd3ff } .R-kaelesh { background: #c98bff }
   .eff b { color: var(--ok); font-weight: 600; }
   @media (max-width: 700px) {
-    .trow { grid-template-columns: 22px 1fr; } .trow input, .trow .eff { grid-column: 2; }
+    .trow { grid-template-columns: 36px 1fr; } .trow input, .trow .eff { grid-column: 2; }
     .lfb { grid-template-columns: 1fr 70px; } .lfb .eff { grid-column: 1 / -1; }
   }
   .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -522,6 +524,12 @@ const LIFEFORMS = {
       note: 'Boosts the Collector class bonus (game description). How much: todo.',
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level.
       buildings: {
+        meditation_enclave: { it: 'Enclave di Meditazione', used: false }, // no effect on production, energy or costs
+        crystal_farm: { it: 'Produzione di cristalli', used: false }, // no effect on production, energy or costs
+        rune_forge: { it: 'Fucina delle Rune', used: false }, // no effect on production, energy or costs
+        oriktorium: { it: 'Orictorium', used: false }, // no effect on production, energy or costs
+        // level 1: 237.5k / 118.8k / 118.8k, 95 energy (game, shown rounded)
+        recycling_plant: { it: 'Impianto di Riciclaggio', used: false }, // no effect on production, energy or costs
         magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
           cost: { base: [10000, 8000, 1000], factor: 1.4 }, energyCons: { base: 40, factor: 1.1 },
           energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
@@ -551,6 +559,8 @@ const LIFEFORMS = {
         // No effect on production, energy or costs (game descriptions): Enclave di Meditazione, Produzione di cristalli,
         // Fucina delle Rune, Orictorium, Impianto di Riciclaggio
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['meditation_enclave', 'crystal_farm', 'tecnologicus_runarum', 'rune_forge', 'oriktorium', 'magma_forge', 'disruption_chamber', 'monolith', 'crystal_refinery', 'deuterium_tuner', 'mineral_centre', 'recycling_plant'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, used: true },
@@ -584,6 +594,14 @@ const LIFEFORMS = {
       note: 'Does not boost the class bonus (game description).',
       // Energy used by each building, levels 1-15, from the game's Tech Info tables (needed when we suggest these buildings)
       buildings: {
+        residential_sector: { it: 'Zona residenziale', used: false }, // no effect on production, energy or costs
+        biosphere_farm: { it: 'Fattoria della Biosfera', used: false }, // no effect on production, energy or costs
+        academy_of_sciences: { it: 'Accademia delle Scienze', used: false }, // no effect on production, energy or costs
+        neuro_calibration_centre: { it: 'Centro di Neuro-calibrazione', used: false }, // no effect on production, energy or costs
+        food_silo: { it: 'Magazzino Alimentare', used: false }, // no effect on production, energy or costs
+        skyscraper: { it: 'Grattacielo', used: false }, // no effect on production, energy or costs
+        biotech_lab: { it: 'Laboratorio Biotecnologico', used: false }, // no effect on production, energy or costs
+        planetary_shield: { it: 'Scudo planetario', used: false }, // no effect on production, energy or costs
         high_energy_smelting: { it: 'Fusione ad alta energia', effect: { metal: 0.015 }, perLevel: true, source: 'game',
           energy: [40, 96, 159, 234, 322, 425, 545, 685, 848, 1037, 1255, 1506, 1795, 2126, 2506] },
         fusion_production:    { it: 'Tecniche estrattive a fusione', effect: { crystal: 0.015, deut: 0.01 }, perLevel: true, source: 'game',
@@ -599,6 +617,8 @@ const LIFEFORMS = {
       },
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3.
       // perLevel = base effect for each level, before the Metropolis/level boosts. All are linear in the tables.
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['residential_sector', 'biosphere_farm', 'research_centre', 'academy_of_sciences', 'neuro_calibration_centre', 'high_energy_smelting', 'food_silo', 'fusion_production', 'skyscraper', 'biotech_lab', 'metropolis', 'planetary_shield'],
       // used: true = changes production, energy or costs, so it enters the recommendations.
       techs: [
         { slot: 1,  tier: 1, key: 'intergalactic_envoys',    it: 'Ambasciatori intergalattici',     perLevel: { recon_fleet_speed: 0.01 }, used: false },
@@ -627,6 +647,14 @@ const LIFEFORMS = {
       name: 'Mecha',
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level (levels 1-15).
       buildings: {
+        assembly_line: { it: 'Linea di produzione', used: false }, // no effect on production, energy or costs
+        fusion_cell_factory: { it: 'Fabbrica Celle a fusione', used: false }, // no effect on production, energy or costs
+        update_network: { it: 'Network Aggiornamento', used: false }, // no effect on production, energy or costs
+        quantum_computer_centre: { it: 'Centro Calcolo Quantistico', used: false }, // no effect on production, energy or costs
+        automatised_assembly_centre: { it: 'Centro Assemblaggio Automatizzato', used: false }, // no effect on production, energy or costs
+        microchip_assembly_line: { it: 'Linea di produzione Microchip', used: false }, // no effect on production, energy or costs
+        production_assembly_hall: { it: 'Sala Catena di Montaggio', used: false }, // no effect on production, energy or costs
+        nano_repair_bots: { it: 'Nanobot Riparazione', used: false }, // no effect on production, energy or costs
         // Mecha research building: -0.25% research cost and -2% research time per level (shown rounded)
         robotics_research_centre: { it: 'Centro Ricerca Robotica', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
           energy: [13, 30, 49, 70, 95, 123, 155, 192, 233, 280, 333, 392, 459, 534, 618] },
@@ -642,6 +670,8 @@ const LIFEFORMS = {
         // Network Aggiornamento, Centro Calcolo Quantistico, Centro Assemblaggio Automatizzato (ship build time),
         // Linea di produzione Microchip, Sala Catena di Montaggio, Nanobot Riparazione
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['assembly_line', 'fusion_cell_factory', 'robotics_research_centre', 'update_network', 'quantum_computer_centre', 'automatised_assembly_centre', 'high_performance_transformer', 'microchip_assembly_line', 'production_assembly_hall', 'high_performance_synthesizer', 'chip_mass_production', 'nano_repair_bots'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, used: true },
@@ -671,6 +701,16 @@ const LIFEFORMS = {
       name: 'Kaelesh',
       note: 'Boosts the Explorer class bonus (game description). How much: todo.',
       buildings: {
+        sanctuary: { it: 'Rifugio', used: false }, // no effect on production, energy or costs
+        antimatter_condenser: { it: 'Condensatore Antimateria', used: false }, // no effect on production, energy or costs
+        halls_of_realisation: { it: 'Sale della Conoscenza', used: false }, // no effect on production, energy or costs
+        forum_of_transcendence: { it: 'Forum della Trascendenza', used: false }, // no effect on production, energy or costs
+        antimatter_convector: { it: 'Convettore Antimateria', used: false }, // no effect on production, energy or costs
+        chrysalis_accelerator: { it: 'Acceleratore Crisalide', used: false }, // no effect on production, energy or costs
+        bio_modifier: { it: 'Biomodificatore', used: false }, // no effect on production, energy or costs
+        psionic_modulator: { it: 'Modulatore psionico', used: false }, // no effect on production, energy or costs
+        ship_manufacturing_hall: { it: 'Sala Fabbricazione Navi', used: false }, // no effect on production, energy or costs
+        supra_refractor: { it: 'Soprarifrattore', used: false }, // no effect on production, energy or costs
         // +0.25% effect per level, but ONLY on Kaelesh lifeform techs of this planet (game description),
         // unlike Metropolis and the Mecha buildings that boost all techs of the planet. Energy not shown in the table.
         cloning_lab: { it: 'Laboratorio Clonazione', effect: { techBoostOwnRace: 0.0025 }, perLevel: true, source: 'game' },
@@ -681,6 +721,8 @@ const LIFEFORMS = {
         // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
         // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['sanctuary', 'antimatter_condenser', 'vortex_chamber', 'halls_of_realisation', 'forum_of_transcendence', 'antimatter_convector', 'cloning_lab', 'chrysalis_accelerator', 'bio_modifier', 'psionic_modulator', 'ship_manufacturing_hall', 'supra_refractor'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },
@@ -1245,6 +1287,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 27, date: '2026-10-25', title: 'Tutti gli edifici forme di vita',
+    text: 'Nella scheda del pianeta trovi tutti i 12 edifici della razza, nello stesso ordine del gioco. Quelli con * entrano nei calcoli, gli altri puoi inserirli per avere il pianeta completo. Le ricerche forme di vita hanno la sigla dello slot, per esempio T1-3 o T2-1, così le riconosci a colpo d\'occhio anche quando i nomi si somigliano.',
+  },
+  {
     id: 26, date: '2026-10-25', title: 'Filtro dei consigli',
     text: 'In Consigli puoi mostrare solo Miniere, solo Edifici forme di vita, solo Ricerche forme di vita oppure solo Plasma e colonia. Il filtro funziona insieme al menu "Mostra" del pianeta e l\'app ricorda la scelta. Le ricerche forme di vita arriveranno nei consigli quando avremo i loro costi.',
   },
@@ -1579,11 +1625,14 @@ function costHTML(c) {
   return parts.join(' &nbsp; ') || '—';
 }
 // One short line per recommendation; the full text is in the expandable part
+// T1-3 = tier 1, third research of the tier (slot 3); T2-1 = slot 7
+const techTag = slot => `T${Math.ceil(slot / 6)}-${(slot - 1) % 6 + 1}`;
 function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
   if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
   if (r.type === 'lfbuilding') return `${Engine.LF.races.rocktal.buildings[r.key]?.it || r.key} ${r.nextLevel}${r.fix ? ' ⚡' : ''}`;
+  if (r.type === 'lftech') return `${techTag(r.slot)} · ${Engine.LF.races[r.race]?.techs[r.slot - 1]?.it || r.key} ${r.nextLevel}`;
   if (r.type === 'plasma') return `Plasma ${r.nextLevel}`;
   if (r.type === 'colony') return r.astroCost.some(x => x > 0) ? `Nuova colonia (Astrofisica ${r.nextLevel})` : 'Colonizza lo slot libero';
   return r.title;
@@ -1997,17 +2046,20 @@ function renderLfBuildings(race) {
   if (!race) { $('#lf-buildings').innerHTML = '<p class="muted small" style="margin:0">Scegli la razza per inserire gli edifici delle forme di vita di questo pianeta.</p>'; return; }
   const lv = state.editing.lf.buildings;
   const mrc = $('#pe-form [data-f="mrc_level"]');
-  const rows = Object.entries(Engine.LF.races[race].buildings).filter(([, b]) => b).map(([key, b]) => {
+  const R = Engine.LF.races[race];
+  const rows = R.buildingOrder.map(key => [key, R.buildings[key]]).filter(([, b]) => b).map(([key, b]) => {
     const isMrc = key === 'mineral_centre';
+    const used = b.used !== false;
     const level = isMrc ? (state.editing.mrcLevel ?? '') : (lv[key] ?? '');
-    const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ')
-      : 'riduce costi, energia e tempi degli edifici Rock\'tal (non usato nei calcoli)';
+    const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ') + ' per livello'
+      : used ? 'riduce costi ed energia degli edifici Rock\'tal' : 'non entra nei calcoli';
     const input = isMrc
       ? `<input data-f="mrc_level" type="number" min="0" value="${esc(level)}" placeholder="—" title="0 se puoi costruirlo ma non l'hai ancora fatto">`
       : `<input data-lfb="${key}" type="number" min="0" value="${esc(level)}" placeholder="0">`;
-    return `<div class="lfb"><div>${esc(b.it)}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}${b.effect ? ' per livello' : ''}</div></div>`;
+    return `<div class="lfb${used ? '' : ' unused'}"><div>${esc(b.it)}${used ? ' <b class="star" title="Usato nei calcoli">*</b>' : ''}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}</div></div>`;
   });
   $('#lf-buildings').innerHTML = `<div><label>Edifici ${esc(RACE_NAMES[race])}</label>${rows.join('')}</div>` +
+    '<p class="muted small" style="margin:0"><b class="star">*</b> = usato nei calcoli. Gli altri puoi inserirli per avere il pianeta completo, ma non cambiano i consigli.</p>' +
     (race === 'rocktal' ? '<p class="muted small" style="margin:0">Centro di Mineralogia: scrivi 0 se puoi costruirlo ma non l\'hai ancora fatto, i consigli te lo suggeriranno.</p>' : '');
 }
 function renderLfTechs() {
@@ -2020,7 +2072,7 @@ function renderLfTechs() {
       const t = Engine.LF.races[r].techs[slot - 1], dot = techDot(t);
       return `<button type="button" class="chip tchip" data-tslot="${slot}" data-trace="${r}" aria-pressed="${cur.race === r}"><span class="r R-${r}">${RACE_SHORT[r]}</span>${esc(t.it)}${dot ? ` <span class="dot ${dot}">●</span>` : ''}</button>`;
     }).join('');
-    html += `<div class="trow"><div class="slot">${slot}</div><div class="chips">${chips}</div>
+    html += `<div class="trow"><div class="slot" title="Slot ${slot}">${techTag(slot)}</div><div class="chips">${chips}</div>
       <input type="number" min="0" data-tlvl="${slot}" value="${cur.race ? esc(cur.level ?? '') : ''}" placeholder="—" ${cur.race ? '' : 'disabled'} aria-label="Livello slot ${slot}">
       <div class="eff small muted" data-teff="${slot}"></div></div>`;
   }

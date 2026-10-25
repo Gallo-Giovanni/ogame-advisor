@@ -31,6 +31,12 @@ const LIFEFORMS = {
       note: 'Boosts the Collector class bonus (game description). How much: todo.',
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level.
       buildings: {
+        meditation_enclave: { it: 'Enclave di Meditazione', used: false }, // no effect on production, energy or costs
+        crystal_farm: { it: 'Produzione di cristalli', used: false }, // no effect on production, energy or costs
+        rune_forge: { it: 'Fucina delle Rune', used: false }, // no effect on production, energy or costs
+        oriktorium: { it: 'Orictorium', used: false }, // no effect on production, energy or costs
+        // level 1: 237.5k / 118.8k / 118.8k, 95 energy (game, shown rounded)
+        recycling_plant: { it: 'Impianto di Riciclaggio', used: false }, // no effect on production, energy or costs
         magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
           cost: { base: [10000, 8000, 1000], factor: 1.4 }, energyCons: { base: 40, factor: 1.1 },
           energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
@@ -60,6 +66,8 @@ const LIFEFORMS = {
         // No effect on production, energy or costs (game descriptions): Enclave di Meditazione, Produzione di cristalli,
         // Fucina delle Rune, Orictorium, Impianto di Riciclaggio
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['meditation_enclave', 'crystal_farm', 'tecnologicus_runarum', 'rune_forge', 'oriktorium', 'magma_forge', 'disruption_chamber', 'monolith', 'crystal_refinery', 'deuterium_tuner', 'mineral_centre', 'recycling_plant'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, used: true },
@@ -93,6 +101,14 @@ const LIFEFORMS = {
       note: 'Does not boost the class bonus (game description).',
       // Energy used by each building, levels 1-15, from the game's Tech Info tables (needed when we suggest these buildings)
       buildings: {
+        residential_sector: { it: 'Zona residenziale', used: false }, // no effect on production, energy or costs
+        biosphere_farm: { it: 'Fattoria della Biosfera', used: false }, // no effect on production, energy or costs
+        academy_of_sciences: { it: 'Accademia delle Scienze', used: false }, // no effect on production, energy or costs
+        neuro_calibration_centre: { it: 'Centro di Neuro-calibrazione', used: false }, // no effect on production, energy or costs
+        food_silo: { it: 'Magazzino Alimentare', used: false }, // no effect on production, energy or costs
+        skyscraper: { it: 'Grattacielo', used: false }, // no effect on production, energy or costs
+        biotech_lab: { it: 'Laboratorio Biotecnologico', used: false }, // no effect on production, energy or costs
+        planetary_shield: { it: 'Scudo planetario', used: false }, // no effect on production, energy or costs
         high_energy_smelting: { it: 'Fusione ad alta energia', effect: { metal: 0.015 }, perLevel: true, source: 'game',
           energy: [40, 96, 159, 234, 322, 425, 545, 685, 848, 1037, 1255, 1506, 1795, 2126, 2506] },
         fusion_production:    { it: 'Tecniche estrattive a fusione', effect: { crystal: 0.015, deut: 0.01 }, perLevel: true, source: 'game',
@@ -108,6 +124,8 @@ const LIFEFORMS = {
       },
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3.
       // perLevel = base effect for each level, before the Metropolis/level boosts. All are linear in the tables.
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['residential_sector', 'biosphere_farm', 'research_centre', 'academy_of_sciences', 'neuro_calibration_centre', 'high_energy_smelting', 'food_silo', 'fusion_production', 'skyscraper', 'biotech_lab', 'metropolis', 'planetary_shield'],
       // used: true = changes production, energy or costs, so it enters the recommendations.
       techs: [
         { slot: 1,  tier: 1, key: 'intergalactic_envoys',    it: 'Ambasciatori intergalattici',     perLevel: { recon_fleet_speed: 0.01 }, used: false },
@@ -136,6 +154,14 @@ const LIFEFORMS = {
       name: 'Mecha',
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level (levels 1-15).
       buildings: {
+        assembly_line: { it: 'Linea di produzione', used: false }, // no effect on production, energy or costs
+        fusion_cell_factory: { it: 'Fabbrica Celle a fusione', used: false }, // no effect on production, energy or costs
+        update_network: { it: 'Network Aggiornamento', used: false }, // no effect on production, energy or costs
+        quantum_computer_centre: { it: 'Centro Calcolo Quantistico', used: false }, // no effect on production, energy or costs
+        automatised_assembly_centre: { it: 'Centro Assemblaggio Automatizzato', used: false }, // no effect on production, energy or costs
+        microchip_assembly_line: { it: 'Linea di produzione Microchip', used: false }, // no effect on production, energy or costs
+        production_assembly_hall: { it: 'Sala Catena di Montaggio', used: false }, // no effect on production, energy or costs
+        nano_repair_bots: { it: 'Nanobot Riparazione', used: false }, // no effect on production, energy or costs
         // Mecha research building: -0.25% research cost and -2% research time per level (shown rounded)
         robotics_research_centre: { it: 'Centro Ricerca Robotica', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
           energy: [13, 30, 49, 70, 95, 123, 155, 192, 233, 280, 333, 392, 459, 534, 618] },
@@ -151,6 +177,8 @@ const LIFEFORMS = {
         // Network Aggiornamento, Centro Calcolo Quantistico, Centro Assemblaggio Automatizzato (ship build time),
         // Linea di produzione Microchip, Sala Catena di Montaggio, Nanobot Riparazione
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['assembly_line', 'fusion_cell_factory', 'robotics_research_centre', 'update_network', 'quantum_computer_centre', 'automatised_assembly_centre', 'high_performance_transformer', 'microchip_assembly_line', 'production_assembly_hall', 'high_performance_synthesizer', 'chip_mass_production', 'nano_repair_bots'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, used: true },
@@ -180,6 +208,16 @@ const LIFEFORMS = {
       name: 'Kaelesh',
       note: 'Boosts the Explorer class bonus (game description). How much: todo.',
       buildings: {
+        sanctuary: { it: 'Rifugio', used: false }, // no effect on production, energy or costs
+        antimatter_condenser: { it: 'Condensatore Antimateria', used: false }, // no effect on production, energy or costs
+        halls_of_realisation: { it: 'Sale della Conoscenza', used: false }, // no effect on production, energy or costs
+        forum_of_transcendence: { it: 'Forum della Trascendenza', used: false }, // no effect on production, energy or costs
+        antimatter_convector: { it: 'Convettore Antimateria', used: false }, // no effect on production, energy or costs
+        chrysalis_accelerator: { it: 'Acceleratore Crisalide', used: false }, // no effect on production, energy or costs
+        bio_modifier: { it: 'Biomodificatore', used: false }, // no effect on production, energy or costs
+        psionic_modulator: { it: 'Modulatore psionico', used: false }, // no effect on production, energy or costs
+        ship_manufacturing_hall: { it: 'Sala Fabbricazione Navi', used: false }, // no effect on production, energy or costs
+        supra_refractor: { it: 'Soprarifrattore', used: false }, // no effect on production, energy or costs
         // +0.25% effect per level, but ONLY on Kaelesh lifeform techs of this planet (game description),
         // unlike Metropolis and the Mecha buildings that boost all techs of the planet. Energy not shown in the table.
         cloning_lab: { it: 'Laboratorio Clonazione', effect: { techBoostOwnRace: 0.0025 }, perLevel: true, source: 'game' },
@@ -190,6 +228,8 @@ const LIFEFORMS = {
         // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
         // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
       },
+      // all 12 buildings in the order the game shows them (slots 1-12)
+      buildingOrder: ['sanctuary', 'antimatter_condenser', 'vortex_chamber', 'halls_of_realisation', 'forum_of_transcendence', 'antimatter_convector', 'cloning_lab', 'chrysalis_accelerator', 'bio_modifier', 'psionic_modulator', 'ship_manufacturing_hall', 'supra_refractor'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
         { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },

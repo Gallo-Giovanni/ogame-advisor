@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 27, date: '2026-10-25', title: 'Tutti gli edifici forme di vita',
+    text: 'Nella scheda del pianeta trovi tutti i 12 edifici della razza, nello stesso ordine del gioco. Quelli con * entrano nei calcoli, gli altri puoi inserirli per avere il pianeta completo. Le ricerche forme di vita hanno la sigla dello slot, per esempio T1-3 o T2-1, così le riconosci a colpo d\'occhio anche quando i nomi si somigliano.',
+  },
+  {
     id: 26, date: '2026-10-25', title: 'Filtro dei consigli',
     text: 'In Consigli puoi mostrare solo Miniere, solo Edifici forme di vita, solo Ricerche forme di vita oppure solo Plasma e colonia. Il filtro funziona insieme al menu "Mostra" del pianeta e l\'app ricorda la scelta. Le ricerche forme di vita arriveranno nei consigli quando avremo i loro costi.',
   },

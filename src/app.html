@@ -146,8 +146,10 @@
   .lfb { display: grid; grid-template-columns: 1fr 70px 1.3fr; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
   .lfb:first-child { border-top: 0; }
   .lfb input { padding: 5px 6px; }
+  .lfb.unused > div:first-child { color: var(--muted); }
+  .star { color: var(--accent, #f5a524); }
   .tier { font: 700 .8rem Inter, sans-serif; color: var(--accent); margin: 10px 0 2px; letter-spacing: .05em; }
-  .trow { display: grid; grid-template-columns: 26px 1fr 64px 190px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .trow { display: grid; grid-template-columns: 40px 1fr 64px 190px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
   .trow input { padding: 5px 6px; }
   .trow .slot { color: var(--muted); font-weight: 600; }
   .tchip .r { font-weight: 700; font-size: .65rem; padding: 0 4px; border-radius: 4px; color: #0b1020; }
@@ -155,7 +157,7 @@
   .R-humans { background: #7fb2ff } .R-rocktal { background: #ff9a5c } .R-mechas { background: #6fd3ff } .R-kaelesh { background: #c98bff }
   .eff b { color: var(--ok); font-weight: 600; }
   @media (max-width: 700px) {
-    .trow { grid-template-columns: 22px 1fr; } .trow input, .trow .eff { grid-column: 2; }
+    .trow { grid-template-columns: 36px 1fr; } .trow input, .trow .eff { grid-column: 2; }
     .lfb { grid-template-columns: 1fr 70px; } .lfb .eff { grid-column: 1 / -1; }
   }
   .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -723,11 +725,14 @@ function costHTML(c) {
   return parts.join(' &nbsp; ') || '—';
 }
 // One short line per recommendation; the full text is in the expandable part
+// T1-3 = tier 1, third research of the tier (slot 3); T2-1 = slot 7
+const techTag = slot => `T${Math.ceil(slot / 6)}-${(slot - 1) % 6 + 1}`;
 function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
   if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
   if (r.type === 'lfbuilding') return `${Engine.LF.races.rocktal.buildings[r.key]?.it || r.key} ${r.nextLevel}${r.fix ? ' ⚡' : ''}`;
+  if (r.type === 'lftech') return `${techTag(r.slot)} · ${Engine.LF.races[r.race]?.techs[r.slot - 1]?.it || r.key} ${r.nextLevel}`;
   if (r.type === 'plasma') return `Plasma ${r.nextLevel}`;
   if (r.type === 'colony') return r.astroCost.some(x => x > 0) ? `Nuova colonia (Astrofisica ${r.nextLevel})` : 'Colonizza lo slot libero';
   return r.title;
@@ -1141,17 +1146,20 @@ function renderLfBuildings(race) {
   if (!race) { $('#lf-buildings').innerHTML = '<p class="muted small" style="margin:0">Scegli la razza per inserire gli edifici delle forme di vita di questo pianeta.</p>'; return; }
   const lv = state.editing.lf.buildings;
   const mrc = $('#pe-form [data-f="mrc_level"]');
-  const rows = Object.entries(Engine.LF.races[race].buildings).filter(([, b]) => b).map(([key, b]) => {
+  const R = Engine.LF.races[race];
+  const rows = R.buildingOrder.map(key => [key, R.buildings[key]]).filter(([, b]) => b).map(([key, b]) => {
     const isMrc = key === 'mineral_centre';
+    const used = b.used !== false;
     const level = isMrc ? (state.editing.mrcLevel ?? '') : (lv[key] ?? '');
-    const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ')
-      : 'riduce costi, energia e tempi degli edifici Rock\'tal (non usato nei calcoli)';
+    const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ') + ' per livello'
+      : used ? 'riduce costi ed energia degli edifici Rock\'tal' : 'non entra nei calcoli';
     const input = isMrc
       ? `<input data-f="mrc_level" type="number" min="0" value="${esc(level)}" placeholder="—" title="0 se puoi costruirlo ma non l'hai ancora fatto">`
       : `<input data-lfb="${key}" type="number" min="0" value="${esc(level)}" placeholder="0">`;
-    return `<div class="lfb"><div>${esc(b.it)}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}${b.effect ? ' per livello' : ''}</div></div>`;
+    return `<div class="lfb${used ? '' : ' unused'}"><div>${esc(b.it)}${used ? ' <b class="star" title="Usato nei calcoli">*</b>' : ''}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}</div></div>`;
   });
   $('#lf-buildings').innerHTML = `<div><label>Edifici ${esc(RACE_NAMES[race])}</label>${rows.join('')}</div>` +
+    '<p class="muted small" style="margin:0"><b class="star">*</b> = usato nei calcoli. Gli altri puoi inserirli per avere il pianeta completo, ma non cambiano i consigli.</p>' +
     (race === 'rocktal' ? '<p class="muted small" style="margin:0">Centro di Mineralogia: scrivi 0 se puoi costruirlo ma non l\'hai ancora fatto, i consigli te lo suggeriranno.</p>' : '');
 }
 function renderLfTechs() {
@@ -1164,7 +1172,7 @@ function renderLfTechs() {
       const t = Engine.LF.races[r].techs[slot - 1], dot = techDot(t);
       return `<button type="button" class="chip tchip" data-tslot="${slot}" data-trace="${r}" aria-pressed="${cur.race === r}"><span class="r R-${r}">${RACE_SHORT[r]}</span>${esc(t.it)}${dot ? ` <span class="dot ${dot}">●</span>` : ''}</button>`;
     }).join('');
-    html += `<div class="trow"><div class="slot">${slot}</div><div class="chips">${chips}</div>
+    html += `<div class="trow"><div class="slot" title="Slot ${slot}">${techTag(slot)}</div><div class="chips">${chips}</div>
       <input type="number" min="0" data-tlvl="${slot}" value="${cur.race ? esc(cur.level ?? '') : ''}" placeholder="—" ${cur.race ? '' : 'disabled'} aria-label="Livello slot ${slot}">
       <div class="eff small muted" data-teff="${slot}"></div></div>`;
   }
