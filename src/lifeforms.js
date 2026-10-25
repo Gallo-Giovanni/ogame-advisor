@@ -10,7 +10,8 @@ const LIFEFORMS = {
   rules: {
     buildingsScope: 'planet',            // guide: building effects apply only on the planet where they are built
     techScope: 'account',                // guide: tech effects apply to all planets; techs of different races can be mixed
-    techSlotsPerRace: 18,                // guide
+    techSlotsPerRace: 18,                // guide; slots 1-6 = T1, 7-12 = T2, 13-18 = T3 (game)
+    // to confirm: each slot N can hold slot N of any race (mixing races slot by slot)
     raceSwitchCooldownHours: 48,         // guide
     // Effective tech bonus = base x (1 + tech-boost building of the planet) x (1 + race level bonus)  (guide example 2, recomputed: 1.599 vs 1.598 shown)
     techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
@@ -65,7 +66,31 @@ const LIFEFORMS = {
         // Accademia delle Scienze, Centro di Neuro-calibrazione, Magazzino Alimentare, Grattacielo,
         // Laboratorio Biotecnologico, Scudo planetario
       },
-      techs: null, // todo
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3.
+      // perLevel = base effect for each level, before the Metropolis/level boosts. All are linear in the tables.
+      // used: true = changes production, energy or costs, so it enters the recommendations.
+      techs: [
+        { slot: 1,  tier: 1, key: 'intergalactic_envoys',    it: 'Ambasciatori intergalattici',     perLevel: { recon_fleet_speed: 0.01 }, used: false },
+        { slot: 2,  tier: 1, key: 'high_performance_extractors', it: 'Estrattori ad alto rendimento', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 3,  tier: 1, key: 'fusion_drives',           it: 'Propulsore a fusione',            perLevel: { civil_ship_speed: 0.005 }, used: false },
+        { slot: 4,  tier: 1, key: 'stealth_field_generator', it: 'Generatore di campo mimetico',    perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'orbital_den',             it: 'Nascondiglio Orbitale',           perLevel: { protected_resources: 0.04 }, used: false },
+        { slot: 6,  tier: 1, key: 'research_ai',             it: 'AI di ricerca',                   perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 7,  tier: 2, key: 'high_performance_terraformer', it: 'Terraformer ad alte prestazioni', perLevel: { terraformer_cost: -0.001, terraformer_time: -0.002 }, used: false },
+        { slot: 8,  tier: 2, key: 'enhanced_production_tech', it: 'Tecnologie di estrazione migliorate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 9,  tier: 2, key: 'light_fighter_mk2',       it: 'Caccia leggero mk II',            perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'cruiser_mk2',             it: 'Incrociatore mk II',              perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 11, tier: 2, key: 'improved_lab_tech',       it: 'Tecnologia di laboratorio migliorata', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 12, tier: 2, key: 'plasma_terraformer',      it: 'Terraformer al plasma',           perLevel: { terraformer_cost: -0.001, terraformer_time: -0.002 }, used: false },
+        { slot: 13, tier: 3, key: 'low_temperature_drives',  it: 'Propulsori a bassa temperatura',  perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 14, tier: 3, key: 'bomber_mk2',              it: 'Bombardiere mk II',               perLevel: { ship: 'bomber', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 15, tier: 3, key: 'destroyer_mk2',           it: 'Corazzata mk II',                 perLevel: { ship: 'destroyer', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 16, tier: 3, key: 'battlecruiser_mk2',       it: 'Incrociatore da battaglia mk II', perLevel: { ship: 'battlecruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'robot_assistants',        it: 'Assistenti robot',                perLevel: { research_time: -0.002, lf_research_time: -0.002 }, used: false },
+        { slot: 18, tier: 3, key: 'supercomputer',           it: 'Supercomputer',                   perLevel: { astrophysics_research_time: -0.003 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo: costs are not in the Tech Info tab
     },
     mechas: {
       name: 'Mecha',
