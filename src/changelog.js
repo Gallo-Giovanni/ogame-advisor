@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 32, date: '2026-10-25', title: 'Simboli nei consigli',
+    text: 'Ogni consiglio ha un simbolo che dice al volo di cosa si tratta: piccone per le miniere, edificio verde per gli edifici forme di vita, provetta viola per le ricerche forme di vita, atomo per il Plasma, pianeta per una nuova colonia e fulmine per l\'energia. Gli stessi simboli sono sui pulsanti del filtro.',
+  },
+  {
     id: 31, date: '2026-10-25', title: 'Filtro a scelta multipla',
     text: 'Nel filtro dei consigli puoi spuntare più tipi insieme, per esempio Miniere e Ricerche forme di vita, oppure tutti tranne uno. Tutti (o tutte le spunte) mostra l\'intera classifica. L\'app ricorda la scelta.',
   },

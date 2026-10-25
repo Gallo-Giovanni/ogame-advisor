@@ -86,7 +86,7 @@
   .res-m { color: var(--metal); } .res-c { color: var(--crystal); } .res-d { color: var(--deut); }
   .rec { border-top: 1px solid var(--line); }
   .rec:first-child { border-top: 0; }
-  .rec > summary { list-style: none; display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 2px; cursor: pointer; }
+  .rec > summary { list-style: none; display: grid; grid-template-columns: 28px 24px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 2px; cursor: pointer; }
   .rec > summary::-webkit-details-marker { display: none; }
   .rec > summary:hover { background: #ffffff08; }
   .rec .what { min-width: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
@@ -145,6 +145,9 @@
   .brow .lbl .ri { width: 1.4em; height: 1.4em; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg2); color: var(--muted); font: 500 .85rem Inter, sans-serif; }
+  .kind { flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; }
+  .kind svg { width: 16px; height: 16px; }
+  .kchip svg { width: 14px; height: 14px; display: block; }
   .chip .box { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid #4a5786; display: grid; place-items: center; font-size: 10px; line-height: 1; }
   .chip[aria-pressed="true"] { border-color: var(--accent); color: #fff; background: #2b2410; }
   .chip[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); color: #1a1200; }
@@ -349,10 +352,10 @@
         </div>
         <div class="chips" id="filter-type" role="group" aria-label="Tipo di consiglio" style="margin-top:10px">
           <button type="button" class="chip" data-ftype="" aria-pressed="false"><span class="box"></span>Tutti</button>
-          <button type="button" class="chip" data-ftype="mines" aria-pressed="false"><span class="box"></span>Miniere</button>
-          <button type="button" class="chip" data-ftype="lfb" aria-pressed="false"><span class="box"></span>Edifici forme di vita</button>
-          <button type="button" class="chip" data-ftype="lft" aria-pressed="false"><span class="box"></span>Ricerche forme di vita</button>
-          <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span>Plasma e colonia</button>
+          <button type="button" class="chip" data-ftype="mines" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="mine"></span>Miniere</button>
+          <button type="button" class="chip" data-ftype="lfb" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="lfb"></span>Edifici forme di vita</button>
+          <button type="button" class="chip" data-ftype="lft" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="lft"></span>Ricerche forme di vita</button>
+          <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="plasma"></span>Plasma e colonia</button>
         </div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
@@ -823,6 +826,7 @@ function paybackText(h) {
 }
 
 function renderAdvice() {
+  paintTypeChips();
   const profile = numericProfile(state.profile);
   const planets = state.planets;
   const filter = $('#filter-planet').value;
@@ -868,7 +872,7 @@ function renderAdvice() {
     <details class="rec ${r.urgent ? 'urgent' : ''}">
       <summary>
         <span class="rank">${r.urgent ? '!' : ++n}</span>
-        <span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
+        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
         <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
         <button class="secondary done" data-done="${i}">Fatto</button>
       </summary>
@@ -893,13 +897,13 @@ const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
 state.ftypes = new Set();
 try { (localStorage.getItem('ogadv-ftype') || '').split(',').filter(t => ALL_TYPES.includes(t)).forEach(t => state.ftypes.add(t)); } catch (e) {}
 function paintTypeChips() {
+  $$('#filter-type .kchip:empty').forEach(el => { el.innerHTML = KIND_ICONS[el.dataset.kind]; });
   $$('#filter-type [data-ftype]').forEach(b => {
     const on = b.dataset.ftype ? state.ftypes.has(b.dataset.ftype) : !state.ftypes.size;
     b.setAttribute('aria-pressed', on);
     b.querySelector('.box').textContent = on ? '✓' : '';
   });
 }
-paintTypeChips();
 $('#filter-type').addEventListener('click', e => {
   const b = e.target.closest('[data-ftype]'); if (!b) return;
   const t = b.dataset.ftype;
@@ -954,6 +958,19 @@ const ICONS = {
   item: '<svg viewBox="0 0 32 32"><path d="M18 3L7 18h7l-2 11 11-15h-7z" fill="#f5a524"/></svg>',
   lf: '<svg viewBox="0 0 32 32" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 4c0 8 12 8 12 16s-12 0-12 8" stroke="#7cf0b2"/><path d="M22 4c0 8-12 8-12 16s12 0 12 8" stroke="#c98bff"/><path d="M12 9h8M12 23h8" stroke="#e6ebff"/></svg>',
 };
+// Kind of each recommendation, shown as a small badge before its title
+const KIND_ICONS = {
+  mine: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9c4-5 12-5 16 0" stroke="#c3cbdb" stroke-width="2.4"/><path d="M12 6v15" stroke="#d9a35b" stroke-width="2.6"/></svg>',
+  lfb: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M4 20V11l8-6 8 6v9z" stroke="#7cf0b2" fill="#1b4a3a"/><path d="M10 20v-5h4v5" stroke="#7cf0b2"/></svg>',
+  lft: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3" stroke="#d6a8ff"/><path d="M7.5 15h9" stroke="#d6a8ff"/></svg>',
+  plasma: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffb46b" stroke-width="1.8"><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/><circle cx="12" cy="12" r="1.8" fill="#ffb46b"/></svg>',
+  colony: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="6" fill="#2a5a9a" stroke="#7fb2ff"/><ellipse cx="12" cy="12" rx="10.5" ry="3.2" stroke="#7fb2ff" transform="rotate(-20 12 12)"/></svg>',
+  energy: '<svg viewBox="0 0 24 24"><path d="M13.5 2L5 13.5h6l-2.5 8.5L19 10h-6z" fill="#ff4f6d"/></svg>',
+};
+const KIND_BG = { mine: '#2a3247', lfb: '#163a2e', lft: '#2d1f3f', plasma: '#3a2a15', colony: '#16284a', energy: '#3a1622' };
+const KIND_NAME = { mine: 'Miniera', lfb: 'Edificio forme di vita', lft: 'Ricerca forme di vita', plasma: 'Tecnologia Plasma', colony: 'Nuova colonia', energy: 'Energia' };
+const kindOf = r => ({ mine: 'mine', lfbuilding: 'lfb', lftech: 'lft', plasma: 'plasma', colony: 'colony', energy: 'energy' }[r.type] || 'mine');
+const kindBadge = k => `<span class="kind" style="background:${KIND_BG[k]}" title="${KIND_NAME[k]}" aria-label="${KIND_NAME[k]}">${KIND_ICONS[k]}</span>`;
 const TILE_BG = {
   metal: '#2a3247', crystal: '#16344a', deut: '#143a2c', energy: '#3a1622', solar: '#3a3115', fusion: '#3a2219',
   satellite: '#1b2a4a', crawler: '#352a19', mrc: '#2d1f3f', item: '#3a2c10', lf: '#1e2f2f',
