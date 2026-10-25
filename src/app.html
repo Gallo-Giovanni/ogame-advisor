@@ -96,6 +96,7 @@
   .statbar { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; align-items: baseline; }
   .statbar .it { display: flex; gap: 6px; align-items: baseline; }
   .statbar .v { font: 700 1.15rem Rajdhani, sans-serif; }
+  .statbar .ri { width: 1.5em; height: 1.5em; vertical-align: -.35em; }
   .tag { display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: var(--bg2); color: var(--muted); }
   .tag.bad { background: #3a1621; color: #ffc2cc; }
   .payback { font: 700 1rem Rajdhani, sans-serif; text-align: right; white-space: nowrap; }
@@ -124,6 +125,8 @@
   .pe-grid h3 { margin: 0; }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
+  .ri { display: inline-flex; width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: 3px; }
+  .ri svg { width: 100%; height: 100%; }
   .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
   .tile { position: relative; width: 74px; border-radius: 8px; overflow: hidden; background: var(--bg2); border: 1px solid var(--line); }
   .tile .art { height: 50px; display: grid; place-items: center; }
@@ -651,10 +654,10 @@ function renderApp() {
 
 function costHTML(c) {
   const parts = [];
-  if (c[0]) parts.push(`<span class="res-m">${fmt(c[0])} M</span>`);
-  if (c[1]) parts.push(`<span class="res-c">${fmt(c[1])} C</span>`);
-  if (c[2]) parts.push(`<span class="res-d">${fmt(c[2])} D</span>`);
-  return parts.join(' · ') || '—';
+  if (c[0]) parts.push(`<span class="res-m" title="metallo">${ri('metal')}${fmt(c[0])}</span>`);
+  if (c[1]) parts.push(`<span class="res-c" title="cristallo">${ri('crystal')}${fmt(c[1])}</span>`);
+  if (c[2]) parts.push(`<span class="res-d" title="deuterio">${ri('deut')}${fmt(c[2])}</span>`);
+  return parts.join(' &nbsp; ') || '—';
 }
 // One short line per recommendation; the full text is in the expandable part
 function shortTitle(r) {
@@ -676,15 +679,16 @@ function renderAdvice() {
   const planets = state.planets;
   const filter = $('#filter-planet').value;
   const sel = planets.find(pl => pl.id === filter);
+  const RK = { Metallo: 'metal', Cristallo: 'crystal', Deuterio: 'deut' };
   const resStat = (label, cls, v) =>
-    `<div class="it" title="${fmt(v * 24)} al giorno"><span class="muted small">${label}/h</span><span class="v ${cls}">${fmt(v)}</span></div>`;
+    `<div class="it" title="${label}: ${fmt(v * 24)} al giorno">${ri(RK[label])}<span class="v ${cls}">${fmt(v)}</span><span class="muted small">/h</span></div>`;
 
   if (sel) {
     // Single planet: its own production and energy
     const st = Engine.planetState(profile, sel);
     const pct = Math.round(st.factor * 100);
     $('#stats').innerHTML = resStat('Metallo', 'res-m', st.actual[0]) + resStat('Cristallo', 'res-c', st.actual[1]) + resStat('Deuterio', 'res-d', st.actual[2]) + `
-      <div class="it"><span class="muted small">Energia</span><span class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span><span class="muted small">(${pct}%)</span></div>`;
+      <div class="it" title="Energia">${ri('energy')}<span class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span><span class="muted small">(${pct}%)</span></div>`;
     const coords = [sel.galaxy, sel.system, sel.position].map(x => x ?? '?').join(':');
     $('#planet-info').innerHTML = `${esc(`[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`)} <button class="ghost" id="open-sel-planet">Apri scheda</button>`;
     $('#open-sel-planet').onclick = () => { goToTab('planets'); openPlanet(sel.id); };
@@ -756,9 +760,10 @@ async function completeRec(rec, btn) {
 
 /* Building icons: simple original drawings (no game artwork) */
 const ICONS = {
-  metal: '<svg viewBox="0 0 32 32"><path d="M6 22l6-12 7 3 7 9-9 5z" fill="#9aa6bf"/><path d="M12 10l7 3-3 14-10-5z" fill="#c9d2e6"/><path d="M19 13l7 9-9 5z" fill="#6f7b94"/></svg>',
-  crystal: '<svg viewBox="0 0 32 32"><path d="M16 3l7 9-7 17-7-17z" fill="#6fd3ff"/><path d="M16 3l7 9h-14z" fill="#b8ecff"/><path d="M23 12l-7 17 4-17z" fill="#3aa8d8"/></svg>',
-  deut: '<svg viewBox="0 0 32 32"><path d="M16 4c5 7 9 11 9 16a9 9 0 0 1-18 0c0-5 4-9 9-16z" fill="#7cf0b2"/><path d="M12 20a4 4 0 0 0 4 4" stroke="#e8fff3" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  metal: '<svg viewBox="0 0 48 48"><path d="M6 34l7-15 9 3-3 17z" fill="#7d879c"/><path d="M13 19l9 3 6-9-10-4z" fill="#c3cbdb"/><path d="M22 22l6-9 11 6-2 13-12 6z" fill="#9aa5bb"/><path d="M28 13l11 6-3-8z" fill="#e3e8f2"/><path d="M19 39l6-1 12-6 5 7-11 4z" fill="#5d6679"/><path d="M25 38l12-6-2-13-10 3z" fill="#aeb8cc" opacity=".55"/></svg>',
+  crystal: '<svg viewBox="0 0 48 48"><path d="M10 40l4-19 6 6-2 13z" fill="#4fb8e8"/><path d="M14 21l6 6 2-8z" fill="#bdeeff"/><path d="M18 40l3-31 9 12-3 19z" fill="#6fd3ff"/><path d="M21 9l9 12-6 1z" fill="#e2f8ff"/><path d="M27 40l7-22 6 8-3 14z" fill="#3aa8d8"/><path d="M34 18l6 8-5 1z" fill="#a9e7ff"/></svg>',
+  deut: '<svg viewBox="0 0 48 48"><circle cx="18" cy="28" r="11" fill="#2fbf97"/><circle cx="32" cy="20" r="8" fill="#47d8ae"/><circle cx="33" cy="35" r="6" fill="#26a882"/><circle cx="14" cy="24" r="3" fill="#d9fff2" opacity=".85"/><circle cx="29" cy="17" r="2.2" fill="#d9fff2" opacity=".85"/><circle cx="31" cy="33" r="1.6" fill="#d9fff2" opacity=".85"/></svg>',
+  energy: '<svg viewBox="0 0 48 48"><path d="M27 4L11 27h11l-5 17 20-25H26z" fill="#ff4f6d"/><path d="M27 4l-7 15h6z" fill="#ffb3c1"/><path d="M6 14l7 3M38 32l6 2M40 10l-5 4" stroke="#ff8fa6" stroke-width="2.4" stroke-linecap="round"/></svg>',
   solar: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="#ffd27a"/><g stroke="#ffb547" stroke-width="2.4" stroke-linecap="round"><path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></g></svg>',
   fusion: '<svg viewBox="0 0 32 32" fill="none" stroke="#ff8f6b" stroke-width="2"><ellipse cx="16" cy="16" rx="12" ry="5"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(60 16 16)"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(120 16 16)"/><circle cx="16" cy="16" r="2.6" fill="#ffd27a" stroke="none"/></svg>',
   satellite: '<svg viewBox="0 0 32 32"><rect x="2" y="12" width="9" height="8" rx="1" fill="#5c8ee0"/><rect x="21" y="12" width="9" height="8" rx="1" fill="#5c8ee0"/><rect x="12" y="11" width="8" height="10" rx="2" fill="#c9d2e6"/><path d="M11 16h1M20 16h1" stroke="#c9d2e6" stroke-width="2"/></svg>',
@@ -768,9 +773,10 @@ const ICONS = {
   lf: '<svg viewBox="0 0 32 32" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 4c0 8 12 8 12 16s-12 0-12 8" stroke="#7cf0b2"/><path d="M22 4c0 8-12 8-12 16s12 0 12 8" stroke="#c98bff"/><path d="M12 9h8M12 23h8" stroke="#e6ebff"/></svg>',
 };
 const TILE_BG = {
-  metal: '#2a3247', crystal: '#16344a', deut: '#143a2c', solar: '#3a3115', fusion: '#3a2219',
+  metal: '#2a3247', crystal: '#16344a', deut: '#143a2c', energy: '#3a1622', solar: '#3a3115', fusion: '#3a2219',
   satellite: '#1b2a4a', crawler: '#352a19', mrc: '#2d1f3f', item: '#3a2c10', lf: '#1e2f2f',
 };
+const ri = k => `<span class="ri" aria-hidden="true">${ICONS[k]}</span>`;
 function tile(key, label, level, opts = {}) {
   const zero = !opts.text && !(+level > 0);
   return `<div class="tile ${zero ? 'zero' : ''} ${opts.wide ? 'wide' : ''}" title="${esc(label)}${opts.text ? '' : ' ' + level}">
@@ -915,10 +921,10 @@ function renderPlanetPreview() {
   $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Si costruiscono solo da Collezionista, ma quelli che possiedi producono con qualsiasi classe (0,02% ciascuno, 0,03% da Collezionista). Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia). Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
   const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
   $('#pe-preview').innerHTML =
-    box('Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
-    box('Cristallo / ora', 'res-c', fmt(st.actual[1]), fmt(st.actual[1] * 24) + ' al giorno') +
-    box('Deuterio / ora', 'res-d', fmt(st.actual[2]), fmt(st.actual[2] * 24) + ' al giorno') +
-    box('Energia', st.balance < 0 ? 'neg' : '', (st.balance > 0 ? '+' : '') + fmt(st.balance), `miniere al ${Math.round(st.factor * 100)}%`);
+    box(ri('metal') + 'Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
+    box(ri('crystal') + 'Cristallo / ora', 'res-c', fmt(st.actual[1]), fmt(st.actual[1] * 24) + ' al giorno') +
+    box(ri('deut') + 'Deuterio / ora', 'res-d', fmt(st.actual[2]), fmt(st.actual[2] * 24) + ' al giorno') +
+    box(ri('energy') + 'Energia', st.balance < 0 ? 'neg' : '', (st.balance > 0 ? '+' : '') + fmt(st.balance), `miniere al ${Math.round(st.factor * 100)}%`);
 }
 
 $('#pe-save').addEventListener('click', async () => {

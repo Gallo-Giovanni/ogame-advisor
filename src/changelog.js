@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 20, date: '2026-10-25', title: 'Icone delle risorse',
+    text: 'Metallo, cristallo, deuterio ed energia hanno ora la loro icona nella barra della produzione, nei costi dei consigli e nella scheda del pianeta.',
+  },
+  {
     id: 19, date: '2026-10-25', title: 'Più consigli a schermo',
     text: 'La classifica parte con i primi 25 consigli; dal menu puoi passare a 50 o 100.',
   },
