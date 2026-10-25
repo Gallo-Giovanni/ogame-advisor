@@ -1024,16 +1024,11 @@ function tile(key, label, level, opts = {}) {
 }
 // Summary of everything entered for a planet: mines, energy, crawlers, Mineral Centre, items, lifeforms
 function planetTiles(p, prof = numericProfile(state.profile)) {
-  const pct = v => `${+(+v || 0).toFixed(1)}`;
   const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => (+v || 0) + (+p.item_all || 0));
-  let lf = [p.lf_metal, p.lf_crystal, p.lf_deut].map(v => +v || 0);
-  if (prof._lf && prof._lf.computed) { const be = Engine.buildingEffects(p); lf = ['metal', 'crystal', 'deut'].map(k => (be[k] + prof._lf.tech[k]) * 100); }
   let t = tile('metal', 'Metallo', p.metal_mine) + tile('crystal', 'Cristallo', p.crystal_mine) + tile('deut', 'Deuterio', p.deut_synth)
     + tile('solar', 'Solare', p.solar_plant) + tile('fusion', 'Fusione', p.fusion_reactor) + tile('satellite', 'Satelliti', p.solar_satellites)
     + tile('crawler', `Crawler${+p.crawlers && +p.crawler_pct !== 100 ? ' ' + (+p.crawler_pct) + '%' : ''}`, p.crawlers);
-  if (p.mrc_level !== null && p.mrc_level !== undefined && p.mrc_level !== '') t += tile('mrc', 'Centro Min.', p.mrc_level);
   if (items.some(Boolean) || +p.item_energy) t += tile('item', 'Item M/C/D', null, { wide: true, text: items.map(v => '+' + v).join('/') });
-  if (lf.some(Boolean)) t += tile('lf', p.lf_race ? `${RACE_NAMES[p.lf_race]} %` : 'Forme di vita %', null, { wide: true, text: lf.map(pct).join('/') });
   return t;
 }
 
