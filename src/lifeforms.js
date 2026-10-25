@@ -176,7 +176,30 @@ const LIFEFORMS = {
         // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
         // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
       },
-      techs: null, // todo
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
+      techs: [
+        { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },
+        { slot: 2,  tier: 1, key: 'sulphide_process',        it: 'Tecnologia Processo al solfuro',   perLevel: { deut: 0.0008 }, used: true },
+        { slot: 3,  tier: 1, key: 'psionic_network',         it: 'Network psionico',                 perLevel: { expedition_ship_loss: -0.0005 }, used: false },
+        { slot: 4,  tier: 1, key: 'telekinetic_tractor_beam', it: 'Raggio di trazione telecinetico', perLevel: { expedition_ships_found: 0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'enhanced_sensor_technology', it: 'Tecnologia Sensori migliorata', perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 6,  tier: 1, key: 'neuromodal_compressor',   it: 'Compattatore neuromodulare',       perLevel: { civil_cargo: 0.004 }, used: false },
+        { slot: 7,  tier: 2, key: 'neuro_interface',         it: 'Interfaccia neurologica',          perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 8,  tier: 2, key: 'interplanetary_analysis_network', it: 'Network di analisi superglobale', perLevel: { phalanx_range: 0.006 }, used: false },
+        { slot: 9,  tier: 2, key: 'heavy_fighter_overclocking', it: 'Overclocking (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'telekinetic_drive',       it: 'Sistema Potenziamento telecinetico', perLevel: { expedition_fleet_speed: 0.001 }, used: false },
+        { slot: 11, tier: 2, key: 'sixth_sense',             it: 'Sesto senso',                      perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 12, tier: 2, key: 'psychoharmoniser',        it: 'Armonizzatore psicologico',        perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 13, tier: 3, key: 'efficient_swarm_intelligence', it: 'Intelligenza collettiva efficiente', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 14, tier: 3, key: 'large_cargo_overclocking', it: 'Overclocking (Cargo pesante)',    perLevel: { ship: 'large_cargo', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
+        { slot: 15, tier: 3, key: 'gravitation_sensors',     it: 'Sensori Gravità',                  perLevel: { expedition_dark_matter: 0.001 }, used: false },
+        { slot: 16, tier: 3, key: 'battleship_overclocking', it: 'Overclocking (Nave da battaglia)', perLevel: { ship: 'battleship', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'psionic_shield_matrix',   it: 'Matrice Protezione psionica',      perLevel: { shield_tech_cost: -0.002, shield_tech_time: -0.002 }, used: false },
+        // raises the Explorer class bonuses (expeditions etc.), except the ones listed in the game description
+        { slot: 18, tier: 3, key: 'kaelesh_discoverer_enhancement', it: 'Rinforzo Esploratore Kaelesh', perLevel: { explorer_class_bonus: 0.002 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo
     },
   },
 };
