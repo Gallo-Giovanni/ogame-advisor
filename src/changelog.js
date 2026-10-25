@@ -3,6 +3,14 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 16, date: '2026-10-25', title: 'Consigli più compatti',
+    text: 'Ogni consiglio è una riga sola: upgrade, pianeta, tempo di ammortamento e Fatto. Tocca la riga per vedere costo, guadagno ed energia. La produzione è in una sola barra in alto e la spiegazione della classifica è in "Come leggere la classifica".',
+  },
+  {
+    id: 15, date: '2026-10-25', title: 'Crawler e Centro di Mineralogia',
+    text: 'Nella scheda di ogni pianeta puoi inserire i crawler (numero e percentuale di produzione) e il livello del Centro di Mineralogia. Se il Centro è a 0, i consigli ti propongono "Centro di Mineralogia 1 + miniera", che costa meno della sola miniera. I booster arrivano fino a +80% (due item insieme) e, se inserisci l\'energia del gioco, il fattore di produzione ora coincide con quello del gioco. Calcoli verificati sulla pagina Impostazioni risorse.',
+  },
+  {
     id: 14, date: '2026-10-25', title: 'Una scheda per ogni pianeta',
     text: 'La tabella dei pianeti è sostituita da un elenco a schede: apri un pianeta per modificarlo in sezioni (Generale, Miniere, Energia, Item, Forme di vita), con la sua produzione calcolata mentre scrivi e i pulsanti Precedente/Successivo. I bonus delle forme di vita ora sono per pianeta (i tuoi valori sono stati riportati su ogni pianeta). Puoi escludere un pianeta dai calcoli, e in "Copia" scegli cosa copiare.',
   },

@@ -40,3 +40,23 @@ near(st.actual[1], 90274, 5, 'crystal per hour');
 near(st.actual[2], 64507, 5, 'deuterium per hour');
 near(st.need + st.balance, 42926, 2, 'energy produced');
 console.log('Reference page matched: metal', Math.round(st.actual[0]), 'crystal', Math.round(st.actual[1]), 'deut', Math.round(st.actual[2]), 'energy', st.need + st.balance);
+
+// Second reference page: position 8, 42 °C, fusion 11, 100 crawlers, boosters +80% metal, +40% crystal and
+// deuterium, energy balance taken from the game. Checked with crawlers at 100% and at 50%.
+const planet2 = {
+  name: 'Reference 2', position: 8, temp_max: 42, metal_mine: 37, crystal_mine: 31, deut_synth: 32,
+  solar_plant: 27, fusion_reactor: 11, solar_satellites: 750, crawlers: 100,
+  item_metal: 80, item_crystal: 40, item_deut: 40, item_energy: 0,
+  lf_metal: (75893 + 46694) / 252978 * 100, lf_crystal: (5908 + 8290) / 59082 * 100,
+  lf_deut: (4266 + 10298) / 42667 * 100, lf_energy: 15,
+};
+for (const [pct, balance, want] of [[100, -2680, [631984, 108497, 78681]], [50, -305, [664163, 113863, 82663]]]) {
+  const s = E.planetState(profile, { ...planet2, crawler_pct: pct, energy_balance: balance });
+  near(s.produced, 42925, 2, `energy produced (crawlers ${pct}%)`);
+  ['metal', 'crystal', 'deuterium'].forEach((r, i) => near(s.actual[i], want[i], 40, `${r} per hour (crawlers ${pct}%)`));
+  console.log(`Crawlers ${pct}% matched: factor ${(s.factor * 100).toFixed(2)}%`, s.actual.map(Math.round).join(' / '));
+}
+assert.strictEqual(E.maxCrawlers(planet2), 800);
+
+// Mineral Research Centre: 0.5% cheaper mines per level (matches another tool's numbers)
+assert.deepStrictEqual(E.mineCost('metal_mine', 38, 1), [195591922, 48897981, 0]);

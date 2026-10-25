@@ -41,6 +41,22 @@ const Engine = (() => {
   const consFactor = profile => 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
   // The fusion reactor burns deuterium: 10 x L x 1.1^L per hour, times the economy speed
   const fusionDeut = L => 10 * g(L);
+
+  // Crawlers (checked against the game page): each working crawler adds 0.02% of every mine row
+  // (x1.5 for the Collector class) and uses 50 energy, both scaled by the crawler production %.
+  // At most 8 crawlers per mine level (metal + crystal + deuterium) work.
+  const maxCrawlers = planet => 8 * ((+planet.metal_mine || 0) + (+planet.crystal_mine || 0) + (+planet.deut_synth || 0));
+  const crawlerPct = planet => (planet.crawler_pct === undefined || planet.crawler_pct === null || planet.crawler_pct === '' ? 100 : +planet.crawler_pct) / 100;
+  const workingCrawlers = planet => Math.min(+planet.crawlers || 0, maxCrawlers(planet));
+  const crawlerBonus = (profile, planet) =>
+    workingCrawlers(planet) * 0.0002 * (profile.player_class === 'collector' ? 1.5 : 1) * crawlerPct(planet);
+  const crawlerEnergy = (profile, planet) => Math.round(workingCrawlers(planet) * 50 * crawlerPct(planet) * consFactor(profile));
+
+  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
+  // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
+  const MRC_LEVEL1 = [250000, 150000, 100000];
+  const mrcLevel = planet => (planet.mrc_level === undefined || planet.mrc_level === null || planet.mrc_level === '' ? null : +planet.mrc_level);
+  const mineCost = (key, level, mrc) => levelCost(key, level).map(x => Math.round(x * (1 - 0.005 * (mrc || 0))));
   const solarEnergy = L => Math.floor(20 * g(L));
   const fusionEnergy = (L, energyTech) => Math.floor(30 * L * Math.pow(1.05 + 0.01 * energyTech, L));
   const satelliteEnergy = tMax => Math.max(1, Math.floor((tMax + 140) / 6));
@@ -66,11 +82,12 @@ const Engine = (() => {
       + (profile.player_class === 'collector' ? 0.25 : 0)
       + (profile.alliance_trader ? 0.05 : 0);
     const p = profile.plasma_tech || 0;
+    const cr = crawlerBonus(profile, planet);
     return {
       posMetal: 1 + pos.metal, posCrystal: 1 + pos.crystal,
-      metal:   (1 + pos.metal) * (1 + common + p * 0.01 + lf('lf_metal', 'lf_bonus_metal') + it('item_metal')),
-      crystal: (1 + pos.crystal) * (1 + common + p * 0.0066 + lf('lf_crystal', 'lf_bonus_crystal') + it('item_crystal')),
-      deut:    1 + common + p * 0.0033 + lf('lf_deut', 'lf_bonus_deut') + it('item_deut'),
+      metal:   (1 + pos.metal) * (1 + common + cr + p * 0.01 + lf('lf_metal', 'lf_bonus_metal') + it('item_metal')),
+      crystal: (1 + pos.crystal) * (1 + common + cr + p * 0.0066 + lf('lf_crystal', 'lf_bonus_crystal') + it('item_crystal')),
+      deut:    1 + common + cr + p * 0.0033 + lf('lf_deut', 'lf_bonus_deut') + it('item_deut'),
       energy:  1 + (profile.engineer ? 0.10 : 0) + (profile.commanding_staff ? 0.02 : 0)
                + (profile.player_class === 'collector' ? 0.10 : 0) + (profile.alliance_trader ? 0.05 : 0)
                + lf('lf_energy', 'lf_bonus_energy') + it('item_energy'),
@@ -88,20 +105,26 @@ const Engine = (() => {
     const mult = multipliers(profile, planet);
     // Upgrades last forever, items expire: the player decides whether rankings count them
     const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
-    const need = Math.round((consumption.metal_mine(planet.metal_mine)
+    // Energy used by mines and crawlers (lifeform buildings use energy too, but only the game knows how much)
+    const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
-      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile));
+      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile)) + crawlerEnergy(profile, planet);
+    const producedModel = Math.floor((solarEnergy(planet.solar_plant)
+      + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
+      + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max)) * mult.energy);
 
-    let balance;
+    let balance, produced, need;
     if (planet.energy_balance !== null && planet.energy_balance !== undefined && planet.energy_balance !== '') {
-      balance = +planet.energy_balance; // real value from the game: always preferred
+      // Balance from the game: always preferred. The game's factor is produced / total need, and the
+      // total need also counts lifeform buildings, so it is recovered from the produced energy.
+      balance = +planet.energy_balance;
+      produced = producedModel > 0 ? producedModel : needOwn + balance;
+      need = Math.max(produced - balance, 0);
     } else {
-      const produced = Math.floor((solarEnergy(planet.solar_plant)
-        + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
-        + planet.solar_satellites * satelliteEnergy(planet.temp_max)) * mult.energy);
+      produced = producedModel;
+      need = needOwn;
       balance = produced - need;
     }
-    const produced = need + balance;
     const factor = need > 0 ? Math.max(0, Math.min(1, produced / need)) : 1;
 
     // Hourly mine output at 100% (without base income)
@@ -114,7 +137,7 @@ const Engine = (() => {
     const income = [30 * speed * mult.posMetal, 15 * speed * mult.posCrystal, 0];
     const fuel = fusionDeut(planet.fusion_reactor || 0) * speed;
     const actual = full.map((x, i) => x * factor + income[i] - (i === 2 ? fuel : 0));
-    return { mult, multRank, need, balance, factor, full, income, fuel, actual };
+    return { mult, multRank, need, produced, balance, factor, full, income, fuel, actual };
   }
 
   // Cheapest way to add `energy` units on a planet: satellites or solar plant levels
@@ -249,7 +272,7 @@ const Engine = (() => {
         const L = planet[m.key];
         const next = L + 1;
         if (overCap(profile[m.cap], next)) return; // player's "stop at level"
-        const cost = levelCost(m.key, next);
+        const cost = mineCost(m.key, next, mrcLevel(planet));
         const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
@@ -264,13 +287,24 @@ const Engine = (() => {
         const gain = gainEq(prodDelta);
         const eq = toMetalEq(totalCost, profile);
 
-        out.push({
+        const energyText = fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`;
+        let rec = {
           type: 'mine', key: m.key, planetId: planet.id, planet: planet.name,
-          title: `${m.label} ${L} → ${next}`,
-          detail: fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`,
+          title: `${m.label} ${L} → ${next}`, detail: energyText,
           cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
           payback: gain > 0 ? eq / gain : Infinity, fix, nextLevel: next,
-        });
+        };
+        if (mrcLevel(planet) === 0) {
+          const mc = mineCost(m.key, next, 1);
+          const bCost = mc.map((x, i) => x + MRC_LEVEL1[i] + (fix ? fix.cost[i] : 0));
+          const bEq = toMetalEq(bCost, profile);
+          if (gain > 0 && bEq < eq) rec = {
+            ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
+            detail: `il Centro rende le miniere di questo pianeta più economiche dello 0,5%; ${energyText}`,
+            cost: bCost, buildCost: mc, costEq: bEq, payback: bEq / gain,
+          };
+        }
+        out.push(rec);
       });
     });
 
@@ -311,6 +345,7 @@ const Engine = (() => {
     let balance = st.balance;
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
+      if (rec.withMrc) patch.mrc_level = 1;
       balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile));
     }
     if (rec.fix) {
@@ -341,7 +376,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

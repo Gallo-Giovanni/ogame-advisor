@@ -80,17 +80,25 @@
   .stat { padding: 14px; }
   .stat .v { font: 700 1.5rem Rajdhani, sans-serif; }
   .res-m { color: var(--metal); } .res-c { color: var(--crystal); } .res-d { color: var(--deut); }
-  .rec { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; }
-  .rec + .rec { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .rec { border-top: 1px solid var(--line); }
+  .rec:first-child { border-top: 0; }
+  .rec > summary { list-style: none; display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 2px; cursor: pointer; }
+  .rec > summary::-webkit-details-marker { display: none; }
+  .rec > summary:hover { background: #ffffff08; }
+  .rec .what { min-width: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .rec .more { padding: 0 0 10px 38px; font-size: .85rem; }
   .rank {
-    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
-    background: var(--bg2); font: 700 1rem Rajdhani, sans-serif; color: var(--accent);
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--bg2); font: 700 .9rem Rajdhani, sans-serif; color: var(--accent);
   }
   .rec.urgent .rank { background: #3a1621; color: var(--bad); }
+  .rec .done { padding: 4px 10px; font-size: .8rem; }
+  .statbar { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; align-items: baseline; }
+  .statbar .it { display: flex; gap: 6px; align-items: baseline; }
+  .statbar .v { font: 700 1.15rem Rajdhani, sans-serif; }
   .tag { display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: var(--bg2); color: var(--muted); }
   .tag.bad { background: #3a1621; color: #ffc2cc; }
-  .cost { font-size: .85rem; color: var(--muted); }
-  .payback { font: 700 1.1rem Rajdhani, sans-serif; text-align: right; }
+  .payback { font: 700 1rem Rajdhani, sans-serif; text-align: right; white-space: nowrap; }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: .9rem; }
   th, td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
@@ -119,9 +127,8 @@
   @media (max-width: 600px) {
     .pe-grid { grid-template-columns: 1fr; }
     .pe-actions button { padding: 8px 10px; font-size: .85rem; }
-    .rec { grid-template-columns: 32px 1fr; }
-    .rec .side { grid-column: 2; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
-    .payback { text-align: left; }
+    .rec > summary { gap: 8px; }
+    .rec .more { padding-left: 8px; }
   }
 </style>
 </head>
@@ -222,7 +229,7 @@
         </div>
         <div id="planet-info" class="muted small"></div>
       </div>
-      <div class="grid" id="stats"></div>
+      <div class="card statbar" id="stats"></div>
       <div class="card">
         <div class="row" style="justify-content:space-between">
           <h2 style="margin:0">Cosa fare adesso</h2>
@@ -230,8 +237,11 @@
             <select id="filter-count" style="width:auto"><option value="10">Primi 10</option><option value="25">Primi 25</option><option value="1000">Tutti</option></select>
           </div>
         </div>
-        <p class="muted small" style="margin-top:6px">Ordinati per tempo di ammortamento: quanto ci mette l'upgrade a ripagarsi con la produzione in più. I problemi di energia vengono sempre prima. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
-        <div id="recs" style="margin-top:12px"></div>
+        <details class="small muted" style="margin-top:6px">
+          <summary style="cursor:pointer">Come leggere la classifica</summary>
+          <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci mette la produzione in più a ripagare la spesa. Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
+        </details>
+        <div id="recs" style="margin-top:6px"></div>
       </div>
     </section>
 
@@ -277,6 +287,12 @@
               <div><label>Miniera di cristallo</label><input data-f="crystal_mine" type="number" min="0"></div>
               <div><label>Sintetizzatore di deuterio</label><input data-f="deut_synth" type="number" min="0"></div>
             </div>
+            <div class="grid">
+              <div><label>Crawler</label><input data-f="crawlers" type="number" min="0"></div>
+              <div><label>Produzione crawler</label><select data-f="crawler_pct"><option value="150">150%</option><option value="100">100%</option><option value="90">90%</option><option value="80">80%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option><option value="40">40%</option><option value="30">30%</option><option value="20">20%</option><option value="10">10%</option><option value="0">0%</option></select></div>
+              <div><label>Centro di Mineralogia</label><input data-f="mrc_level" type="number" min="0" placeholder="vuoto se non Rock'tal"></div>
+            </div>
+            <p class="muted small" style="margin:0" id="pe-crawler-info">Funzionano al massimo 8 crawler per livello di miniera. Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.</p>
           </div>
           <div class="card stack">
             <h3>Energia</h3>
@@ -291,11 +307,12 @@
           <div class="card stack">
             <h3>Item attivi</h3>
             <div class="grid">
-              <div><label>Booster metallo</label><select data-f="item_metal"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
-              <div><label>Booster cristallo</label><select data-f="item_crystal"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
-              <div><label>Booster deuterio</label><select data-f="item_deut"><option value="0">Nessuno</option><option value="10">+10% (bronzo)</option><option value="20">+20% (argento)</option><option value="30">+30% (oro)</option><option value="40">+40% (platino)</option></select></div>
+              <div><label>Booster metallo</label><select data-f="item_metal"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
+              <div><label>Booster cristallo</label><select data-f="item_crystal"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
+              <div><label>Booster deuterio</label><select data-f="item_deut"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
               <div><label>Booster energia %</label><input data-f="item_energy" type="number" min="0" max="1000"></div>
             </div>
+            <p class="muted small" style="margin:0">Usa la somma dei booster attivi su quella risorsa: per esempio un booster metallo +40% e uno su tutte le risorse +40% fanno +80% di metallo. Nel gioco è la riga "Item" diviso la riga della miniera.</p>
           </div>
           <div class="card stack">
             <h3>Forme di vita</h3>
@@ -373,10 +390,10 @@
     <div class="list stack">
       <b class="small">Cosa copiare</b>
       <div class="row" style="gap:12px">
-        <label class="check"><input type="checkbox" data-group="mines" checked> Miniere</label>
+        <label class="check"><input type="checkbox" data-group="mines" checked> Miniere e crawler</label>
         <label class="check"><input type="checkbox" data-group="energy" checked> Centrali e satelliti</label>
         <label class="check"><input type="checkbox" data-group="items" checked> Item</label>
-        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita</label>
+        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita e Centro di Mineralogia</label>
       </div>
       <b class="small" style="margin-top:8px">Su quali pianeti</b>
       <div id="copy-list" class="stack"></div>
@@ -421,7 +438,7 @@ const PROFILE_DEFAULTS = {
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
 const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
-const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'energy_balance', 'included'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'energy_balance', 'included'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
 const FIELD_LIMITS = {
@@ -547,7 +564,8 @@ function readPlanetInputs(container) {
     if (el.type === 'checkbox') { p[f] = el.checked; return; }
     const v = el.value.trim();
     if (f === 'name') p[f] = v;
-    else if (['energy_balance', 'galaxy', 'system'].includes(f)) p[f] = v === '' ? null : parseInt(v, 10);
+    else if (['energy_balance', 'galaxy', 'system', 'mrc_level'].includes(f)) p[f] = v === '' ? null : parseInt(v, 10);
+    else if (f === 'crawler_pct') p[f] = v === '' ? 100 : Number(v);
     else if (f.startsWith('item_') || f.startsWith('lf_')) p[f] = v === '' ? 0 : Math.max(0, Number(v));
     else p[f] = v === '' ? 0 : parseInt(v, 10);
   });
@@ -557,7 +575,7 @@ function validatePlanet(p) {
   if (!p.name) return 'Ogni pianeta deve avere un nome.';
   if ((p.galaxy !== null && !(p.galaxy >= 1)) || (p.system !== null && !(p.system >= 1))) return `${p.name}: galassia e sistema devono essere maggiori di 0 (oppure lasciali vuoti).`;
   if (!(p.position >= 1 && p.position <= 15)) return `${p.name}: la posizione va da 1 a 15.`;
-  for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites'])
+  for (const f of ['metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'crawlers'])
     if (!(p[f] >= 0)) return `${p.name}: i livelli e i satelliti non possono essere negativi.`;
   if (!Number.isFinite(p.temp_max)) return `${p.name}: inserisci la temperatura massima.`;
   return null;
@@ -621,6 +639,15 @@ function costHTML(c) {
   if (c[2]) parts.push(`<span class="res-d">${fmt(c[2])} D</span>`);
   return parts.join(' · ') || '—';
 }
+// One short line per recommendation; the full text is in the expandable part
+function shortTitle(r) {
+  const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
+  if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
+  if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
+  if (r.type === 'plasma') return `Plasma ${r.nextLevel}`;
+  if (r.type === 'colony') return r.astroCost.some(x => x > 0) ? `Nuova colonia (Astrofisica ${r.nextLevel})` : 'Colonizza lo slot libero';
+  return r.title;
+}
 function paybackText(h) {
   if (!isFinite(h)) return 'mai';
   if (h < 48) return h.toFixed(1).replace('.', ',') + ' ore';
@@ -633,14 +660,14 @@ function renderAdvice() {
   const filter = $('#filter-planet').value;
   const sel = planets.find(pl => pl.id === filter);
   const resStat = (label, cls, v) =>
-    `<div class="card stat"><div class="muted small">${label} / ora</div><div class="v ${cls}">${fmt(v)}</div><div class="muted small">${fmt(v * 24)} al giorno</div></div>`;
+    `<div class="it" title="${fmt(v * 24)} al giorno"><span class="muted small">${label}/h</span><span class="v ${cls}">${fmt(v)}</span></div>`;
 
   if (sel) {
     // Single planet: its own production and energy
     const st = Engine.planetState(profile, sel);
     const pct = Math.round(st.factor * 100);
     $('#stats').innerHTML = resStat('Metallo', 'res-m', st.actual[0]) + resStat('Cristallo', 'res-c', st.actual[1]) + resStat('Deuterio', 'res-d', st.actual[2]) + `
-      <div class="card stat"><div class="muted small">Energia</div><div class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</div><div class="muted small">miniere al ${pct}%</div></div>`;
+      <div class="it"><span class="muted small">Energia</span><span class="v ${st.balance < 0 ? 'neg' : ''}">${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span><span class="muted small">(${pct}%)</span></div>`;
     const coords = [sel.galaxy, sel.system, sel.position].map(x => x ?? '?').join(':');
     $('#planet-info').innerHTML = `${esc(`[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`)} <button class="ghost" id="open-sel-planet">Apri scheda</button>`;
     $('#open-sel-planet').onclick = () => { goToTab('planets'); openPlanet(sel.id); };
@@ -648,7 +675,7 @@ function renderAdvice() {
     const tot = Engine.totals(profile, planets);
     const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
     $('#stats').innerHTML = resStat('Metallo', 'res-m', tot[0]) + resStat('Cristallo', 'res-c', tot[1]) + resStat('Deuterio', 'res-d', tot[2]) + `
-      <div class="card stat"><div class="muted small">Pianeti senza energia</div><div class="v ${deficits ? 'neg' : ''}">${deficits} / ${planets.length}</div><div class="muted small">su tutto l'impero</div></div>`;
+      <div class="it"><span class="muted small">Senza energia</span><span class="v ${deficits ? 'neg' : ''}">${deficits}/${planets.length}</span></div>`;
     $('#planet-info').textContent = `${planets.length} pianeti`;
   }
 
@@ -657,20 +684,25 @@ function renderAdvice() {
   if (filter) recs = recs.filter(r => r.planetId === filter);
   recs = recs.slice(0, limit);
   state.recs = recs;
+  let n = 0;
   $('#recs').innerHTML = recs.length ? recs.map((r, i) => `
-    <div class="rec ${r.urgent ? 'urgent' : ''}">
-      <div class="rank">${r.urgent ? '!' : i + 1}</div>
-      <div>
-        <div><b>${esc(r.title)}</b> <span class="tag ${r.urgent ? 'bad' : ''}">${esc(r.planet)}</span></div>
-        <div class="small muted">${esc(r.detail)}</div>
-        <div class="cost">Costo: ${costHTML(r.cost)} · Rende: +${fmt(r.gainEq)} eq. metallo/ora</div>
+    <details class="rec ${r.urgent ? 'urgent' : ''}">
+      <summary>
+        <span class="rank">${r.urgent ? '!' : ++n}</span>
+        <span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
+        <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
+        <button class="secondary done" data-done="${i}">Fatto</button>
+      </summary>
+      <div class="more stack">
+        <div>${esc(r.title)}: ${esc(r.detail)}</div>
+        <div class="muted">Costo: ${costHTML(r.cost)}</div>
+        <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
       </div>
-      <div class="side">
-        <div class="payback">${paybackText(r.payback)}</div>
-        <button class="secondary small" data-done="${i}" style="padding:6px 12px;margin-top:6px">Fatto</button>
-      </div>
-    </div>`).join('') : '<p class="muted">Nessun consiglio: aggiungi almeno un pianeta.</p>';
-  $$('[data-done]').forEach(b => b.addEventListener('click', () => completeRec(state.recs[+b.dataset.done], b)));
+    </details>`).join('') : '<p class="muted">Nessun consiglio: aggiungi almeno un pianeta.</p>';
+  $$('[data-done]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation(); // don't open the row
+    completeRec(state.recs[+b.dataset.done], b);
+  }));
 }
 $('#filter-planet').addEventListener('change', () => {
   try { localStorage.setItem('ogadv-planet', $('#filter-planet').value); } catch (e) {}
@@ -709,7 +741,8 @@ async function completeRec(rec, btn) {
 const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
   solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
-  item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, included: true,
+  item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0,
+  crawlers: 0, crawler_pct: 100, mrc_level: null, included: true,
 };
 const coordsText = p => (p.galaxy || p.system ? `[${p.galaxy ?? '?'}:${p.system ?? '?'}:${p.position}]` : `posizione ${p.position}`);
 
@@ -728,7 +761,7 @@ function renderPlanetCards() {
       </div>
       <div class="levels"><span class="res-m">M ${p.metal_mine}</span><span class="res-c">C ${p.crystal_mine}</span><span class="res-d">D ${p.deut_synth}</span></div>
       <div class="small"><span class="${st.balance < 0 ? 'neg' : 'muted'}">Energia ${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span>
-        <span class="muted"> · ${p.temp_max}°C</span>${off ? ' <span class="tag">escluso dai calcoli</span>' : ''}</div>
+        <span class="muted"> · ${p.temp_max}°C${+p.crawlers ? ` · ${fmt(p.crawlers)} crawler` : ''}</span>${off ? ' <span class="tag">escluso dai calcoli</span>' : ''}</div>
     </div>`;
   }).join('') || '<p class="muted">Nessun pianeta. Premi "+ Aggiungi pianeta".</p>';
 }
@@ -822,6 +855,8 @@ function renderPlanetPreview() {
   const p = { ...NEW_PLANET, ...readPlanetInputs($('#pe-form')) };
   if (!(p.position >= 1 && p.position <= 15) || !Number.isFinite(p.temp_max)) { $('#pe-preview').innerHTML = ''; return; }
   const st = Engine.planetState(numericProfile(state.profile), p);
+  const maxC = Engine.maxCrawlers(p);
+  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera)${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
   const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
   $('#pe-preview').innerHTML =
     box('Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
@@ -869,10 +904,10 @@ $('#pe-delete').addEventListener('click', async () => {
 
 /* Copy: from the open planet to the planets the player picks */
 const COPY_GROUPS = {
-  mines: ['metal_mine', 'crystal_mine', 'deut_synth'],
+  mines: ['metal_mine', 'crystal_mine', 'deut_synth', 'crawlers', 'crawler_pct'],
   energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
   items: ['item_metal', 'item_crystal', 'item_deut', 'item_energy'],
-  lf: ['lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy'],
+  lf: ['lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'mrc_level'],
 };
 $('#pe-copy').addEventListener('click', () => {
   const id = state.editing?.id;
@@ -893,7 +928,7 @@ $('#pe-copy').addEventListener('click', () => {
     if (!ids.length) return alert('Scegli almeno un pianeta.');
     const patch = Object.fromEntries(fields.map(f => [f, src[f]]));
     // the game energy of the targets changes with their buildings: recompute it instead of keeping an old value
-    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null;
+    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null; // crawlers included
     $('#copy-ok').disabled = true;
     const r = await sb.from('planets').update(patch).in('id', ids).select();
     $('#copy-ok').disabled = false;
