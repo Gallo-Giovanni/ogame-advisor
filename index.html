@@ -1429,7 +1429,7 @@ function bookmarkletHref(appUrl) {
 // Turns an imported snapshot into changes for the app (planets matched by coordinates, then by name)
 const RACE_IDS = { humans: 11, rocktal: 12, mechas: 13, kaelesh: 14 };
 const CLASS_IDS = { 1: 'collector', 2: 'general', 3: 'explorer' };
-const ALLY_TRADER_ID = 2; // alliance class "Mercanti" in the page meta (to confirm with a Trader alliance)
+const ALLY_TRADER_ID = 2; // alliance class in the page meta: 1 Warrior, 2 Trader, 3 Researcher (game, confirmed by the player)
 
 function mapImport(snap, existing, LF) {
   const profile = {};
