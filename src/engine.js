@@ -110,6 +110,20 @@ const Engine = (() => {
     }
     return e;
   }
+  // Research cost discount of a planet: its research building (Research Centre, Tecnologicus Runarum, ...)
+  function researchDisc(planet) {
+    const race = planet && planet.lf_race;
+    if (!LF || !race || !LF.races[race]) return 0;
+    const levels = planet.lf_buildings || {};
+    let d = 0;
+    for (const [key, b] of Object.entries(LF.races[race].buildings)) {
+      if (!b || !b.effect || !b.effect.techCost) continue;
+      const x = b.effect.techCost * (+levels[key] || 0);
+      d += b.max && b.max.techCost ? Math.max(b.max.techCost, x) : x;
+    }
+    return -d;
+  }
+  const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
   // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
   function techEffect(profile, planet, slot, entry) {
@@ -443,6 +457,39 @@ const Engine = (() => {
       }
     });
 
+    // Lifeform techs with known costs: researched on one planet, they raise production on every planet
+    if (LF && profile._lf && profile._lf.computed) {
+      const s = profile.economy_speed;
+      const rows = planets.map(pl => {
+        const pos = positionBonus(pl.position);
+        return [baseProd.metal_mine(pl.metal_mine) * (1 + pos.metal) * s, baseProd.crystal_mine(pl.crystal_mine) * (1 + pos.crystal) * s,
+          Math.max(0, baseProd.deut_synth(pl.deut_synth, pl.temp_max)) * s];
+      });
+      const sumRow = [0, 1, 2].map(i => rows.reduce((t, r) => t + r[i], 0));
+      planets.forEach(planet => {
+        const disc = researchDisc(planet);
+        for (const [slot, entry] of Object.entries(planet.lf_techs || {})) {
+          if (!entry || !entry.race || !LF.races[entry.race]) continue;
+          const tech = LF.races[entry.race].techs[+slot - 1];
+          if (!tech || !tech.cost || !tech.used) continue;
+          if (!['metal', 'crystal', 'deut'].some(r => tech.perLevel[r])) continue; // energy or Plasma-cost techs: not ranked yet
+          const L = +entry.level || 0, next = L + 1;
+          const now = techEffect(profile, planet, +slot, { race: entry.race, level: L });
+          const after = techEffect(profile, planet, +slot, { race: entry.race, level: next });
+          const prodDelta = [0, 1, 2].map(i => { const k = ['metal', 'crystal', 'deut'][i]; return sumRow[i] * ((after[k] || 0) - (now[k] || 0)); });
+          const cost = lfTechCost(tech, next, disc);
+          const gain = gainEq(prodDelta), eq = toMetalEq(cost, profile);
+          out.push({
+            type: 'lftech', key: tech.key, race: entry.race, slot: +slot, planetId: planet.id, planet: planet.name,
+            title: `${tech.it} ${L} → ${next}`,
+            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}`,
+            cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
+            payback: gain > 0 ? eq / gain : Infinity, nextLevel: next,
+          });
+        }
+      });
+    }
+
     // 3) Plasma technology (global)
     const nextPlasma = (profile.plasma_tech || 0) + 1;
     const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
@@ -475,6 +522,11 @@ const Engine = (() => {
   // Returns { planet: {...patch}, profile: {...patch} }
   function applyRecommendation(profile, planet, rec) {
     if (rec.type === 'plasma') return { profile: { plasma_tech: rec.nextLevel } };
+    if (rec.type === 'lftech') {
+      const techs = JSON.parse(JSON.stringify(planet.lf_techs || {}));
+      techs[rec.slot] = { ...(techs[rec.slot] || { race: rec.race }), level: rec.nextLevel };
+      return { planet: { lf_techs: techs } };
+    }
     if (rec.type === 'colony') return { profile: { astro_tech: rec.nextLevel }, newPlanet: rec.colony };
     const st = planetState(profile, planet);
     const patch = {};
@@ -517,7 +569,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

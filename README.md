@@ -9,6 +9,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - Per-planet item boosters (metal, crystal, deuterium, energy %); the player chooses whether rankings count them, since items expire and upgrades don't
 - Lifeforms: race per planet, building levels and the 18 tech slots (T1/T2/T3, one race per slot); buildings act on their planet, techs on the whole account, boosted by planet buildings and race level. Data for all four races in `src/lifeforms.js`, each value with its source
 - Rock'tal production buildings (Magma Forge, Crystal Refinery, Deuterium Tuner) ranked with the mines; costs and energy from formulas checked on the game, with the Monolith discount
+- Lifeform research (T1/T2 with known costs) ranked with the rest, tagged by slot (T2-1 …): the gain counts every planet, the cost includes the research building discount of the planet
 - In-game energy stays current: changing satellites, plants, mines or crawlers moves the entered value by the modelled difference
 - Per-planet Copy (choose what to copy and onto which planets) and per-planet "include in calculations"
 - New colony option: Astrophysics levels actually needed for one more planet, colony ship, mines up to the empire median and the energy to run them, compared with the output of an average planet
@@ -39,6 +40,7 @@ payback (hours) = cost in metal-eq / extra production per hour in metal-eq
 node tests/engine.test.js      # engine tests
 node tests/reference.test.js   # engine vs numbers shown by the game
 node tests/lifeforms.test.js   # lifeform building costs and energy vs the game
+node tests/lftechs.test.js     # lifeform research costs vs the game, research recommendations
 node tests/changelog.test.js   # changelog checks
 node build.js               # build index.html
 ```
@@ -55,4 +57,4 @@ Add an entry at the top of `src/changelog.js` with the next `id`, a date, a titl
 `tests/reference.test.js` reproduces an in-game "Impostazioni risorse" page (metal, crystal, deuterium and energy per hour) within a few units. Bonus stacking follows the game: the position bonus multiplies the mine's base output, and every other bonus (plasma, officers, class, Trader alliance, lifeforms, items) is a percentage of that value.
 
 ## Limits
-Energy used by lifeform buildings is only known from the in-game energy balance. Some lifeform effects are recorded but not applied until checked on the game: crawler boost and Collector enhancement (Rock'tal), lifeform research costs.
+Energy used by lifeform buildings is only known from the in-game energy balance. Some lifeform effects are recorded but not applied until checked on the game: crawler boost and Collector enhancement (Rock'tal), T3 lifeform research costs; research costs above level 2 follow the building formula until checked on the game.

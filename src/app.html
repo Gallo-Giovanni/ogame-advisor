@@ -780,7 +780,7 @@ function renderAdvice() {
   state.recs = recs;
   let n = 0;
   const emptyText = ftype === 'lft'
-    ? 'Le ricerche delle forme di vita non sono ancora nei consigli: servono i loro costi (scheda "Tecnologia" di una ricerca per tipo T1, T2, T3).'
+    ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
     : 'Nessun consiglio: aggiungi almeno un pianeta.';
   $('#recs').innerHTML = recs.length ? recs.map((r, i) => `

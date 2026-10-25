@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 28, date: '2026-10-25', title: 'Ricerche forme di vita nei consigli',
+    text: 'Le ricerche forme di vita T1 e T2 che aumentano la produzione (metallo, cristallo, deuterio) entrano nella classifica, con la sigla dello slot (per esempio T2-1 · Sondaggio da alte profondità 6). Il guadagno conta tutti i pianeti, perché la ricerca vale per tutto l\'account, e il costo è già scontato dall\'edificio di ricerca del pianeta. Fatto alza il livello della ricerca. Le T3 arriveranno quando avremo i loro costi.',
+  },
+  {
     id: 27, date: '2026-10-25', title: 'Tutti gli edifici forme di vita',
     text: 'Nella scheda del pianeta trovi tutti i 12 edifici della razza, nello stesso ordine del gioco. Quelli con * entrano nei calcoli, gli altri puoi inserirli per avere il pianeta completo. Le ricerche forme di vita hanno la sigla dello slot, per esempio T1-3 o T2-1, così le riconosci a colpo d\'occhio anche quando i nomi si somigliano.',
   },

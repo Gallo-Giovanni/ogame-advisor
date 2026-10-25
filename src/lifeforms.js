@@ -22,6 +22,10 @@ const LIFEFORMS = {
     // level 2 up; the tables show level 1 = base). Upgrading uses the difference; the Monolith also lowers it
     // (Magma Forge 15->16: (2940 - 2506) x 0.95 = 413 shown by the game).
     buildingEnergyFormula: 'floor(L * base * factor^L)',
+    // Cost of a lifeform tech at level L = base x factor^(L-1) x L, lowered by the research building of the planet
+    // where it is researched. Base costs from the game's research window (levels 1 and 2 of six T1 and five T2 techs, all with
+    // a -2.5% research discount: 10000 x 0.975 = 9.8k, 10000 x 1.5 x 2 x 0.975 = 29.3k). The factor differs per tech (most 1.5, Telekinetic Drive 1.2). Higher levels: to check.
+    techCostFormula: 'base * factor^(L-1) * L',
     levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
   },
 
@@ -72,14 +76,14 @@ const LIFEFORMS = {
       techs: [
         { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, used: true },
         { slot: 2,  tier: 1, key: 'acoustic_scanning',       it: 'Sondaggio acustico',               perLevel: { crystal: 0.0008 }, used: true },
-        { slot: 3,  tier: 1, key: 'high_energy_pump_systems', it: 'Sistemi di pompaggio ad alta energia', perLevel: { deut: 0.0008 }, used: true },
+        { slot: 3,  tier: 1, key: 'high_energy_pump_systems', it: 'Sistemi di pompaggio ad alta energia', perLevel: { deut: 0.0008 }, cost: { base: [15000, 10000, 5000], factor: 1.5 }, used: true },
         { slot: 4,  tier: 1, key: 'cargo_hold_expansion_civil', it: 'Espansione stiva (navi civili)', perLevel: { civil_cargo: 0.004 }, used: false },
         { slot: 5,  tier: 1, key: 'magma_powered_production', it: 'Tecniche estrattive magmatiche',   perLevel: { metal: 0.0008, crystal: 0.0008, deut: 0.0008 }, used: true },
         { slot: 6,  tier: 1, key: 'geothermal_power_plants', it: 'Centrali Geotermoelettriche',      perLevel: { energy: 0.0025 }, used: true },
-        { slot: 7,  tier: 2, key: 'depth_sounding',          it: 'Sondaggio da alte profondità',     perLevel: { metal: 0.0008 }, used: true },
+        { slot: 7,  tier: 2, key: 'depth_sounding',          it: 'Sondaggio da alte profondità',     perLevel: { metal: 0.0008 }, cost: { base: [70000, 40000, 20000], factor: 1.5 }, used: true },
         { slot: 8,  tier: 2, key: 'ion_crystal_heavy_fighter', it: 'Potenziamento da cristallo ionico (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
         // reduces cost and time of the Plasma technology: changes the cost of the Plasma recommendation
-        { slot: 9,  tier: 2, key: 'improved_stellarator',    it: 'Concentratore astrale',            perLevel: { plasma_tech_cost: -0.0015, plasma_tech_time: -0.003 }, used: true },
+        { slot: 9,  tier: 2, key: 'improved_stellarator',    it: 'Concentratore astrale',            perLevel: { plasma_tech_cost: -0.0015, plasma_tech_time: -0.003 }, cost: { base: [75000, 55000, 25000], factor: 1.5 }, used: true },
         { slot: 10, tier: 2, key: 'hardened_diamond_drill_heads', it: 'Punte di diamante irrobustite', perLevel: { metal: 0.0008 }, used: true },
         { slot: 11, tier: 2, key: 'seismic_mining_tech',     it: 'Tecnologie minerarie sismiche',    perLevel: { crystal: 0.0008 }, used: true },
         { slot: 12, tier: 2, key: 'magma_powered_pump_systems', it: 'Sistema di pompaggio al magma', perLevel: { deut: 0.0008 }, used: true },
@@ -129,13 +133,13 @@ const LIFEFORMS = {
       // used: true = changes production, energy or costs, so it enters the recommendations.
       techs: [
         { slot: 1,  tier: 1, key: 'intergalactic_envoys',    it: 'Ambasciatori intergalattici',     perLevel: { recon_fleet_speed: 0.01 }, used: false },
-        { slot: 2,  tier: 1, key: 'high_performance_extractors', it: 'Estrattori ad alto rendimento', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 2,  tier: 1, key: 'high_performance_extractors', it: 'Estrattori ad alto rendimento', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, cost: { base: [7000, 10000, 5000], factor: 1.5 }, used: true },
         { slot: 3,  tier: 1, key: 'fusion_drives',           it: 'Propulsore a fusione',            perLevel: { civil_ship_speed: 0.005 }, used: false },
         { slot: 4,  tier: 1, key: 'stealth_field_generator', it: 'Generatore di campo mimetico',    perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
         { slot: 5,  tier: 1, key: 'orbital_den',             it: 'Nascondiglio Orbitale',           perLevel: { protected_resources: 0.04 }, used: false },
         { slot: 6,  tier: 1, key: 'research_ai',             it: 'AI di ricerca',                   perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
         { slot: 7,  tier: 2, key: 'high_performance_terraformer', it: 'Terraformer ad alte prestazioni', perLevel: { terraformer_cost: -0.001, terraformer_time: -0.002 }, used: false },
-        { slot: 8,  tier: 2, key: 'enhanced_production_tech', it: 'Tecnologie di estrazione migliorate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 8,  tier: 2, key: 'enhanced_production_tech', it: 'Tecnologie di estrazione migliorate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, cost: { base: [80000, 50000, 20000], factor: 1.5 }, used: true },
         { slot: 9,  tier: 2, key: 'light_fighter_mk2',       it: 'Caccia leggero mk II',            perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
         { slot: 10, tier: 2, key: 'cruiser_mk2',             it: 'Incrociatore mk II',              perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
         { slot: 11, tier: 2, key: 'improved_lab_tech',       it: 'Tecnologia di laboratorio migliorata', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
@@ -181,12 +185,12 @@ const LIFEFORMS = {
       buildingOrder: ['assembly_line', 'fusion_cell_factory', 'robotics_research_centre', 'update_network', 'quantum_computer_centre', 'automatised_assembly_centre', 'high_performance_transformer', 'microchip_assembly_line', 'production_assembly_hall', 'high_performance_synthesizer', 'chip_mass_production', 'nano_repair_bots'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
-        { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, used: true },
+        { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, cost: { base: [10000, 6000, 1000], factor: 1.5 }, used: true },
         { slot: 2,  tier: 1, key: 'plasma_drive',            it: 'Unità al plasma',                  perLevel: { ship_speed: 0.002 }, used: false }, // not the Deathstar
         { slot: 3,  tier: 1, key: 'efficiency_module',       it: 'Modulo Efficienza',                perLevel: { fleet_fuel: -0.0003 }, used: false }, // max -90% of base, server setting
         { slot: 4,  tier: 1, key: 'depot_ai',                it: 'IA deposito',                      perLevel: { alliance_depot_cost: -0.001, alliance_depot_time: -0.002 }, used: false },
         { slot: 5,  tier: 1, key: 'light_fighter_overhaul',  it: 'Revisione generale (Caccia leggero)', perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
-        { slot: 6,  tier: 1, key: 'automated_transport_lines', it: 'Linee di trasporto automatizzate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 6,  tier: 1, key: 'automated_transport_lines', it: 'Linee di trasporto automatizzate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, cost: { base: [50000, 50000, 20000], factor: 1.5 }, used: true },
         { slot: 7,  tier: 2, key: 'improved_drone_ai',       it: 'IA Droni migliorata',              perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
         { slot: 8,  tier: 2, key: 'experimental_recycling',  it: 'Tecnica sperimentale Rigenerazione', perLevel: { ship: 'recycler', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
         { slot: 9,  tier: 2, key: 'cruiser_overhaul',        it: 'Revisione generale (Incrociatore)', perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
@@ -235,15 +239,15 @@ const LIFEFORMS = {
         { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },
         { slot: 2,  tier: 1, key: 'sulphide_process',        it: 'Tecnologia Processo al solfuro',   perLevel: { deut: 0.0008 }, used: true },
         { slot: 3,  tier: 1, key: 'psionic_network',         it: 'Network psionico',                 perLevel: { expedition_ship_loss: -0.0005 }, used: false },
-        { slot: 4,  tier: 1, key: 'telekinetic_tractor_beam', it: 'Raggio di trazione telecinetico', perLevel: { expedition_ships_found: 0.002 }, used: false },
-        { slot: 5,  tier: 1, key: 'enhanced_sensor_technology', it: 'Tecnologia Sensori migliorata', perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 4,  tier: 1, key: 'telekinetic_tractor_beam', it: 'Raggio di trazione telecinetico', perLevel: { expedition_ships_found: 0.002 }, cost: { base: [20000, 15000, 7500], factor: 1.5 }, used: false },
+        { slot: 5,  tier: 1, key: 'enhanced_sensor_technology', it: 'Tecnologia Sensori migliorata', perLevel: { expedition_resources: 0.002 }, cost: { base: [25000, 20000, 10000], factor: 1.5 }, used: false },
         { slot: 6,  tier: 1, key: 'neuromodal_compressor',   it: 'Compattatore neuromodulare',       perLevel: { civil_cargo: 0.004 }, used: false },
         { slot: 7,  tier: 2, key: 'neuro_interface',         it: 'Interfaccia neurologica',          perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
         { slot: 8,  tier: 2, key: 'interplanetary_analysis_network', it: 'Network di analisi superglobale', perLevel: { phalanx_range: 0.006 }, used: false },
         { slot: 9,  tier: 2, key: 'heavy_fighter_overclocking', it: 'Overclocking (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
-        { slot: 10, tier: 2, key: 'telekinetic_drive',       it: 'Sistema Potenziamento telecinetico', perLevel: { expedition_fleet_speed: 0.001 }, used: false },
+        { slot: 10, tier: 2, key: 'telekinetic_drive',       it: 'Sistema Potenziamento telecinetico', perLevel: { expedition_fleet_speed: 0.001 }, cost: { base: [85000, 40000, 35000], factor: 1.2 }, used: false },
         { slot: 11, tier: 2, key: 'sixth_sense',             it: 'Sesto senso',                      perLevel: { expedition_resources: 0.002 }, used: false },
-        { slot: 12, tier: 2, key: 'psychoharmoniser',        it: 'Armonizzatore psicologico',        perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 12, tier: 2, key: 'psychoharmoniser',        it: 'Armonizzatore psicologico',        perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, cost: { base: [100000, 40000, 30000], factor: 1.5 }, used: true },
         { slot: 13, tier: 3, key: 'efficient_swarm_intelligence', it: 'Intelligenza collettiva efficiente', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
         { slot: 14, tier: 3, key: 'large_cargo_overclocking', it: 'Overclocking (Cargo pesante)',    perLevel: { ship: 'large_cargo', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
         { slot: 15, tier: 3, key: 'gravitation_sensors',     it: 'Sensori Gravità',                  perLevel: { expedition_dark_matter: 0.001 }, used: false },
