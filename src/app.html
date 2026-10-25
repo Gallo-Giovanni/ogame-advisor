@@ -114,6 +114,7 @@
   .modal-back { position: fixed; inset: 0; background: #050814cc; display: grid; place-items: center; padding: 16px; z-index: 50; }
   .modal { width: min(560px, 100%); max-height: 85vh; display: flex; flex-direction: column; }
   .modal .list { overflow-y: auto; margin: 12px 0; padding-right: 4px; }
+  .bm-copy { padding: 2px 8px; font-size: .8rem; }
   .bm { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #0b1020 !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .imp { border-top: 1px solid var(--line); padding-top: 8px; }
   .imp .tag { font-size: .7rem; padding: 1px 6px; border-radius: 4px; background: var(--bg2); color: var(--muted); margin-left: 6px; }
@@ -229,7 +230,7 @@
           <h3 style="margin:0">Importa dal gioco <span class="tag-rec">consigliato</span></h3>
           <p class="small" style="margin:0">Un clic e arrivano tutti i pianeti: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, velocità, Plasma, Energia e Astrofisica.</p>
           <ol class="small" style="margin:0;padding-left:20px">
-            <li>Trascina questo pulsante sulla barra dei preferiti: <a class="bm" data-bm href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
+            <li>Trascina questo pulsante sulla barra dei preferiti: <a class="bm" data-bm href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a><br><span class="muted">Se il browser lo blocca: <button type="button" class="secondary bm-copy" data-bm-copy>Copia il codice</button>, poi fai clic destro sulla barra dei preferiti → <b>Aggiungi pagina</b>, come nome scrivi <b>OGame Advisor</b> e nel campo URL incolla il codice.</span></li>
             <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
             <li>Premi <b>OGame Advisor</b> nei preferiti: si apre l'app con l'elenco di cosa verrà salvato.</li>
           </ol>
@@ -466,7 +467,7 @@
         <h2>Importa dal gioco</h2>
         <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica. Prima di salvare ti mostra cosa cambia.</p>
         <ol class="small" style="margin:0;padding-left:20px">
-          <li>Trascina questo pulsante sulla barra dei preferiti: <a id="bm-link" class="bm" href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
+          <li>Trascina questo pulsante sulla barra dei preferiti: <a id="bm-link" class="bm" href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a><br><span class="muted">Se il browser lo blocca: <button type="button" class="secondary bm-copy" data-bm-copy>Copia il codice</button>, poi fai clic destro sulla barra dei preferiti → <b>Aggiungi pagina</b>, come nome scrivi <b>OGame Advisor</b> e nel campo URL incolla il codice.</span></li>
           <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
           <li>Premi <b>OGame Advisor</b> nei preferiti: si apre questa app con l'anteprima dell'importazione.</li>
         </ol>
@@ -1536,6 +1537,13 @@ $$('#bm-link, [data-bm]').forEach(a => {
   a.href = Importer.bookmarkletHref(location.origin + location.pathname);
   a.addEventListener('click', e => { e.preventDefault(); alert('Non cliccarlo qui: trascinalo sulla barra dei preferiti del browser, poi premilo sulla Vista impero di OGame.'); });
 });
+// fallback when dragging is blocked: copy the code and create the bookmark by hand
+$$('[data-bm-copy]').forEach(b => b.addEventListener('click', async () => {
+  const code = $('#bm-link').href;
+  try { await navigator.clipboard.writeText(code); b.textContent = 'Copiato ✓'; }
+  catch (e) { prompt('Copia questo codice (Ctrl+C) e incollalo come URL del nuovo preferito:', code); }
+  setTimeout(() => (b.textContent = 'Copia il codice'), 2500);
+}));
 // phones and tablets: the bookmarklet cannot be used, say so
 $('#wiz-mobile-note').classList.toggle('hidden', !matchMedia('(pointer: coarse)').matches);
 $('#wiz4-finish').addEventListener('click', async () => {
