@@ -289,7 +289,6 @@
         <div><label>Tecnologia Plasma</label><input data-p="plasma_tech" type="number" min="0" value="0"></div>
         <div><label>Tecnologia Energetica</label><input data-p="energy_tech" type="number" min="0" value="0"></div>
         <div><label>Astrofisica</label><input data-p="astro_tech" type="number" min="0" value="0"></div>
-        <div><label>Tecnologia iperspaziale</label><input data-p="hyperspace_tech" type="number" min="0" value="0"></div>
         <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-p="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
       </div>
       <div class="row">
@@ -518,7 +517,6 @@
           <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
-          <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
           <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
         </div>
@@ -1595,7 +1593,7 @@ const CHANGELOG = [
   },
   {
     id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
-    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento (con un Pathfinder nella flotta) e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
+    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento (con un Pathfinder nella flotta) e quanti Cargo pesanti servono per portarlo a casa. In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
   },
   {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
@@ -2820,14 +2818,14 @@ function renderBonus() {
   const X = { expedition_resources: 'risorse trovate', expedition_ships_found: 'navi trovate', expedition_fleet_speed: 'velocità della flotta in spedizione',
     expedition_ship_loss: 'perdita di navi', expedition_dark_matter: 'Materia Oscura trovata', explorer_class_bonus: 'bonus della classe Esploratore' };
   for (const [k, l] of Object.entries(X)) if (all[k] && k !== 'explorer_class_bonus') xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
-  // Maximum finds (same result as OGame Tracker): base from the top-1 points x economy speed x class x Pathfinder,
+  // Maximum finds: base from the top-1 points x economy speed x class x Pathfinder,
   // then the lifeform bonus; crystal = metal / 2, deuterium = metal / 3, ships = metal before the bonus / 2 x ship bonus
   const top1 = prof.top1_points === null || prof.top1_points === undefined || prof.top1_points === '' ? null : +prof.top1_points;
-  const EXP_BASE = [[50e6, 75e6, 4200000]]; // checked with OGame Tracker (top 1 at 56M points); other ranges still to check
+  const EXP_BASE = [[50e6, 75e6, 4200000]]; // checked on a real universe (top 1 at 56M points); other ranges still to check
   const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
   let maxHtml;
   if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Inserisci in Impostazioni i punti del primo giocatore in classifica del tuo universo per vedere il massimale delle spedizioni.</p>';
-  else if (!band) maxHtml = `<p class="muted small" style="margin:0">Massimale non ancora disponibile per questa fascia: per ora è verificata solo quella da 50 a 75 milioni di punti. Se ci mandi il valore di OGame Tracker per il tuo universo, aggiungiamo la tua fascia.</p>`;
+  else if (!band) maxHtml = `<p class="muted small" style="margin:0">Massimale non ancora disponibile per questa fascia: per ora è verificata solo quella da 50 a 75 milioni di punti. Le altre fasce arriveranno appena verificate.</p>`;
   else {
     const k = (cls === 'explorer' ? 1.5 * (1 + (all.explorer_class_bonus || 0)) : 1) * prof.economy_speed;
     const res = 1 + (all.expedition_resources || 0), ships = 1 + (all.expedition_ships_found || 0);
@@ -2838,7 +2836,7 @@ function renderBonus() {
     };
     maxHtml = `<b class="small">Massimale di un ritrovamento</b>
       ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
-      <p class="muted small" style="margin:0">Primo in classifica tra 50 e 75 milioni di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}. Stesso calcolo di OGame Tracker.</p>`;
+      <p class="muted small" style="margin:0">Primo in classifica tra 50 e 75 milioni di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0} (letta dalla Vista impero).</p>`;
   }
   h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
@@ -2908,7 +2906,7 @@ function renderSettings() {
 $('#save-settings').addEventListener('click', async () => {
   const patch = {};
   $$('[data-s]').forEach(el => { patch[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
-  NUM_FIELDS.forEach(k => (patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]));
+  NUM_FIELDS.forEach(k => { if (k in patch) patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]; });
   CAP_FIELDS.forEach(k => (patch[k] = patch[k] === '' ? null : Math.max(0, parseInt(patch[k], 10))));
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
   const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();

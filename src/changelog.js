@@ -8,7 +8,7 @@ const CHANGELOG = [
   },
   {
     id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
-    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento (con un Pathfinder nella flotta) e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
+    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento (con un Pathfinder nella flotta) e quanti Cargo pesanti servono per portarlo a casa. In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
   },
   {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
