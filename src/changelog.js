@@ -4,7 +4,7 @@
 const CHANGELOG = [
   {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
-    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con i vantaggi della classe e le ricerche forme di vita di tutto l\'account.',
+    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con tutti i vantaggi della classe (come nella pagina Bonus classe personaggio del gioco) e le ricerche forme di vita di tutto l\'account.',
   },
   {
     id: 32, date: '2026-10-25', title: 'Simboli nei consigli',

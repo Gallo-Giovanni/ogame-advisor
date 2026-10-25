@@ -1566,7 +1566,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
-    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con i vantaggi della classe e le ricerche forme di vita di tutto l\'account.',
+    text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con tutti i vantaggi della classe (come nella pagina Bonus classe personaggio del gioco) e le ricerche forme di vita di tutto l\'account.',
   },
   {
     id: 32, date: '2026-10-25', title: 'Simboli nei consigli',
@@ -2778,17 +2778,31 @@ function renderBonus() {
   const xRows = [];
   if (cls === 'explorer') {
     xRows.push(row('Classe Esploratore: spedizioni in più', ['+2']));
-    xRows.push(row('Classe Esploratore: utili delle spedizioni riuscite', ['aumentati (il gioco non dice di quanto)']));
+    xRows.push(row(`Classe Esploratore: utili delle spedizioni (150% × velocità economia ${prof.economy_speed})`, [1.5 * prof.economy_speed]));
     xRows.push(row('Classe Esploratore: probabilità di incontrare nemici', [-0.5]));
     xRows.push(row('Classe Esploratore: campi detriti delle spedizioni visibili in galassia', ['sì']));
   }
   const X = { expedition_resources: 'risorse trovate', expedition_ships_found: 'navi trovate', expedition_fleet_speed: 'velocità della flotta in spedizione',
     expedition_ship_loss: 'perdita di navi', expedition_dark_matter: 'Materia Oscura trovata', explorer_class_bonus: 'bonus della classe Esploratore' };
-  for (const [k, l] of Object.entries(X)) if (all[k]) xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
+  for (const [k, l] of Object.entries(X)) if (all[k] && k !== 'explorer_class_bonus') xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
   h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
     <p class="muted small" style="margin:0">Le ricerche forme di vita valgono per tutto l'account: qui c'è la somma di tutti i pianeti, con i potenziamenti degli edifici e del livello della razza.</p>
   </div>`;
+  // Class: every bonus of the player's class, as the game's "Bonus classe personaggio" page shows it
+  const CLASS = {
+    collector: ['Collezionista', 'collector_class_bonus', [['Produzione miniere', 0.25], ['Produzione di energia', 0.10], ['Bonus dei crawler', 0.50], ['Cargo più veloci', 1.00], ['Stiva dei cargo', 0.25], ['Crawler utilizzabili (con il Geologo)', 0.10], ['Sovraccarico dei crawler fino al 150%', 'sì'], ['Sconto sull\'accelerazione degli edifici (MO)', -0.10]]],
+    general: ['Generale', 'general_class_bonus', [['Navi da guerra più veloci', 1.00], ['Riciclatrici più veloci', 1.00], ['Stiva di Riciclatrici e Pathfinder', 0.20], ['Consumo di deuterio delle navi', -0.42], ['Livelli delle ricerche militari', '+2'], ['Slot flotte', '+2'], ['Campi lunari', '+5'], ['Sconto sull\'accelerazione dei cantieri navali (MO)', -0.10]]],
+    explorer: ['Esploratore', 'explorer_class_bonus', [['Durata delle ricerche', -0.25], [`Utili delle spedizioni (150% × velocità economia ${prof.economy_speed})`, 1.5 * prof.economy_speed], ['Dimensione dei pianeti colonizzati', 0.10], ['Spedizioni', '+2'], ['Incontri con nemici in spedizione', -0.50], ['Raggio della falange', 0.20], ['Bottino da giocatori inattivi', 0.75], ['Sconto sull\'accelerazione delle ricerche (MO)', -0.10]]],
+  }[cls];
+  if (CLASS) {
+    const enh = all[CLASS[1]] || 0;
+    h = `<div class="card stack"><h2 class="bh">Classe ${CLASS[0]}</h2>
+      ${table(['', 'Bonus'], CLASS[2].map(([l, v]) => row(l, [v])).concat(enh ? [row('Potenziamento della classe dalle ricerche forme di vita', [enh], ' class="tot"')] : []))}
+      <p class="muted small" style="margin:0">Valori della pagina "Bonus classe personaggio" del gioco${enh ? '' : '. Il potenziamento della classe arriva con le ricerche forme di vita T3 dedicate'}.</p>
+    </div>` + h;
+  }
+  if (all.recon_fleet_speed) h += `<div class="card stack"><h2 class="bh">Altro</h2>${table(['', 'Bonus'], [row('Velocità delle flotte nei voli di ricognizione', [all.recon_fleet_speed])])}</div>`;
   $('#bonus-panel').innerHTML = h;
 }
 
