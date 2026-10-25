@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 36, date: '2026-10-25', title: 'Importa anche dopo l\'inserimento a mano',
+    text: 'Se hai inserito l\'impero a mano puoi importare dalla Vista impero quando vuoi senza perdere nulla: nell\'anteprima scegli per ogni pianeta quale dei tuoi aggiornare (utile se l\'hai chiamato in un altro modo). Item, percentuale dei crawler, ufficiali e livelli delle razze restano quelli inseriti; nessun pianeta viene cancellato.',
+  },
+  {
     id: 35, date: '2026-10-25', title: 'Scambi di risorse',
     text: 'Nuova scheda Scambi: scrivi quanto dai e quale risorsa vuoi in cambio, e l\'app ti dice quanto devi ricevere con il tasso ufficiale del regolamento (2,5 : 1,5 : 1), più la tabella di tutti i cambi e la regola delle 72 ore per concludere lo scambio.',
   },
