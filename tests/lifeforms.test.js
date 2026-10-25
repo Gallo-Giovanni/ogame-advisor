@@ -16,3 +16,28 @@ for (const [key, levels] of Object.entries(shown)) {
     assert.ok(Math.abs(got - want[r]) <= want[r] * 0.006 + 60, `${key} L${i + 1} res ${r}: ${got} vs ${want[r]}`)));
 }
 console.log('Lifeform building costs match the game');
+
+// Mineral Research Centre and Monolith, levels 1 and 2 (same planet, Monolith 5 = -5%)
+const more = {
+  mineral_centre: [[237500, 142500, 95000], [855000, 513000, 342000]],
+  monolith: [[47500, 33300, 14300], [142500, 99800, 42800]],
+};
+for (const [key, levels] of Object.entries(more)) {
+  const b = LF.races.rocktal.buildings[key];
+  levels.forEach((want, i) => cost(b, i + 1).forEach((got, r) =>
+    assert.ok(Math.abs(got - want[r]) <= want[r] * 0.006 + 60, `${key} L${i + 1} res ${r}: ${got} vs ${want[r]}`)));
+}
+
+// Engine: Magma Forge 15 -> 16 with Monolith 5 (game: 23.65M / 18.92M, energy -413)
+const E = require('../src/engine.js');
+const mf = LF.races.rocktal.buildings.magma_forge;
+const c16 = E.lfBuildingCost(mf, 16, 0.05);
+assert.ok(Math.abs(c16[0] - 23650000) < 10000 && Math.abs(c16[1] - 18920000) < 10000);
+assert.strictEqual(Math.ceil((E.lfBuildingEnergy(mf, 16) - E.lfBuildingEnergy(mf, 15)) * 0.95), 413);
+// energy formula fits the Tech Info tables
+for (const [key, table] of [['magma_forge', 'energy'], ['crystal_refinery', 'energy'], ['mineral_centre', 'energy'], ['monolith', 'energy'], ['tecnologicus_runarum', 'energy']]) {
+  const b = LF.races.rocktal.buildings[key], t = b[table];
+  const entries = Array.isArray(t) ? t.map((v, i) => [i + 1, v]) : Object.entries(t).map(([l, v]) => [+l, v]);
+  for (const [L, v] of entries) if (L >= 2) assert.ok(Math.abs(E.lfBuildingEnergy(b, L) - v) <= 1, `${key} energy L${L}: ${E.lfBuildingEnergy(b, L)} vs ${v}`);
+}
+console.log('Energy and Monolith checks match the game');

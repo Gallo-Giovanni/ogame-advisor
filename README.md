@@ -8,6 +8,7 @@ Web app that tells an OGame player **what to upgrade next**, ranking every optio
 - Recommendations ranked by payback time, with energy included: if an upgrade needs more energy, the cheapest fix (solar satellites or solar plant levels) is added to its cost
 - Per-planet item boosters (metal, crystal, deuterium, energy %); the player chooses whether rankings count them, since items expire and upgrades don't
 - Lifeforms: race per planet, building levels and the 18 tech slots (T1/T2/T3, one race per slot); buildings act on their planet, techs on the whole account, boosted by planet buildings and race level. Data for all four races in `src/lifeforms.js`, each value with its source
+- Rock'tal production buildings (Magma Forge, Crystal Refinery, Deuterium Tuner) ranked with the mines; costs and energy from formulas checked on the game, with the Monolith discount
 - In-game energy stays current: changing satellites, plants, mines or crawlers moves the entered value by the modelled difference
 - Per-planet Copy (choose what to copy and onto which planets) and per-planet "include in calculations"
 - New colony option: Astrophysics levels actually needed for one more planet, colony ship, mines up to the empire median and the energy to run them, compared with the output of an average planet
@@ -37,6 +38,7 @@ payback (hours) = cost in metal-eq / extra production per hour in metal-eq
 ```
 node tests/engine.test.js      # engine tests
 node tests/reference.test.js   # engine vs numbers shown by the game
+node tests/lifeforms.test.js   # lifeform building costs and energy vs the game
 node tests/changelog.test.js   # changelog checks
 node build.js               # build index.html
 ```

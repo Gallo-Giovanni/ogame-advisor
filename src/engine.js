@@ -79,6 +79,16 @@ const Engine = (() => {
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
   const MRC_LEVEL1 = [250000, 150000, 100000];
+
+  // Lifeform building cost and energy (formulas in src/lifeforms.js). The Monolith (Rock'tal) lowers both
+  // for Rock'tal buildings; its table is used as shown in the game.
+  const monolithDisc = planet => {
+    if (!LF || !planet || planet.lf_race !== 'rocktal') return 0;
+    const lvl = +((planet.lf_buildings || {}).monolith) || 0;
+    return lvl ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[lvl] || 0) : 0;
+  };
+  const lfBuildingCost = (b, L, disc = 0) => b.cost.base.map(x => Math.round(x * Math.pow(b.cost.factor, L - 1) * L * (1 - disc)));
+  const lfBuildingEnergy = (b, L) => (L <= 0 ? 0 : L === 1 ? b.energyCons.base : Math.floor(L * b.energyCons.base * Math.pow(b.energyCons.factor, L)));
   const MRC_ENERGY_L1 = 120;
   const mrcLevel = planet => (planet.mrc_level === undefined || planet.mrc_level === null || planet.mrc_level === '' ? null : +planet.mrc_level);
   const mineCost = (key, level, mrc) => levelCost(key, level).map(x => Math.round(x * (1 - 0.005 * (mrc || 0))));
@@ -388,7 +398,8 @@ const Engine = (() => {
           // the Centre itself uses 120 energy at level 1 (game table): include it
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2) : null;
-          const bCost = mc.map((x, i) => x + MRC_LEVEL1[i] + (fix2 ? fix2.cost[i] : 0));
+          const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
+          const bCost = mc.map((x, i) => x + mrc1[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
@@ -398,6 +409,38 @@ const Engine = (() => {
         }
         out.push(rec);
       });
+
+      // Lifeform production buildings of the planet's race (only those with known costs and energy)
+      if (LF && planet.lf_race && LF.races[planet.lf_race] && profile._lf && profile._lf.computed) {
+        const disc = monolithDisc(planet);
+        const levels = planet.lf_buildings || {};
+        for (const [key, b] of Object.entries(LF.races[planet.lf_race].buildings)) {
+          if (!b || !b.cost || !b.energyCons || !b.effect) continue;
+          const res = ['metal', 'crystal', 'deut'].filter(r => b.effect[r]);
+          if (!res.length) continue;
+          const L = +levels[key] || 0, next = L + 1;
+          const cost = lfBuildingCost(b, next, disc);
+          const extraNeed = Math.ceil((lfBuildingEnergy(b, next) - lfBuildingEnergy(b, L)) * (1 - disc));
+          const marginAfter = Math.max(0, st.balance) - extraNeed;
+          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
+          const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+          const pos = positionBonus(planet.position), s = profile.economy_speed;
+          const row = [
+            baseProd.metal_mine(planet.metal_mine) * (1 + pos.metal) * s,
+            baseProd.crystal_mine(planet.crystal_mine) * (1 + pos.crystal) * s,
+            Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * s,
+          ];
+          const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
+          const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
+          out.push({
+            type: 'lfbuilding', key, planetId: planet.id, planet: planet.name,
+            title: `${b.it} ${L} → ${next}`,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)`,
+            cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
+            payback: gain > 0 ? eq / gain : Infinity, fix, nextLevel: next, extraNeed,
+          });
+        }
+      }
     });
 
     // 3) Plasma technology (global)
@@ -436,9 +479,13 @@ const Engine = (() => {
     const st = planetState(profile, planet);
     const patch = {};
     let balance = st.balance;
+    if (rec.type === 'lfbuilding') {
+      patch.lf_buildings = { ...(planet.lf_buildings || {}), [rec.key]: rec.nextLevel };
+      balance -= rec.extraNeed;
+    }
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
-      if (rec.withMrc) { patch.mrc_level = 1; balance -= MRC_ENERGY_L1; }
+      if (rec.withMrc) { patch.mrc_level = 1; balance -= Math.ceil(MRC_ENERGY_L1 * (1 - monolithDisc(planet))); }
       balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile, planet));
     }
     if (rec.fix) {
@@ -470,7 +517,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

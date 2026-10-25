@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 25, date: '2026-10-25', title: 'Edifici forme di vita nei consigli',
+    text: 'Sui pianeti Rock\'tal i consigli ora includono Fusione magmatica, Cristalleria e Sintonizzatore di deuterio, nella stessa classifica delle miniere, con costo ed energia verificati sul gioco e lo sconto del Monolite. Fatto alza il livello dell\'edificio. Le altre razze arriveranno quando avremo i loro costi.',
+  },
+  {
     id: 24, date: '2026-10-25', title: 'Energia sempre aggiornata',
     text: 'Se hai inserito l\'energia del gioco e poi cambi satelliti solari, centrali, miniere o crawler, l\'app aggiorna da sola il valore. Inoltre il bonus dei crawler si ferma al +50% di produzione, come nel gioco.',
   },

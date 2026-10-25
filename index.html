@@ -499,6 +499,13 @@ const LIFEFORMS = {
     raceSwitchCooldownHours: 48,         // guide
     // Effective tech bonus = base x (1 + tech-boost building of the planet) x (1 + race level bonus)  (guide example 2, recomputed: 1.599 vs 1.598 shown)
     techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
+    // Cost of a lifeform building at level L = base x factor^(L-1) x L; the Monolith lowers Rock'tal costs
+    // and energy (Monolith 5 = -5%, confirmed by the player)
+    buildingCostFormula: 'base * factor^(L-1) * L',      // checked on 7 Rock'tal buildings, levels 1-2 and 15->16
+    // Energy used by a lifeform building at level L = floor(L x base x factor^L) (fits the Tech Info tables from
+    // level 2 up; the tables show level 1 = base). Upgrading uses the difference; the Monolith also lowers it
+    // (Magma Forge 15->16: (2940 - 2506) x 0.95 = 413 shown by the game).
+    buildingEnergyFormula: 'floor(L * base * factor^L)',
     levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
   },
 
@@ -509,22 +516,29 @@ const LIFEFORMS = {
       // Values from the game's Tech Info tables. Energy = energy used by the building at that level.
       buildings: {
         magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [10000, 8000, 1000], factor: 1.4 }, energyCons: { base: 40, factor: 1.1 },
           energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
         crystal_refinery:   { it: 'Cristalleria', effect: { crystal: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [85000, 44000, 25000], factor: 1.4 }, energyCons: { base: 90, factor: 1.1 },
           energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
         deuterium_tuner:    { it: 'Sintonizzatore di deuterio', effect: { deut: 0.02 }, perLevel: true, source: 'game',
+          cost: { base: [120000, 50000, 20000], factor: 1.4 }, energyCons: { base: 90, factor: 1.1 },
           energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
         // +1.5% energy and -0.5% energy used by the mines per level (level 10 = +15% / -5%)
-        disruption_chamber: { it: 'Camera di Disgregazione', effect: { energy: 0.015, mineConsumption: -0.005 }, perLevel: true, source: 'game' },
+        disruption_chamber: { it: 'Camera di Disgregazione', effect: { energy: 0.015, mineConsumption: -0.005 }, perLevel: true, source: 'game',
+          cost: { base: [20000, 15000, 10000], factor: 1.2 } },
         // -0.5% cost of resource buildings per level; the game shows it rounded up (level 1 = -1%, level 3 = -2%)
         mineral_centre:     { it: 'Centro di Mineralogia', effect: { mineCost: -0.005 }, perLevel: true, level1Cost: [250000, 150000, 100000], source: 'game',
+          cost: { base: [250000, 150000, 100000], factor: 1.8 }, energyCons: { base: 120, factor: 1.3 },
           energy: [120, 405, 790, 1370, 2227, 3475, 5270, 7831, 11452, 16543, 23656, 33549, 47248, 66147, 92134] },
         // cost, energy and build time of Rock'tal buildings; the table is not linear, so the values are kept as shown
         monolith:           { it: 'Monolite', source: 'game',
+          cost: { base: [50000, 35000, 15000], factor: 1.5 }, energyCons: { base: 80, factor: 1.3 },
           buildingCostByLevel: { 3: -0.03, 4: -0.04, 5: -0.05, 6: -0.06, 7: -0.08, 8: -0.08, 9: -0.09, 10: -0.10, 11: -0.11, 12: -0.12, 13: -0.13, 14: -0.15, 15: -0.15, 16: -0.16, 17: -0.17 },
           energy: { 3: 527, 4: 913, 5: 1485, 6: 2316, 7: 3513, 8: 5220, 9: 7635, 10: 11028, 11: 15771, 12: 22366, 13: 31499, 14: 44098, 15: 61423, 16: 85173, 17: 117645 } },
         // Rock'tal research building: -0.25% research cost and -2% research time per level (half the cost effect of the Human one)
         tecnologicus_runarum: { it: 'Tecnologicus Runarum', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          cost: { base: [40000, 10000, 15000], factor: 1.3 }, energyCons: { base: 15, factor: 1.1 },
           energy: { 8: 257, 9: 318, 10: 389, 11: 470, 12: 564, 13: 673, 14: 797, 15: 939, 16: 1102, 17: 1288, 18: 1501, 19: 1743, 20: 2018, 21: 2331, 22: 2686 } },
         tech_boost: null, // no Rock'tal building boosts lifeform techs (game building list)
         // No effect on production, energy or costs (game descriptions): Enclave di Meditazione, Produzione di cristalli,
@@ -773,6 +787,16 @@ const Engine = (() => {
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
   const MRC_LEVEL1 = [250000, 150000, 100000];
+
+  // Lifeform building cost and energy (formulas in src/lifeforms.js). The Monolith (Rock'tal) lowers both
+  // for Rock'tal buildings; its table is used as shown in the game.
+  const monolithDisc = planet => {
+    if (!LF || !planet || planet.lf_race !== 'rocktal') return 0;
+    const lvl = +((planet.lf_buildings || {}).monolith) || 0;
+    return lvl ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[lvl] || 0) : 0;
+  };
+  const lfBuildingCost = (b, L, disc = 0) => b.cost.base.map(x => Math.round(x * Math.pow(b.cost.factor, L - 1) * L * (1 - disc)));
+  const lfBuildingEnergy = (b, L) => (L <= 0 ? 0 : L === 1 ? b.energyCons.base : Math.floor(L * b.energyCons.base * Math.pow(b.energyCons.factor, L)));
   const MRC_ENERGY_L1 = 120;
   const mrcLevel = planet => (planet.mrc_level === undefined || planet.mrc_level === null || planet.mrc_level === '' ? null : +planet.mrc_level);
   const mineCost = (key, level, mrc) => levelCost(key, level).map(x => Math.round(x * (1 - 0.005 * (mrc || 0))));
@@ -1082,7 +1106,8 @@ const Engine = (() => {
           // the Centre itself uses 120 energy at level 1 (game table): include it
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2) : null;
-          const bCost = mc.map((x, i) => x + MRC_LEVEL1[i] + (fix2 ? fix2.cost[i] : 0));
+          const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
+          const bCost = mc.map((x, i) => x + mrc1[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
@@ -1092,6 +1117,38 @@ const Engine = (() => {
         }
         out.push(rec);
       });
+
+      // Lifeform production buildings of the planet's race (only those with known costs and energy)
+      if (LF && planet.lf_race && LF.races[planet.lf_race] && profile._lf && profile._lf.computed) {
+        const disc = monolithDisc(planet);
+        const levels = planet.lf_buildings || {};
+        for (const [key, b] of Object.entries(LF.races[planet.lf_race].buildings)) {
+          if (!b || !b.cost || !b.energyCons || !b.effect) continue;
+          const res = ['metal', 'crystal', 'deut'].filter(r => b.effect[r]);
+          if (!res.length) continue;
+          const L = +levels[key] || 0, next = L + 1;
+          const cost = lfBuildingCost(b, next, disc);
+          const extraNeed = Math.ceil((lfBuildingEnergy(b, next) - lfBuildingEnergy(b, L)) * (1 - disc));
+          const marginAfter = Math.max(0, st.balance) - extraNeed;
+          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
+          const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+          const pos = positionBonus(planet.position), s = profile.economy_speed;
+          const row = [
+            baseProd.metal_mine(planet.metal_mine) * (1 + pos.metal) * s,
+            baseProd.crystal_mine(planet.crystal_mine) * (1 + pos.crystal) * s,
+            Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * s,
+          ];
+          const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
+          const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
+          out.push({
+            type: 'lfbuilding', key, planetId: planet.id, planet: planet.name,
+            title: `${b.it} ${L} → ${next}`,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)`,
+            cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
+            payback: gain > 0 ? eq / gain : Infinity, fix, nextLevel: next, extraNeed,
+          });
+        }
+      }
     });
 
     // 3) Plasma technology (global)
@@ -1130,9 +1187,13 @@ const Engine = (() => {
     const st = planetState(profile, planet);
     const patch = {};
     let balance = st.balance;
+    if (rec.type === 'lfbuilding') {
+      patch.lf_buildings = { ...(planet.lf_buildings || {}), [rec.key]: rec.nextLevel };
+      balance -= rec.extraNeed;
+    }
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
-      if (rec.withMrc) { patch.mrc_level = 1; balance -= MRC_ENERGY_L1; }
+      if (rec.withMrc) { patch.mrc_level = 1; balance -= Math.ceil(MRC_ENERGY_L1 * (1 - monolithDisc(planet))); }
       balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile, planet));
     }
     if (rec.fix) {
@@ -1164,7 +1225,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 
@@ -1176,6 +1237,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
+  {
+    id: 25, date: '2026-10-25', title: 'Edifici forme di vita nei consigli',
+    text: 'Sui pianeti Rock\'tal i consigli ora includono Fusione magmatica, Cristalleria e Sintonizzatore di deuterio, nella stessa classifica delle miniere, con costo ed energia verificati sul gioco e lo sconto del Monolite. Fatto alza il livello dell\'edificio. Le altre razze arriveranno quando avremo i loro costi.',
+  },
   {
     id: 24, date: '2026-10-25', title: 'Energia sempre aggiornata',
     text: 'Se hai inserito l\'energia del gioco e poi cambi satelliti solari, centrali, miniere o crawler, l\'app aggiorna da sola il valore. Inoltre il bonus dei crawler si ferma al +50% di produzione, come nel gioco.',
@@ -1507,6 +1572,7 @@ function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
   if (r.type === 'mine') return `${res[r.key]} ${r.nextLevel}${r.withMrc ? ' + Centro Min. 1' : ''}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'energy') return r.fix.kind === 'satellites' ? `Energia: ${fmt(r.fix.count)} satelliti` : `Energia: solare ${r.fix.to}`;
+  if (r.type === 'lfbuilding') return `${Engine.LF.races.rocktal.buildings[r.key]?.it || r.key} ${r.nextLevel}${r.fix ? ' ⚡' : ''}`;
   if (r.type === 'plasma') return `Plasma ${r.nextLevel}`;
   if (r.type === 'colony') return r.astroCost.some(x => x > 0) ? `Nuova colonia (Astrofisica ${r.nextLevel})` : 'Colonizza lo slot libero';
   return r.title;
