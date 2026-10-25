@@ -68,6 +68,7 @@ const Engine = (() => {
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
   const MRC_LEVEL1 = [250000, 150000, 100000];
+  const MRC_ENERGY_L1 = 120;
   const mrcLevel = planet => (planet.mrc_level === undefined || planet.mrc_level === null || planet.mrc_level === '' ? null : +planet.mrc_level);
   const mineCost = (key, level, mrc) => levelCost(key, level).map(x => Math.round(x * (1 - 0.005 * (mrc || 0))));
   const solarEnergy = L => Math.floor(20 * g(L));
@@ -310,12 +311,15 @@ const Engine = (() => {
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
-          const bCost = mc.map((x, i) => x + MRC_LEVEL1[i] + (fix ? fix.cost[i] : 0));
+          // the Centre itself uses 120 energy at level 1 (game table): include it
+          const margin2 = marginAfter - MRC_ENERGY_L1;
+          const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2) : null;
+          const bCost = mc.map((x, i) => x + MRC_LEVEL1[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
-            detail: `il Centro rende le miniere di questo pianeta più economiche dello 0,5%; ${energyText}`,
-            cost: bCost, buildCost: mc, costEq: bEq, payback: bEq / gain,
+            detail: `il Centro rende le miniere di questo pianeta più economiche dello 0,5%; ${fix2 ? 'serve anche energia: ' + fixText(fix2) : 'energia sufficiente'}`,
+            cost: bCost, buildCost: mc, costEq: bEq, payback: bEq / gain, fix: fix2,
           };
         }
         out.push(rec);
@@ -359,7 +363,7 @@ const Engine = (() => {
     let balance = st.balance;
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
-      if (rec.withMrc) patch.mrc_level = 1;
+      if (rec.withMrc) { patch.mrc_level = 1; balance -= MRC_ENERGY_L1; }
       balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile));
     }
     if (rec.fix) {

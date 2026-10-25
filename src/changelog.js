@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 22, date: '2026-10-25', title: 'Centro di Mineralogia: energia',
+    text: 'Il consiglio "Centro di Mineralogia 1 + miniera" ora conta anche i 120 di energia che il Centro consuma, con i satelliti necessari inclusi nel costo.',
+  },
+  {
     id: 21, date: '2026-10-25', title: 'Booster a spunta',
     text: 'Nella scheda del pianeta i booster si scelgono con le spunte: uno per metallo, cristallo e deuterio (10-40%), uno su tutte e 3 le risorse (10-40%) e uno per l\'energia (20-80%), con il totale per risorsa. Se avevi inserito una somma (per esempio +80%), resta visibile tratteggiata finché non scegli i booster giusti.',
   },
