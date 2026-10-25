@@ -305,10 +305,6 @@
 
     <div class="card stack hidden" data-wiz="2">
       <h2>2 · Bonus e valore delle risorse</h2>
-      <p class="muted small">Se usi le forme di vita, indica la riduzione del consumo di energia delle miniere data dalle loro tecnologie (0 se non ce l'hai). I bonus di produzione delle forme di vita si inseriscono pianeta per pianeta.</p>
-      <div class="grid">
-        <div><label>Riduzione consumo energia miniere %</label><input data-p="energy_consumption_reduction" type="number" step="0.01" min="0" max="100" value="0"></div>
-      </div>
       <p class="muted small">Livello di ogni forma di vita (0 se non la usi). Razza, edifici e ricerche li inserisci poi nella scheda di ogni pianeta.</p>
       <div class="grid">
           <div><label>Livello Umani</label><input data-p="lf_level_humans" type="number" min="0"></div>
@@ -522,10 +518,9 @@
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
-          <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
         </div>
         <h3 style="margin-top:8px">Livello forme di vita</h3>
-        <p class="muted small" style="margin-top:0">Nel gioco ogni livello aumenta dello 0,1% l'effetto delle ricerche di quella razza (pagina Forme di vita, "Bonus Tecnologia Forme di vita"). La riduzione del consumo qui sopra serve solo se non inserisci gli edifici delle forme di vita nei pianeti.</p>
+        <p class="muted small" style="margin-top:0">Nel gioco ogni livello aumenta dello 0,1% l'effetto delle ricerche di quella razza (pagina Forme di vita, "Bonus Tecnologia Forme di vita").</p>
         <div class="grid">
           <div><label>Livello Umani</label><input data-s="lf_level_humans" type="number" min="0"></div>
           <div><label>Livello Rock'tal</label><input data-s="lf_level_rocktal" type="number" min="0"></div>
