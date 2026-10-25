@@ -67,7 +67,27 @@ const LIFEFORMS = {
       },
       techs: null, // todo
     },
-    mechas: { name: 'Mecha', buildings: null, techs: null },   // todo
+    mechas: {
+      name: 'Mecha',
+      // Values from the game's Tech Info tables. Energy = energy used by the building at that level (levels 1-15).
+      buildings: {
+        // Mecha research building: -0.25% research cost and -2% research time per level (shown rounded)
+        robotics_research_centre: { it: 'Centro Ricerca Robotica', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          energy: [13, 30, 49, 70, 95, 123, 155, 192, 233, 280, 333, 392, 459, 534, 618] },
+        // +1% energy and +0.3% lifeform tech effect on this planet per level
+        high_performance_transformer: { it: 'Trasformatore ad alta potenza', effect: { energy: 0.01, techBoost: 0.003 }, perLevel: true, source: 'game',
+          energy: [40, 88, 138, 194, 255, 321, 393, 472, 558, 651, 752, 862, 980, 1108, 1247] },
+        high_performance_synthesizer: { it: 'Sintetizzatore Alte prestazioni', effect: { deut: 0.02 }, perLevel: true, source: 'game',
+          energy: [60, 145, 239, 351, 483, 637, 818, 1028, 1273, 1556, 1883, 2259, 2692, 3189, 3759] },
+        // +0.4% lifeform tech effect on this planet per level
+        chip_mass_production: { it: 'Produzione di massa di chip', effect: { techBoost: 0.004 }, perLevel: true, source: 'game',
+          energy: [70, 154, 243, 340, 446, 562, 689, 827, 977, 1140, 1316, 1508, 1715, 1940, 2182] },
+        // No effect on production, energy or costs (game descriptions): Linea di produzione, Fabbrica Celle a fusione,
+        // Network Aggiornamento, Centro Calcolo Quantistico, Centro Assemblaggio Automatizzato (ship build time),
+        // Linea di produzione Microchip, Sala Catena di Montaggio, Nanobot Riparazione
+      },
+      techs: null, // todo
+    },
     kaelesh: { name: 'Kaelesh', buildings: null, techs: null }, // todo
   },
 };
