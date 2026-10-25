@@ -88,7 +88,20 @@ const LIFEFORMS = {
       },
       techs: null, // todo
     },
-    kaelesh: { name: 'Kaelesh', buildings: null, techs: null }, // todo
+    kaelesh: {
+      name: 'Kaelesh',
+      note: 'Boosts the Explorer class bonus (game description). How much: todo.',
+      buildings: {
+        // +0.25% effect per level, but ONLY on Kaelesh lifeform techs of this planet (game description),
+        // unlike Metropolis and the Mecha buildings that boost all techs of the planet. Energy not shown in the table.
+        cloning_lab: { it: 'Laboratorio Clonazione', effect: { techBoostOwnRace: 0.0025 }, perLevel: true, source: 'game' },
+        vortex_chamber: null, // Camera Vortex: research cost/time reduction per level: todo (table not seen yet)
+        // No effect on production, energy or costs (game descriptions): Rifugio, Condensatore Antimateria,
+        // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
+        // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
+      },
+      techs: null, // todo
+    },
   },
 };
 
