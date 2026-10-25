@@ -912,7 +912,7 @@ function renderPlanetPreview() {
   const st = Engine.planetState(numericProfile(state.profile), p);
   const prof = numericProfile(state.profile);
   const maxC = Engine.maxCrawlers(p, prof);
-  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia). Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
+  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Si costruiscono solo da Collezionista, ma quelli che possiedi producono con qualsiasi classe (0,02% ciascuno, 0,03% da Collezionista). Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia). Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
   const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
   $('#pe-preview').innerHTML =
     box('Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
