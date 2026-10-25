@@ -124,6 +124,22 @@
   .pe-grid h3 { margin: 0; }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tile { position: relative; width: 74px; border-radius: 8px; overflow: hidden; background: var(--bg2); border: 1px solid var(--line); }
+  .tile .art { height: 50px; display: grid; place-items: center; }
+  .tile .art svg { width: 30px; height: 30px; }
+  .tile .lbl { font-size: .68rem; color: var(--muted); padding: 2px 5px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .lvl { position: absolute; right: 5px; top: 30px; font: 700 1rem Rajdhani, sans-serif; color: var(--accent); text-shadow: 0 1px 3px #000; }
+  .tile.zero { opacity: .45; }
+  .tile.wide { width: 112px; }
+  .tile.wide .lvl { font-size: .85rem; }
+  .tiles.mini { gap: 4px; }
+  .tiles.mini .tile { width: 40px; border-radius: 6px; }
+  .tiles.mini .art { height: 30px; }
+  .tiles.mini .art svg { width: 18px; height: 18px; }
+  .tiles.mini .lbl { display: none; }
+  .tiles.mini .lvl { position: static; display: block; text-align: center; font-size: .8rem; padding-bottom: 1px; }
+  .tiles.mini .tile.wide { display: none; }
   @media (max-width: 600px) {
     .pe-grid { grid-template-columns: 1fr; }
     .pe-actions button { padding: 8px 10px; font-size: .85rem; }
@@ -267,6 +283,7 @@
         </div>
         <div id="pe-msg" class="msg hidden"></div>
         <div id="pe-preview" class="grid"></div>
+        <div class="card" style="padding:12px"><div class="muted small" style="margin-bottom:8px">Riepilogo del pianeta</div><div id="pe-summary" class="tiles"></div></div>
         <form id="pe-form" class="pe-grid" autocomplete="off" onsubmit="return false">
           <div class="card stack">
             <h3>Generale</h3>
@@ -737,6 +754,43 @@ async function completeRec(rec, btn) {
   }
 }
 
+/* Building icons: simple original drawings (no game artwork) */
+const ICONS = {
+  metal: '<svg viewBox="0 0 32 32"><path d="M6 22l6-12 7 3 7 9-9 5z" fill="#9aa6bf"/><path d="M12 10l7 3-3 14-10-5z" fill="#c9d2e6"/><path d="M19 13l7 9-9 5z" fill="#6f7b94"/></svg>',
+  crystal: '<svg viewBox="0 0 32 32"><path d="M16 3l7 9-7 17-7-17z" fill="#6fd3ff"/><path d="M16 3l7 9h-14z" fill="#b8ecff"/><path d="M23 12l-7 17 4-17z" fill="#3aa8d8"/></svg>',
+  deut: '<svg viewBox="0 0 32 32"><path d="M16 4c5 7 9 11 9 16a9 9 0 0 1-18 0c0-5 4-9 9-16z" fill="#7cf0b2"/><path d="M12 20a4 4 0 0 0 4 4" stroke="#e8fff3" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  solar: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="#ffd27a"/><g stroke="#ffb547" stroke-width="2.4" stroke-linecap="round"><path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></g></svg>',
+  fusion: '<svg viewBox="0 0 32 32" fill="none" stroke="#ff8f6b" stroke-width="2"><ellipse cx="16" cy="16" rx="12" ry="5"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(60 16 16)"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(120 16 16)"/><circle cx="16" cy="16" r="2.6" fill="#ffd27a" stroke="none"/></svg>',
+  satellite: '<svg viewBox="0 0 32 32"><rect x="2" y="12" width="9" height="8" rx="1" fill="#5c8ee0"/><rect x="21" y="12" width="9" height="8" rx="1" fill="#5c8ee0"/><rect x="12" y="11" width="8" height="10" rx="2" fill="#c9d2e6"/><path d="M11 16h1M20 16h1" stroke="#c9d2e6" stroke-width="2"/></svg>',
+  crawler: '<svg viewBox="0 0 32 32"><rect x="6" y="9" width="17" height="9" rx="2" fill="#d9a35b"/><path d="M23 12h4l2 6h-6z" fill="#b5803e"/><rect x="3" y="19" width="26" height="7" rx="3.5" fill="#55607a"/><g fill="#c9d2e6"><circle cx="8" cy="22.5" r="2"/><circle cx="16" cy="22.5" r="2"/><circle cx="24" cy="22.5" r="2"/></g></svg>',
+  mrc: '<svg viewBox="0 0 32 32"><path d="M9 6l5 6-5 9-5-9z" fill="#c98bff"/><circle cx="20" cy="18" r="6" fill="none" stroke="#e6ebff" stroke-width="2.4"/><path d="M24.5 22.5l4 4" stroke="#e6ebff" stroke-width="3" stroke-linecap="round"/></svg>',
+  item: '<svg viewBox="0 0 32 32"><path d="M18 3L7 18h7l-2 11 11-15h-7z" fill="#f5a524"/></svg>',
+  lf: '<svg viewBox="0 0 32 32" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 4c0 8 12 8 12 16s-12 0-12 8" stroke="#7cf0b2"/><path d="M22 4c0 8-12 8-12 16s12 0 12 8" stroke="#c98bff"/><path d="M12 9h8M12 23h8" stroke="#e6ebff"/></svg>',
+};
+const TILE_BG = {
+  metal: '#2a3247', crystal: '#16344a', deut: '#143a2c', solar: '#3a3115', fusion: '#3a2219',
+  satellite: '#1b2a4a', crawler: '#352a19', mrc: '#2d1f3f', item: '#3a2c10', lf: '#1e2f2f',
+};
+function tile(key, label, level, opts = {}) {
+  const zero = !opts.text && !(+level > 0);
+  return `<div class="tile ${zero ? 'zero' : ''} ${opts.wide ? 'wide' : ''}" title="${esc(label)}${opts.text ? '' : ' ' + level}">
+    <div class="art" style="background:${TILE_BG[key]}">${ICONS[key]}</div>
+    <div class="lbl">${esc(label)}</div><div class="lvl">${opts.text ?? fmt(+level || 0)}</div></div>`;
+}
+// Summary of everything entered for a planet: mines, energy, crawlers, Mineral Centre, items, lifeforms
+function planetTiles(p) {
+  const pct = v => `${+(+v || 0).toFixed(1)}`;
+  const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => +v || 0);
+  const lf = [p.lf_metal, p.lf_crystal, p.lf_deut].map(v => +v || 0);
+  let t = tile('metal', 'Metallo', p.metal_mine) + tile('crystal', 'Cristallo', p.crystal_mine) + tile('deut', 'Deuterio', p.deut_synth)
+    + tile('solar', 'Solare', p.solar_plant) + tile('fusion', 'Fusione', p.fusion_reactor) + tile('satellite', 'Satelliti', p.solar_satellites)
+    + tile('crawler', `Crawler${+p.crawlers && +p.crawler_pct !== 100 ? ' ' + (+p.crawler_pct) + '%' : ''}`, p.crawlers);
+  if (p.mrc_level !== null && p.mrc_level !== undefined && p.mrc_level !== '') t += tile('mrc', 'Centro Min.', p.mrc_level);
+  if (items.some(Boolean) || +p.item_energy) t += tile('item', 'Item M/C/D', null, { wide: true, text: items.map(v => '+' + v).join('/') });
+  if (lf.some(Boolean)) t += tile('lf', 'Forme di vita %', null, { wide: true, text: lf.map(pct).join('/') });
+  return t;
+}
+
 /* Planets: a list of cards, and one page per planet */
 const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
@@ -759,7 +813,7 @@ function renderPlanetCards() {
           <button class="ghost" data-move="1" data-id="${p.id}" ${i === state.planets.length - 1 ? 'disabled' : ''} title="Sposta giù" aria-label="Sposta giù">▼</button>
         </div>
       </div>
-      <div class="levels"><span class="res-m">M ${p.metal_mine}</span><span class="res-c">C ${p.crystal_mine}</span><span class="res-d">D ${p.deut_synth}</span></div>
+      <div class="tiles mini">${planetTiles(p)}</div>
       <div class="small"><span class="${st.balance < 0 ? 'neg' : 'muted'}">Energia ${st.balance > 0 ? '+' : ''}${fmt(st.balance)}</span>
         <span class="muted"> · ${p.temp_max}°C${+p.crawlers ? ` · ${fmt(p.crawlers)} crawler` : ''}</span>${off ? ' <span class="tag">escluso dai calcoli</span>' : ''}</div>
     </div>`;
@@ -853,6 +907,7 @@ window.addEventListener('beforeunload', e => { if (state.editing?.dirty) { e.pre
 // Live production of the planet being edited, to compare with the game while typing
 function renderPlanetPreview() {
   const p = { ...NEW_PLANET, ...readPlanetInputs($('#pe-form')) };
+  $('#pe-summary').innerHTML = planetTiles(p);
   if (!(p.position >= 1 && p.position <= 15) || !Number.isFinite(p.temp_max)) { $('#pe-preview').innerHTML = ''; return; }
   const st = Engine.planetState(numericProfile(state.profile), p);
   const maxC = Engine.maxCrawlers(p);

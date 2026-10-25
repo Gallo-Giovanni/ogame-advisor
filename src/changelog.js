@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 17, date: '2026-10-25', title: 'Riepilogo con icone',
+    text: 'Ogni pianeta ha un riepilogo a riquadri con icone: miniere, centrali, satelliti, crawler, Centro di Mineralogia, item e forme di vita, con il livello in basso a destra. Si aggiorna mentre scrivi nella scheda e compare in piccolo anche nell\'elenco dei pianeti.',
+  },
+  {
     id: 16, date: '2026-10-25', title: 'Consigli più compatti',
     text: 'Ogni consiglio è una riga sola: upgrade, pianeta, tempo di ammortamento e Fatto. Tocca la riga per vedere costo, guadagno ed energia. La produzione è in una sola barra in alto e la spiegazione della classifica è in "Come leggere la classifica".',
   },
