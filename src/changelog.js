@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
+    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento, con e senza Pathfinder, e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). Inserisci in Impostazioni i punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
+  },
+  {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
     text: 'Nuova scheda Bonus con tutti i bonus attivi: produzione delle miniere (uguali su tutti i pianeti e pianeta per pianeta), energia, tempi di costruzione e ricerca (con Fabbrica di robot e Naniti, ora importate dalla Vista impero) e spedizioni, con tutti i vantaggi della classe (come nella pagina Bonus classe personaggio del gioco) e le ricerche forme di vita di tutto l\'account.',
   },

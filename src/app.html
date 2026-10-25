@@ -270,6 +270,8 @@
         <div><label>Livello Mecha</label><input data-q="lf_level_mechas" type="number" min="0" value="0"></div>
         <div><label>Livello Kaelesh</label><input data-q="lf_level_kaelesh" type="number" min="0" value="0"></div>
       </div>
+      <p class="muted small" style="margin:0">Per il massimale delle spedizioni: i punti del primo giocatore della classifica generale del tuo universo.</p>
+      <div class="grid"><div><label>Punti del 1° in classifica (universo)</label><input data-q="top1_points" type="number" min="0" placeholder="Es. 56000000"></div></div>
       <p class="muted small" style="margin:0">Item (booster) attivi e percentuale dei crawler si impostano nella scheda di ogni pianeta, se li usi.</p>
       <div id="wiz4-msg" class="msg hidden"></div>
       <div class="row"><button id="wiz4-finish">Vai ai consigli</button></div>
@@ -287,6 +289,8 @@
         <div><label>Tecnologia Plasma</label><input data-p="plasma_tech" type="number" min="0" value="0"></div>
         <div><label>Tecnologia Energetica</label><input data-p="energy_tech" type="number" min="0" value="0"></div>
         <div><label>Astrofisica</label><input data-p="astro_tech" type="number" min="0" value="0"></div>
+        <div><label>Tecnologia iperspaziale</label><input data-p="hyperspace_tech" type="number" min="0" value="0"></div>
+        <div><label>Punti del 1° in classifica (universo)</label><input data-p="top1_points" type="number" min="0" placeholder="Es. 56000000"></div>
       </div>
       <div class="row">
         <label class="check"><input type="checkbox" data-p="geologist"> Geologo attivo</label>
@@ -496,6 +500,8 @@
           <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
+          <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
+          <div><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="number" min="0" placeholder="Es. 56000000"></div>
           <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
         </div>
         <h3 style="margin-top:8px">Livello forme di vita</h3>
@@ -603,12 +609,12 @@ const PROFILE_DEFAULTS = {
   geologist: false, engineer: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
-  ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0,
+  ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0, hyperspace_tech: 0, top1_points: null,
   lf_level_humans: 0, lf_level_rocktal: 0, lf_level_mechas: 0, lf_level_kaelesh: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
-const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'lf_level_humans', 'lf_level_rocktal', 'lf_level_mechas', 'lf_level_kaelesh', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
+const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'hyperspace_tech', 'energy_consumption_reduction', 'lf_level_humans', 'lf_level_rocktal', 'lf_level_mechas', 'lf_level_kaelesh', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
 const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'lf_race', 'energy_balance', 'included'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
@@ -780,6 +786,7 @@ $('#wiz-finish').addEventListener('click', async () => {
   const profile = { user_id: state.user.id, onboarded: true };
   $$('[data-p]').forEach(el => { profile[el.dataset.p] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   NUM_FIELDS.forEach(k => { if (k in profile) profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]; });
+  profile.top1_points = profile.top1_points === '' ? null : Math.max(0, Math.round(Number(profile.top1_points) || 0));
   const btn = $('#wiz-finish'); btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
   const r = await sb.from('profiles').upsert(profile);
   btn.disabled = false;
@@ -1475,7 +1482,7 @@ const IMPORT_LABELS = {
   solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
-  astro_tech: 'Astrofisica', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+  astro_tech: 'Astrofisica', hyperspace_tech: 'Tecnologia iperspaziale', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
 };
 const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
   : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
@@ -1553,7 +1560,7 @@ $('#import-ok').addEventListener('click', async () => {
   if (isNew) {
     const pl = await sb.from('planets').select('*').order('sort_order').order('created_at');
     state.planets = pl.data || [];
-    $$('[data-q]').forEach(el => { const v = state.profile[el.dataset.q]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? 0; });
+    $$('[data-q]').forEach(el => { const v = state.profile[el.dataset.q]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? (el.dataset.q === 'top1_points' ? '' : 0); });
     goStep(4); show('onboarding');
     return;
   }
@@ -1568,7 +1575,7 @@ $$('#bm-link, [data-bm]').forEach(a => {
 $('#wiz-mobile-note').classList.toggle('hidden', !matchMedia('(pointer: coarse)').matches);
 $('#wiz4-finish').addEventListener('click', async () => {
   const patch = {};
-  $$('[data-q]').forEach(el => { patch[el.dataset.q] = el.type === 'checkbox' ? el.checked : Math.max(0, Number(el.value) || 0); });
+  $$('[data-q]').forEach(el => { patch[el.dataset.q] = el.type === 'checkbox' ? el.checked : el.value.trim() === '' && el.dataset.q === 'top1_points' ? null : Math.max(0, Number(el.value) || 0); });
   const btn = $('#wiz4-finish'); btn.disabled = true;
   const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
   btn.disabled = false;
@@ -1670,8 +1677,29 @@ function renderBonus() {
   const X = { expedition_resources: 'risorse trovate', expedition_ships_found: 'navi trovate', expedition_fleet_speed: 'velocità della flotta in spedizione',
     expedition_ship_loss: 'perdita di navi', expedition_dark_matter: 'Materia Oscura trovata', explorer_class_bonus: 'bonus della classe Esploratore' };
   for (const [k, l] of Object.entries(X)) if (all[k] && k !== 'explorer_class_bonus') xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
+  // Maximum finds (same result as OGame Tracker): base from the top-1 points x economy speed x class x Pathfinder,
+  // then the lifeform bonus; crystal = metal / 2, deuterium = metal / 3, ships = metal before the bonus / 2 x ship bonus
+  const top1 = prof.top1_points === null || prof.top1_points === undefined || prof.top1_points === '' ? null : +prof.top1_points;
+  const EXP_BASE = [[50e6, 75e6, 4200000]]; // checked with OGame Tracker (top 1 at 56M points); other ranges still to check
+  const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
+  let maxHtml;
+  if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Inserisci in Impostazioni i punti del primo giocatore in classifica del tuo universo per vedere il massimale delle spedizioni.</p>';
+  else if (!band) maxHtml = `<p class="muted small" style="margin:0">Massimale non ancora disponibile per un primo in classifica a ${fmt(top1)} punti: per ora è verificata solo la fascia da 50 a 75 milioni. Se ci mandi il valore di OGame Tracker per il tuo universo, aggiungiamo la tua fascia.</p>`;
+  else {
+    const k = (cls === 'explorer' ? 1.5 * (1 + (all.explorer_class_bonus || 0)) : 1) * prof.economy_speed;
+    const res = 1 + (all.expedition_resources || 0), ships = 1 + (all.expedition_ships_found || 0);
+    const cargo = 25000 * (1 + 0.05 * (+prof.hyperspace_tech || 0) + (cls === 'collector' ? 0.25 : 0) + (all.civil_cargo || 0));
+    const line = (label, pf) => {
+      const m = band[2] * k * pf * res;
+      return `<tr><td>${label}</td><td>${fmt(m)}</td><td>${fmt(m / 2)}</td><td>${fmt(m / 3)}</td><td>${fmt(band[2] * k * pf / 2 * ships)}</td><td>${fmt(Math.ceil(m / cargo))}</td></tr>`;
+    };
+    maxHtml = `<b class="small">Massimale di un ritrovamento</b>
+      ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder', 2), line('Senza Pathfinder', 1)])}
+      <p class="muted small" style="margin:0">Primo in classifica a ${fmt(top1)} punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}. Stesso calcolo di OGame Tracker.</p>`;
+  }
   h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
+    ${maxHtml}
     <p class="muted small" style="margin:0">Le ricerche forme di vita valgono per tutto l'account: qui c'è la somma di tutti i pianeti, con i potenziamenti degli edifici e del livello della razza.</p>
   </div>`;
   // Class: every bonus of the player's class, as the game's "Bonus classe personaggio" page shows it
@@ -1701,6 +1729,7 @@ $('#save-settings').addEventListener('click', async () => {
   $$('[data-s]').forEach(el => { patch[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   NUM_FIELDS.forEach(k => (patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]));
   CAP_FIELDS.forEach(k => (patch[k] = patch[k] === '' ? null : Math.max(0, parseInt(patch[k], 10))));
+  patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
   const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
   state.profile = r.data;

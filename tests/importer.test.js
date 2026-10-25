@@ -7,7 +7,7 @@ const LF = require('../src/lifeforms.js');
 const planet = {
   name: 'Alfa', galaxy: 2, system: 100, position: 8, temperature: 'da -10°C a 30°C',
   energy: "<div title='x'><span class='overmark'>-1.250</span></div>",
-  1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 14: 10, 15: 5, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11,
+  1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 14: 10, 15: 5, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11, 114: 8,
 };
 const set = (id, lvl, active) => { planet[id] = lvl; planet[id + '_html'] = active ? `<a title="Sviluppa">${lvl}</a>` : `<span class='disabled darkgrey'>(${lvl})</span>`; };
 for (let i = 1; i <= 12; i++) { set(11100 + i, i === 1 ? 7 : 0, false); set(12100 + i, 0, true); }
@@ -26,7 +26,7 @@ const p = snap.pl[0];
 assert.strictEqual(p.t, 30);
 assert.strictEqual(p.e, -1250);
 const m = mapImport(snap, [], LF);
-assert.deepStrictEqual(m.profile, { player_class: 'collector', economy_speed: 3, plasma_tech: 12, energy_tech: 14, astro_tech: 11, universe: 'Test', nickname: 'Someone' });
+assert.deepStrictEqual(m.profile, { player_class: 'collector', economy_speed: 3, plasma_tech: 12, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
 const d = m.planets[0].data;
 assert.strictEqual(d.lf_race, 'rocktal');
 assert.deepStrictEqual(d.lf_buildings, { magma_forge: 12, monolith: 3 });

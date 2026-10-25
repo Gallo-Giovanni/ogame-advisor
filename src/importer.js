@@ -31,7 +31,7 @@ function grabEmpire(html, meta) {
     v: 1,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
-    res: { plasma: first['122'], energy: first['113'], astro: first['124'] },
+    res: { plasma: first['122'], energy: first['113'], astro: first['124'], hyper: first['114'] },
     pl: data.planets.map(p => {
       const lf = {};
       for (const k of Object.keys(p)) {
@@ -75,6 +75,7 @@ function mapImport(snap, existing, LF) {
     if (snap.res.plasma != null) profile.plasma_tech = +snap.res.plasma;
     if (snap.res.energy != null) profile.energy_tech = +snap.res.energy;
     if (snap.res.astro != null) profile.astro_tech = +snap.res.astro;
+    if (snap.res.hyper != null) profile.hyperspace_tech = +snap.res.hyper;
   }
   if (snap.ally) profile.alliance_trader = snap.ally === ALLY_TRADER_ID;
   if (snap.uni) profile.universe = snap.uni;
