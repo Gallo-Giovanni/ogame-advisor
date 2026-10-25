@@ -95,7 +95,9 @@ const LIFEFORMS = {
         // +0.25% effect per level, but ONLY on Kaelesh lifeform techs of this planet (game description),
         // unlike Metropolis and the Mecha buildings that boost all techs of the planet. Energy not shown in the table.
         cloning_lab: { it: 'Laboratorio Clonazione', effect: { techBoostOwnRace: 0.0025 }, perLevel: true, source: 'game' },
-        vortex_chamber: null, // Camera Vortex: research cost/time reduction per level: todo (table not seen yet)
+        // Kaelesh research building: -0.25% research cost and -2% research time per level (shown rounded)
+        vortex_chamber: { it: 'Camera Vortex', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          energy: [10, 23, 37, 54, 73, 95, 119, 148, 179, 215, 256, 302, 353, 411, 475] },
         // No effect on production, energy or costs (game descriptions): Rifugio, Condensatore Antimateria,
         // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
         // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
