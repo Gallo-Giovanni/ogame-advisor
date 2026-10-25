@@ -4,7 +4,7 @@
 const CHANGELOG = [
   {
     id: 35, date: '2026-10-25', title: 'Scambi di risorse',
-    text: 'Nuova scheda Scambi: scrivi quanto dai e quale risorsa vuoi in cambio, e l\'app ti dice quanto devi ricevere con il tasso ufficiale del regolamento (2,5 : 1,5 : 1), più la tabella di tutti i cambi.',
+    text: 'Nuova scheda Scambi: scrivi quanto dai e quale risorsa vuoi in cambio, e l\'app ti dice quanto devi ricevere con il tasso ufficiale del regolamento (2,5 : 1,5 : 1), più la tabella di tutti i cambi e la regola delle 72 ore per concludere lo scambio.',
   },
   {
     id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
