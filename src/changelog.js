@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 26, date: '2026-10-25', title: 'Filtro dei consigli',
+    text: 'In Consigli puoi mostrare solo Miniere, solo Edifici forme di vita, solo Ricerche forme di vita oppure solo Plasma e colonia. Il filtro funziona insieme al menu "Mostra" del pianeta e l\'app ricorda la scelta. Le ricerche forme di vita arriveranno nei consigli quando avremo i loro costi.',
+  },
+  {
     id: 25, date: '2026-10-25', title: 'Edifici forme di vita nei consigli',
     text: 'Sui pianeti Rock\'tal i consigli ora includono Fusione magmatica, Cristalleria e Sintonizzatore di deuterio, nella stessa classifica delle miniere, con costo ed energia verificati sul gioco e lo sconto del Monolite. Fatto alza il livello dell\'edificio. Le altre razze arriveranno quando avremo i loro costi.',
   },
