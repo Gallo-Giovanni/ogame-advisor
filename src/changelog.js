@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 31, date: '2026-10-25', title: 'Filtro a scelta multipla',
+    text: 'Nel filtro dei consigli puoi spuntare più tipi insieme, per esempio Miniere e Ricerche forme di vita, oppure tutti tranne uno. Tutti (o tutte le spunte) mostra l\'intera classifica. L\'app ricorda la scelta.',
+  },
+  {
     id: 30, date: '2026-10-25', title: 'Primo accesso più veloce',
     text: 'Chi si registra sceglie subito come caricare l\'impero: importandolo dalla Vista impero del gioco con il pulsante nei preferiti (consigliato, da PC) oppure inserendolo a mano. Dopo l\'importazione resta solo una schermata con ufficiali e livelli delle razze, poi si va ai consigli.',
   },

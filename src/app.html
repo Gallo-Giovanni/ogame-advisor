@@ -348,11 +348,11 @@
           </div>
         </div>
         <div class="chips" id="filter-type" role="group" aria-label="Tipo di consiglio" style="margin-top:10px">
-          <button type="button" class="chip" data-ftype="" aria-pressed="true">Tutti</button>
-          <button type="button" class="chip" data-ftype="mines" aria-pressed="false">Miniere</button>
-          <button type="button" class="chip" data-ftype="lfb" aria-pressed="false">Edifici forme di vita</button>
-          <button type="button" class="chip" data-ftype="lft" aria-pressed="false">Ricerche forme di vita</button>
-          <button type="button" class="chip" data-ftype="other" aria-pressed="false">Plasma e colonia</button>
+          <button type="button" class="chip" data-ftype="" aria-pressed="false"><span class="box"></span>Tutti</button>
+          <button type="button" class="chip" data-ftype="mines" aria-pressed="false"><span class="box"></span>Miniere</button>
+          <button type="button" class="chip" data-ftype="lfb" aria-pressed="false"><span class="box"></span>Edifici forme di vita</button>
+          <button type="button" class="chip" data-ftype="lft" aria-pressed="false"><span class="box"></span>Ricerche forme di vita</button>
+          <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span>Plasma e colonia</button>
         </div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
@@ -852,16 +852,18 @@ function renderAdvice() {
   let recs = Engine.recommendations(profile, planets);
   if (filter) recs = recs.filter(r => r.planetId === filter);
   // type filter: mines (with the energy fixes they need), lifeform buildings, lifeform research
-  const ftype = state.ftype || '';
+  // several types can be chosen together; none chosen = all
+  const types = state.ftypes;
   const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
-  if (ftype) recs = recs.filter(r => TYPE_OF[r.type] === ftype);
+  if (types.size) recs = recs.filter(r => types.has(TYPE_OF[r.type]));
+  const ftype = types.size === 1 ? [...types][0] : '';
   recs = recs.slice(0, limit);
   state.recs = recs;
   let n = 0;
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
-    : 'Nessun consiglio: aggiungi almeno un pianeta.';
+    : types.size ? 'Nessun consiglio per i tipi scelti.' : 'Nessun consiglio: aggiungi almeno un pianeta.';
   $('#recs').innerHTML = recs.length ? recs.map((r, i) => `
     <details class="rec ${r.urgent ? 'urgent' : ''}">
       <summary>
@@ -886,13 +888,27 @@ $('#filter-planet').addEventListener('change', () => {
   renderAdvice();
 });
 $('#filter-count').addEventListener('change', renderAdvice);
-try { state.ftype = localStorage.getItem('ogadv-ftype') || ''; } catch (e) { state.ftype = ''; }
-$$('#filter-type [data-ftype]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ftype === state.ftype));
+// Type filter: tick one or more types; "Tutti" (or ticking every type) shows everything
+const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
+state.ftypes = new Set();
+try { (localStorage.getItem('ogadv-ftype') || '').split(',').filter(t => ALL_TYPES.includes(t)).forEach(t => state.ftypes.add(t)); } catch (e) {}
+function paintTypeChips() {
+  $$('#filter-type [data-ftype]').forEach(b => {
+    const on = b.dataset.ftype ? state.ftypes.has(b.dataset.ftype) : !state.ftypes.size;
+    b.setAttribute('aria-pressed', on);
+    b.querySelector('.box').textContent = on ? '✓' : '';
+  });
+}
+paintTypeChips();
 $('#filter-type').addEventListener('click', e => {
   const b = e.target.closest('[data-ftype]'); if (!b) return;
-  state.ftype = b.dataset.ftype;
-  $$('#filter-type [data-ftype]').forEach(x => x.setAttribute('aria-pressed', x === b));
-  try { localStorage.setItem('ogadv-ftype', state.ftype); } catch (err) {}
+  const t = b.dataset.ftype;
+  if (!t) state.ftypes.clear();
+  else if (state.ftypes.has(t)) state.ftypes.delete(t);
+  else state.ftypes.add(t);
+  if (state.ftypes.size === ALL_TYPES.length) state.ftypes.clear();
+  paintTypeChips();
+  try { localStorage.setItem('ogadv-ftype', [...state.ftypes].join(',')); } catch (err) {}
   renderAdvice();
 });
 
