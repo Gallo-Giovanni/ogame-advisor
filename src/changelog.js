@@ -3,6 +3,14 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 24, date: '2026-10-25', title: 'Energia sempre aggiornata',
+    text: 'Se hai inserito l\'energia del gioco e poi cambi satelliti solari, centrali, miniere o crawler, l\'app aggiorna da sola il valore. Inoltre il bonus dei crawler si ferma al +50% di produzione, come nel gioco.',
+  },
+  {
+    id: 23, date: '2026-10-25', title: 'Razza, edifici e ricerche delle forme di vita',
+    text: 'Nella scheda del pianeta scegli la razza, inserisci i livelli degli edifici e, per ogni slot T1/T2/T3, la ricerca e il suo livello. L\'app calcola i bonus da sola: edifici solo sul loro pianeta, ricerche su tutti i pianeti, potenziate dagli edifici e dal livello della razza (in Impostazioni). Il totale si confronta con la riga "Bonus Tecnologia Forme di vita" del gioco. Le percentuali manuali restano finché non inserisci razza e ricerche.',
+  },
+  {
     id: 22, date: '2026-10-25', title: 'Centro di Mineralogia: energia',
     text: 'Il consiglio "Centro di Mineralogia 1 + miniera" ora conta anche i 120 di energia che il Centro consuma, con i satelliti necessari inclusi nel costo.',
   },

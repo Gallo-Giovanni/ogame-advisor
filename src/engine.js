@@ -2,6 +2,11 @@
 // Pure functions: no DOM, no network. Works in the browser and in Node (for tests).
 
 const Engine = (() => {
+  // Lifeform data (src/lifeforms.js): global in the browser, require() in Node
+  const LF = typeof LIFEFORMS !== 'undefined' ? LIFEFORMS
+    : (typeof require !== 'undefined' ? require('./lifeforms.js') : null);
+  const LF_RACES = ['humans', 'rocktal', 'mechas', 'kaelesh'];
+  const LF_KEYS = ['metal', 'crystal', 'deut', 'energy', 'plasma_tech_cost'];
   const RES = ['metal', 'crystal', 'deut'];
 
   // ---- Cost of building the given level (from level-1 to level) ----
@@ -40,7 +45,12 @@ const Engine = (() => {
     deut_synth:   L => Math.ceil(20 * g(L)),
   };
   // Lifeform technologies can lower the energy used by the mines (e.g. -5%)
-  const consFactor = profile => 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
+  // Lower energy use of the mines: from the planet's lifeform buildings when lifeforms are entered
+  // (Rock'tal Disruption Chamber), otherwise from the manual account value
+  const consFactor = (profile, planet) => {
+    if (profile && profile._lf && profile._lf.computed && planet) return Math.max(0, 1 + buildingEffects(planet).mineConsumption);
+    return 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
+  };
   // The fusion reactor burns deuterium: 10 x L x 1.1^L per hour, times the economy speed
   const fusionDeut = L => 10 * g(L);
 
@@ -57,12 +67,13 @@ const Engine = (() => {
     return Math.max(0, Math.min(p, isCollector(profile) ? 1.5 : 1));
   };
   const workingCrawlers = (planet, profile) => Math.min(+planet.crawlers || 0, maxCrawlers(planet, profile));
+  // the crawlers can add at most +50% production (official guide: a Collector at 150% reaches it with 1,111 crawlers)
   const crawlerBonus = (profile, planet) =>
-    workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile);
+    Math.min(0.5, workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile));
   const crawlerEnergy = (profile, planet) => {
     const p = crawlerPct(planet, profile);
     const energyShare = p <= 1 ? p : 1 + 2 * (p - 1); // overload: +20% energy per +10%
-    return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile));
+    return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile, planet));
   };
 
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
@@ -74,6 +85,53 @@ const Engine = (() => {
   const solarEnergy = L => Math.floor(20 * g(L));
   const fusionEnergy = (L, energyTech) => Math.floor(30 * L * Math.pow(1.05 + 0.01 * energyTech, L));
   const satelliteEnergy = tMax => Math.max(1, Math.floor((tMax + 140) / 6));
+
+  // ---- Lifeforms ----
+  // Effects of the lifeform buildings of a planet (race of the planet, levels in planet.lf_buildings)
+  function buildingEffects(planet) {
+    const e = { metal: 0, crystal: 0, deut: 0, energy: 0, mineConsumption: 0, techBoost: 0, techBoostOwnRace: 0 };
+    const race = planet && planet.lf_race;
+    if (!LF || !race || !LF.races[race]) return e;
+    const levels = planet.lf_buildings || {};
+    for (const [key, b] of Object.entries(LF.races[race].buildings)) {
+      if (!b || !b.effect || key === 'mineral_centre') continue; // the Centre works on costs (mrc_level)
+      const lvl = +levels[key] || 0;
+      for (const k of Object.keys(e)) if (b.effect[k]) e[k] += b.effect[k] * lvl;
+    }
+    return e;
+  }
+  // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
+  // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
+  function techEffect(profile, planet, slot, entry) {
+    const out = {};
+    if (!LF || !entry || !LF.races[entry.race] || !(+entry.level > 0)) return out;
+    const tech = LF.races[entry.race].techs[slot - 1];
+    if (!tech) return out;
+    const be = buildingEffects(planet);
+    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
+    const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
+    for (const k of LF_KEYS) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    return out;
+  }
+  // Lifeform techs act on every planet: sum them over the whole account (all planets, also excluded ones)
+  function techTotals(profile, planets) {
+    const t = Object.fromEntries(LF_KEYS.map(k => [k, 0]));
+    for (const p of planets) {
+      const techs = p.lf_techs || {};
+      for (const slot of Object.keys(techs)) {
+        const eff = techEffect(profile, p, +slot, techs[slot]);
+        for (const k of LF_KEYS) t[k] += eff[k] || 0;
+      }
+    }
+    return t;
+  }
+  const hasLifeforms = p => !!p.lf_race || Object.values(p.lf_techs || {}).some(e => e && e.race && +e.level > 0);
+  // Profile with the lifeform totals attached. When no planet has a race or techs, the manual
+  // percentages of each planet (lf_metal...) are used instead, as before.
+  function withLifeforms(profile, planets) {
+    const computed = planets.some(hasLifeforms);
+    return { ...profile, _lf: { computed, tech: techTotals(profile, planets) } };
+  }
 
   // ---- Bonuses ----
   function positionBonus(pos) {
@@ -90,8 +148,13 @@ const Engine = (() => {
     const pos = positionBonus(planet.position);
     // per-resource booster plus the booster on all three resources (energy has its own)
     const it = k => (withItems ? ((+planet[k] || 0) + (k === 'item_energy' ? 0 : +planet.item_all || 0)) / 100 : 0);
-    // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
-    const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
+    // Lifeform bonus: from race, buildings and techs when entered; otherwise the manual % of the planet
+    // (older data falls back to the account value)
+    const LFX = profile._lf && profile._lf.computed;
+    const be = LFX ? buildingEffects(planet) : null;
+    const lfMap = { lf_metal: 'metal', lf_crystal: 'crystal', lf_deut: 'deut', lf_energy: 'energy' };
+    const lf = (k, old) => LFX ? be[lfMap[k]] + profile._lf.tech[lfMap[k]]
+      : (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
       + (profile.player_class === 'collector' ? 0.25 : 0)
@@ -114,6 +177,18 @@ const Engine = (() => {
     bundle[0] * profile.ratio_metal + bundle[1] * profile.ratio_crystal + bundle[2] * profile.ratio_deut;
   const toMetalEq = (bundle, profile) => value(bundle, profile) / profile.ratio_metal;
 
+  // Energy the planet produces (solar plant, fusion reactor, solar satellites, with bonuses) and the
+  // energy its mines and crawlers use, from the building levels
+  function energyModel(profile, planet, mult = multipliers(profile, planet), needOwn) {
+    if (needOwn === undefined) needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
+      + consumption.crystal_mine(planet.crystal_mine) + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet))
+      + crawlerEnergy(profile, planet);
+    const produced = Math.floor((solarEnergy(planet.solar_plant)
+      + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
+      + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max)) * mult.energy);
+    return { produced, need: needOwn, balance: produced - needOwn };
+  }
+
   // ---- Planet state ----
   function planetState(profile, planet) {
     const speed = profile.economy_speed;
@@ -123,10 +198,8 @@ const Engine = (() => {
     // Energy used by mines and crawlers (lifeform buildings use energy too, but only the game knows how much)
     const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
-      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile)) + crawlerEnergy(profile, planet);
-    const producedModel = Math.floor((solarEnergy(planet.solar_plant)
-      + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
-      + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max)) * mult.energy);
+      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet)) + crawlerEnergy(profile, planet);
+    const { produced: producedModel } = energyModel(profile, planet, mult, needOwn);
 
     let balance, produced, need;
     if (planet.energy_balance !== null && planet.energy_balance !== undefined && planet.energy_balance !== '') {
@@ -232,7 +305,7 @@ const Engine = (() => {
     const astroCost = cost.slice();
     add(COLONY_SHIP);
     MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
-    const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile));
+    const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
     const fix = energyFix(profile, colony, needEnergy);
     if (fix) add(fix.cost);
 
@@ -260,6 +333,7 @@ const Engine = (() => {
   const active = planets => planets.filter(p => p.included !== false);
 
   function recommendations(profile, allPlanets) {
+    if (!profile._lf) profile = withLifeforms(profile, allPlanets);
     const planets = active(allPlanets);
     const out = [];
     const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(r => r / profile.ratio_metal);
@@ -288,7 +362,7 @@ const Engine = (() => {
         const next = L + 1;
         if (overCap(profile[m.cap], next)) return; // player's "stop at level"
         const cost = mineCost(m.key, next, mrcLevel(planet));
-        const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile));
+        const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile, planet));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
         const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
@@ -329,7 +403,8 @@ const Engine = (() => {
     // 3) Plasma technology (global)
     const nextPlasma = (profile.plasma_tech || 0) + 1;
     const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
-    const plasmaCost = levelCost('plasma', nextPlasma);
+    const plasmaDisc = profile._lf ? Math.max(-0.99, profile._lf.tech.plasma_tech_cost) : 0; // e.g. Rock'tal Stellarator
+    const plasmaCost = levelCost('plasma', nextPlasma).map(x => Math.round(x * (1 + plasmaDisc)));
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
       const s = profile.economy_speed;
@@ -364,7 +439,7 @@ const Engine = (() => {
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
       if (rec.withMrc) { patch.mrc_level = 1; balance -= MRC_ENERGY_L1; }
-      balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile));
+      balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile, planet));
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
@@ -387,6 +462,7 @@ const Engine = (() => {
   }
 
   function totals(profile, planets) {
+    if (!profile._lf) profile = withLifeforms(profile, planets);
     const t = [0, 0, 0];
     active(planets).forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
     return t;
@@ -394,7 +470,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 

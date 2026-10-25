@@ -124,6 +124,7 @@
   .pe-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
   .pe-grid h3 { margin: 0; }
   .pe-wide { grid-column: span 2; }
+  .pe-full { grid-column: 1 / -1; }
   @media (max-width: 1060px) { .pe-wide { grid-column: auto; } }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
@@ -140,6 +141,23 @@
   .chip[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); color: #1a1200; }
   .chip.odd { border-style: dashed; }
   @media (max-width: 600px) { .brow { grid-template-columns: 1fr; gap: 6px; } }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .dot.g { color: #3ddc97; } .dot.y { color: #ffd23f; } .dot.p { color: #c98bff; }
+  .lfb { display: grid; grid-template-columns: 1fr 70px 1.3fr; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .lfb:first-child { border-top: 0; }
+  .lfb input { padding: 5px 6px; }
+  .tier { font: 700 .8rem Inter, sans-serif; color: var(--accent); margin: 10px 0 2px; letter-spacing: .05em; }
+  .trow { display: grid; grid-template-columns: 26px 1fr 64px 190px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+  .trow input { padding: 5px 6px; }
+  .trow .slot { color: var(--muted); font-weight: 600; }
+  .tchip .r { font-weight: 700; font-size: .65rem; padding: 0 4px; border-radius: 4px; color: #0b1020; }
+  .tchip .dot { font-size: .55rem; }
+  .R-humans { background: #7fb2ff } .R-rocktal { background: #ff9a5c } .R-mechas { background: #6fd3ff } .R-kaelesh { background: #c98bff }
+  .eff b { color: var(--ok); font-weight: 600; }
+  @media (max-width: 700px) {
+    .trow { grid-template-columns: 22px 1fr; } .trow input, .trow .eff { grid-column: 2; }
+    .lfb { grid-template-columns: 1fr 70px; } .lfb .eff { grid-column: 1 / -1; }
+  }
   .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
   .tile { position: relative; width: 74px; border-radius: 8px; overflow: hidden; background: var(--bg2); border: 1px solid var(--line); }
   .tile .art { height: 50px; display: grid; place-items: center; }
@@ -221,6 +239,13 @@
       <div class="grid">
         <div><label>Riduzione consumo energia miniere %</label><input data-p="energy_consumption_reduction" type="number" step="0.01" min="0" max="100" value="0"></div>
       </div>
+      <p class="muted small">Livello di ogni forma di vita (0 se non la usi). Razza, edifici e ricerche li inserisci poi nella scheda di ogni pianeta.</p>
+      <div class="grid">
+          <div><label>Livello Umani</label><input data-p="lf_level_humans" type="number" min="0"></div>
+          <div><label>Livello Rock'tal</label><input data-p="lf_level_rocktal" type="number" min="0"></div>
+          <div><label>Livello Mecha</label><input data-p="lf_level_mechas" type="number" min="0"></div>
+          <div><label>Livello Kaelesh</label><input data-p="lf_level_kaelesh" type="number" min="0"></div>
+        </div>
       <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
       <div class="grid">
         <div><label>Metallo</label><input data-p="ratio_metal" type="number" step="0.1" min="0.1" value="1"></div>
@@ -323,9 +348,8 @@
             <div class="grid">
               <div><label>Crawler</label><input data-f="crawlers" type="number" min="0"></div>
               <div><label>Produzione crawler</label><select data-f="crawler_pct"><option value="150">150%</option><option value="140">140%</option><option value="130">130%</option><option value="120">120%</option><option value="110">110%</option><option value="100">100%</option><option value="90">90%</option><option value="80">80%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option><option value="40">40%</option><option value="30">30%</option><option value="20">20%</option><option value="10">10%</option><option value="0">0%</option></select></div>
-              <div><label>Centro di Mineralogia</label><input data-f="mrc_level" type="number" min="0" placeholder="vuoto se non Rock'tal"></div>
             </div>
-            <p class="muted small" style="margin:0" id="pe-crawler-info">Funzionano al massimo 8 crawler per livello di miniera. Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.</p>
+            <p class="muted small" style="margin:0" id="pe-crawler-info">Funzionano al massimo 8 crawler per livello di miniera.</p>
           </div>
           <div class="card stack">
             <h3>Energia</h3>
@@ -335,7 +359,7 @@
               <div><label>Satelliti solari</label><input data-f="solar_satellites" type="number" min="0"></div>
               <div><label>Energia in gioco (facoltativa)</label><input data-f="energy_balance" type="number" placeholder="es. -500"></div>
             </div>
-            <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Visuale impero, anche negativo. Se la inserisci i calcoli usano quella, che è il valore più preciso.</p>
+            <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Visuale impero, anche negativo. Se la inserisci i calcoli usano quella, che è il valore più preciso: comprende anche l'energia usata dagli edifici delle forme di vita. Se poi cambi satelliti, centrali, miniere o crawler, l'app la aggiorna da sola.</p>
           </div>
           <div class="card stack pe-wide">
             <h3>Booster attivi</h3>
@@ -345,18 +369,26 @@
             <input type="hidden" data-f="item_all"><input type="hidden" data-f="item_energy">
             <div class="small muted" id="booster-total"></div>
           </div>
-          <div class="card stack">
+          <div class="card stack pe-full">
             <h3>Forme di vita</h3>
-            <p class="muted small" style="margin:0">Bonus di produzione di questo pianeta, in percentuale. Se non li conosci usa il calcolatore qui sotto. Lascia 0 se non usi le forme di vita.</p>
-            <div class="grid">
-              <div><label>Metallo %</label><input data-f="lf_metal" type="number" step="0.01" min="0" max="1000"></div>
-              <div><label>Cristallo %</label><input data-f="lf_crystal" type="number" step="0.01" min="0" max="1000"></div>
-              <div><label>Deuterio %</label><input data-f="lf_deut" type="number" step="0.01" min="0" max="1000"></div>
-              <div><label>Energia %</label><input data-f="lf_energy" type="number" step="0.01" min="0" max="1000"></div>
-            </div>
+            <input type="hidden" data-f="lf_race">
+            <div><label>Razza di questo pianeta</label><div class="chips" id="lf-race"></div></div>
+            <div id="lf-buildings" class="stack"></div>
+            <h4 style="margin:4px 0 0">Ricerche</h4>
+            <p class="muted small" style="margin:0">Per ogni slot scegli la razza della ricerca fatta su questo pianeta e inserisci il livello. Le ricerche valgono su tutti i pianeti: l'app le somma per tutto l'account.</p>
+            <div class="legend small muted"><span><span class="dot g">●</span> aumenta la produzione delle miniere</span><span><span class="dot y">●</span> aumenta solo l'energia</span><span><span class="dot p">●</span> riduce il costo della ricerca Plasma</span></div>
+            <div id="lf-techs"></div>
+            <div id="lf-sum" class="small muted"></div>
             <details class="card" style="background:var(--bg2)">
-              <summary style="cursor:pointer"><b>Calcolatore</b> <span class="muted small">dalla pagina Impostazioni risorse del gioco</span></summary>
-              <p class="muted small">Apri <b>Risorse → Impostazioni risorse</b> di questo pianeta. Per ogni colonna copia il valore della riga della miniera e la somma delle righe delle forme di vita (gli edifici delle forme di vita e la riga "Bonus Tecnologia Forme di vita"). La percentuale si compila da sola.</p>
+              <summary style="cursor:pointer"><b>Percentuali manuali</b> <span class="muted small">(solo se non inserisci razza e ricerche)</span></summary>
+              <p class="muted small" id="lf-manual-note">Usate solo finché nessun pianeta ha razza o ricerche inserite. Per ricavarle apri <b>Risorse → Impostazioni risorse</b> e usa il calcolatore.</p>
+              <div class="grid">
+                <div><label>Metallo %</label><input data-f="lf_metal" type="number" step="0.01" min="0" max="1000"></div>
+                <div><label>Cristallo %</label><input data-f="lf_crystal" type="number" step="0.01" min="0" max="1000"></div>
+                <div><label>Deuterio %</label><input data-f="lf_deut" type="number" step="0.01" min="0" max="1000"></div>
+                <div><label>Energia %</label><input data-f="lf_energy" type="number" step="0.01" min="0" max="1000"></div>
+              </div>
+              <p class="muted small">Calcolatore: per ogni colonna copia il valore della riga della miniera e la somma delle righe delle forme di vita (edifici e "Bonus Tecnologia Forme di vita").</p>
               <div class="grid" id="lf-calc"></div>
             </details>
           </div>
@@ -381,6 +413,14 @@
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Riduzione consumo energia miniere %</label><input data-s="energy_consumption_reduction" type="number" step="0.01" min="0" max="100"></div>
+        </div>
+        <h3 style="margin-top:8px">Livello forme di vita</h3>
+        <p class="muted small" style="margin-top:0">Nel gioco ogni livello aumenta dello 0,1% l'effetto delle ricerche di quella razza (pagina Forme di vita, "Bonus Tecnologia Forme di vita"). La riduzione del consumo qui sopra serve solo se non inserisci gli edifici delle forme di vita nei pianeti.</p>
+        <div class="grid">
+          <div><label>Livello Umani</label><input data-s="lf_level_humans" type="number" min="0"></div>
+          <div><label>Livello Rock'tal</label><input data-s="lf_level_rocktal" type="number" min="0"></div>
+          <div><label>Livello Mecha</label><input data-s="lf_level_mechas" type="number" min="0"></div>
+          <div><label>Livello Kaelesh</label><input data-s="lf_level_kaelesh" type="number" min="0"></div>
         </div>
         <div class="grid">
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
@@ -424,7 +464,7 @@
         <label class="check"><input type="checkbox" data-group="mines" checked> Miniere e crawler</label>
         <label class="check"><input type="checkbox" data-group="energy" checked> Centrali e satelliti</label>
         <label class="check"><input type="checkbox" data-group="items" checked> Item</label>
-        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita e Centro di Mineralogia</label>
+        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita (razza, edifici, ricerche)</label>
       </div>
       <b class="small" style="margin-top:8px">Su quali pianeti</b>
       <div id="copy-list" class="stack"></div>
@@ -442,10 +482,225 @@
 </div>
 
 <script>
+// Lifeform data collected for OGame Advisor. Not used by the app yet.
+// Every value says where it comes from:
+//   'game'  = checked against numbers shown by the game
+//   'guide' = official forum guide (board.it.ogame.gameforge.com, thread 494520), not yet checked on the game
+//   'todo'  = still missing
+// Nothing here is guessed: unknown values stay null.
+
+const LIFEFORMS = {
+  // Rules shared by all races
+  rules: {
+    buildingsScope: 'planet',            // guide: building effects apply only on the planet where they are built
+    techScope: 'account',                // guide: tech effects apply to all planets; techs of different races can be mixed
+    techSlotsPerRace: 18,                // guide; slots 1-6 = T1, 7-12 = T2, 13-18 = T3 (game)
+    // each slot N holds slot N of ONE race, chosen by the player (game, confirmed by the player)
+    raceSwitchCooldownHours: 48,         // guide
+    // Effective tech bonus = base x (1 + tech-boost building of the planet) x (1 + race level bonus)  (guide example 2, recomputed: 1.599 vs 1.598 shown)
+    techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
+    levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
+  },
+
+  races: {
+    rocktal: {
+      name: "Rock'tal",
+      note: 'Boosts the Collector class bonus (game description). How much: todo.',
+      // Values from the game's Tech Info tables. Energy = energy used by the building at that level.
+      buildings: {
+        magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
+          energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
+        crystal_refinery:   { it: 'Cristalleria', effect: { crystal: 0.02 }, perLevel: true, source: 'game',
+          energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
+        deuterium_tuner:    { it: 'Sintonizzatore di deuterio', effect: { deut: 0.02 }, perLevel: true, source: 'game',
+          energy: { 3: 359, 4: 527, 5: 724, 6: 956, 7: 1227, 8: 1543, 9: 1909, 10: 2334, 11: 2824, 12: 3389, 13: 4039, 14: 4784, 15: 5639, 16: 6616, 17: 7733 } },
+        // +1.5% energy and -0.5% energy used by the mines per level (level 10 = +15% / -5%)
+        disruption_chamber: { it: 'Camera di Disgregazione', effect: { energy: 0.015, mineConsumption: -0.005 }, perLevel: true, source: 'game' },
+        // -0.5% cost of resource buildings per level; the game shows it rounded up (level 1 = -1%, level 3 = -2%)
+        mineral_centre:     { it: 'Centro di Mineralogia', effect: { mineCost: -0.005 }, perLevel: true, level1Cost: [250000, 150000, 100000], source: 'game',
+          energy: [120, 405, 790, 1370, 2227, 3475, 5270, 7831, 11452, 16543, 23656, 33549, 47248, 66147, 92134] },
+        // cost, energy and build time of Rock'tal buildings; the table is not linear, so the values are kept as shown
+        monolith:           { it: 'Monolite', source: 'game',
+          buildingCostByLevel: { 3: -0.03, 4: -0.04, 5: -0.05, 6: -0.06, 7: -0.08, 8: -0.08, 9: -0.09, 10: -0.10, 11: -0.11, 12: -0.12, 13: -0.13, 14: -0.15, 15: -0.15, 16: -0.16, 17: -0.17 },
+          energy: { 3: 527, 4: 913, 5: 1485, 6: 2316, 7: 3513, 8: 5220, 9: 7635, 10: 11028, 11: 15771, 12: 22366, 13: 31499, 14: 44098, 15: 61423, 16: 85173, 17: 117645 } },
+        // Rock'tal research building: -0.25% research cost and -2% research time per level (half the cost effect of the Human one)
+        tecnologicus_runarum: { it: 'Tecnologicus Runarum', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          energy: { 8: 257, 9: 318, 10: 389, 11: 470, 12: 564, 13: 673, 14: 797, 15: 939, 16: 1102, 17: 1288, 18: 1501, 19: 1743, 20: 2018, 21: 2331, 22: 2686 } },
+        tech_boost: null, // no Rock'tal building boosts lifeform techs (game building list)
+        // No effect on production, energy or costs (game descriptions): Enclave di Meditazione, Produzione di cristalli,
+        // Fucina delle Rune, Orictorium, Impianto di Riciclaggio
+      },
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
+      techs: [
+        { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, used: true },
+        { slot: 2,  tier: 1, key: 'acoustic_scanning',       it: 'Sondaggio acustico',               perLevel: { crystal: 0.0008 }, used: true },
+        { slot: 3,  tier: 1, key: 'high_energy_pump_systems', it: 'Sistemi di pompaggio ad alta energia', perLevel: { deut: 0.0008 }, used: true },
+        { slot: 4,  tier: 1, key: 'cargo_hold_expansion_civil', it: 'Espansione stiva (navi civili)', perLevel: { civil_cargo: 0.004 }, used: false },
+        { slot: 5,  tier: 1, key: 'magma_powered_production', it: 'Tecniche estrattive magmatiche',   perLevel: { metal: 0.0008, crystal: 0.0008, deut: 0.0008 }, used: true },
+        { slot: 6,  tier: 1, key: 'geothermal_power_plants', it: 'Centrali Geotermoelettriche',      perLevel: { energy: 0.0025 }, used: true },
+        { slot: 7,  tier: 2, key: 'depth_sounding',          it: 'Sondaggio da alte profondità',     perLevel: { metal: 0.0008 }, used: true },
+        { slot: 8,  tier: 2, key: 'ion_crystal_heavy_fighter', it: 'Potenziamento da cristallo ionico (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        // reduces cost and time of the Plasma technology: changes the cost of the Plasma recommendation
+        { slot: 9,  tier: 2, key: 'improved_stellarator',    it: 'Concentratore astrale',            perLevel: { plasma_tech_cost: -0.0015, plasma_tech_time: -0.003 }, used: true },
+        { slot: 10, tier: 2, key: 'hardened_diamond_drill_heads', it: 'Punte di diamante irrobustite', perLevel: { metal: 0.0008 }, used: true },
+        { slot: 11, tier: 2, key: 'seismic_mining_tech',     it: 'Tecnologie minerarie sismiche',    perLevel: { crystal: 0.0008 }, used: true },
+        { slot: 12, tier: 2, key: 'magma_powered_pump_systems', it: 'Sistema di pompaggio al magma', perLevel: { deut: 0.0008 }, used: true },
+        // crawler bonus and crawler energy use: whether these % are relative to the crawler values is still to be checked on the game
+        { slot: 13, tier: 3, key: 'ion_crystal_modules',     it: 'Moduli Cristalli ionici',          perLevel: { crawler_bonus: 0.001, crawler_energy: -0.001 }, used: true, formula: 'todo' },
+        { slot: 14, tier: 3, key: 'optimised_silo_construction', it: 'Costruzione Base ottimizzata', perLevel: { missile_silo_cost: -0.001, missile_silo_time: -0.002 }, used: false },
+        { slot: 15, tier: 3, key: 'diamond_energy_transmitter', it: 'Trasmettitore energetico Diamante', perLevel: { energy_tech_cost: -0.001, energy_tech_time: -0.002 }, used: false },
+        { slot: 16, tier: 3, key: 'obsidian_shield_reinforcement', it: 'Miglioramento Scudo ossidiana', perLevel: { defense_armour: 0.005, defense_shield: 0.005, defense_weapons: 0.005 }, used: false },
+        { slot: 17, tier: 3, key: 'rune_shields',            it: 'Scudi runici',                     perLevel: { armour_tech_cost: -0.002, armour_tech_time: -0.002 }, used: false },
+        // raises every Collector class bonus except crawler overload and the build-speedup discount (game description);
+        // how it applies (relative to the class bonus?) is still to be checked on the game
+        { slot: 18, tier: 3, key: 'rocktal_collector_enhancement', it: "Potenziamento Collezionista Rock`tal", perLevel: { collector_class_bonus: 0.002 }, used: true, formula: 'todo' },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo
+    },
+    humans: {
+      name: 'Umani',
+      note: 'Does not boost the class bonus (game description).',
+      // Energy used by each building, levels 1-15, from the game's Tech Info tables (needed when we suggest these buildings)
+      buildings: {
+        high_energy_smelting: { it: 'Fusione ad alta energia', effect: { metal: 0.015 }, perLevel: true, source: 'game',
+          energy: [40, 96, 159, 234, 322, 425, 545, 685, 848, 1037, 1255, 1506, 1795, 2126, 2506] },
+        fusion_production:    { it: 'Tecniche estrattive a fusione', effect: { crystal: 0.015, deut: 0.01 }, perLevel: true, source: 'game',
+          energy: [80, 193, 319, 468, 644, 850, 1091, 1371, 1697, 2074, 2510, 3012, 3590, 4253, 5012] },
+        metropolis:           { it: 'Metropolis', effect: { techBoost: 0.005 }, perLevel: true, source: 'game', // boosts all techs on this planet
+          energy: [90, 198, 312, 437, 574, 723, 886, 1063, 1256, 1466, 1693, 1939, 2206, 2494, 2806] },
+        research_centre:      { it: 'Centro di Ricerca', effect: { techCost: -0.005, techTime: -0.02 }, perLevel: true,
+          max: { techCost: -0.25, techTime: -0.99 }, source: 'guide', // level 15 = -7.5% cost, -30% time
+          energy: { 13: 353, 14: 411, 15: 475, 16: 548, 17: 629, 18: 719, 19: 819, 20: 932, 21: 1057, 22: 1196, 23: 1350, 24: 1521, 25: 1712, 26: 1923, 27: 2156 } },
+        // No effect on production, energy or costs (game descriptions): Zona residenziale, Fattoria della Biosfera,
+        // Accademia delle Scienze, Centro di Neuro-calibrazione, Magazzino Alimentare, Grattacielo,
+        // Laboratorio Biotecnologico, Scudo planetario
+      },
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3.
+      // perLevel = base effect for each level, before the Metropolis/level boosts. All are linear in the tables.
+      // used: true = changes production, energy or costs, so it enters the recommendations.
+      techs: [
+        { slot: 1,  tier: 1, key: 'intergalactic_envoys',    it: 'Ambasciatori intergalattici',     perLevel: { recon_fleet_speed: 0.01 }, used: false },
+        { slot: 2,  tier: 1, key: 'high_performance_extractors', it: 'Estrattori ad alto rendimento', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 3,  tier: 1, key: 'fusion_drives',           it: 'Propulsore a fusione',            perLevel: { civil_ship_speed: 0.005 }, used: false },
+        { slot: 4,  tier: 1, key: 'stealth_field_generator', it: 'Generatore di campo mimetico',    perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'orbital_den',             it: 'Nascondiglio Orbitale',           perLevel: { protected_resources: 0.04 }, used: false },
+        { slot: 6,  tier: 1, key: 'research_ai',             it: 'AI di ricerca',                   perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 7,  tier: 2, key: 'high_performance_terraformer', it: 'Terraformer ad alte prestazioni', perLevel: { terraformer_cost: -0.001, terraformer_time: -0.002 }, used: false },
+        { slot: 8,  tier: 2, key: 'enhanced_production_tech', it: 'Tecnologie di estrazione migliorate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 9,  tier: 2, key: 'light_fighter_mk2',       it: 'Caccia leggero mk II',            perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'cruiser_mk2',             it: 'Incrociatore mk II',              perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 11, tier: 2, key: 'improved_lab_tech',       it: 'Tecnologia di laboratorio migliorata', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 12, tier: 2, key: 'plasma_terraformer',      it: 'Terraformer al plasma',           perLevel: { terraformer_cost: -0.001, terraformer_time: -0.002 }, used: false },
+        { slot: 13, tier: 3, key: 'low_temperature_drives',  it: 'Propulsori a bassa temperatura',  perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 14, tier: 3, key: 'bomber_mk2',              it: 'Bombardiere mk II',               perLevel: { ship: 'bomber', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 15, tier: 3, key: 'destroyer_mk2',           it: 'Corazzata mk II',                 perLevel: { ship: 'destroyer', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 16, tier: 3, key: 'battlecruiser_mk2',       it: 'Incrociatore da battaglia mk II', perLevel: { ship: 'battlecruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'robot_assistants',        it: 'Assistenti robot',                perLevel: { research_time: -0.002, lf_research_time: -0.002 }, used: false },
+        { slot: 18, tier: 3, key: 'supercomputer',           it: 'Supercomputer',                   perLevel: { astrophysics_research_time: -0.003 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo: costs are not in the Tech Info tab
+    },
+    mechas: {
+      name: 'Mecha',
+      // Values from the game's Tech Info tables. Energy = energy used by the building at that level (levels 1-15).
+      buildings: {
+        // Mecha research building: -0.25% research cost and -2% research time per level (shown rounded)
+        robotics_research_centre: { it: 'Centro Ricerca Robotica', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          energy: [13, 30, 49, 70, 95, 123, 155, 192, 233, 280, 333, 392, 459, 534, 618] },
+        // +1% energy and +0.3% lifeform tech effect on this planet per level
+        high_performance_transformer: { it: 'Trasformatore ad alta potenza', effect: { energy: 0.01, techBoost: 0.003 }, perLevel: true, source: 'game',
+          energy: [40, 88, 138, 194, 255, 321, 393, 472, 558, 651, 752, 862, 980, 1108, 1247] },
+        high_performance_synthesizer: { it: 'Sintetizzatore Alte prestazioni', effect: { deut: 0.02 }, perLevel: true, source: 'game',
+          energy: [60, 145, 239, 351, 483, 637, 818, 1028, 1273, 1556, 1883, 2259, 2692, 3189, 3759] },
+        // +0.4% lifeform tech effect on this planet per level
+        chip_mass_production: { it: 'Produzione di massa di chip', effect: { techBoost: 0.004 }, perLevel: true, source: 'game',
+          energy: [70, 154, 243, 340, 446, 562, 689, 827, 977, 1140, 1316, 1508, 1715, 1940, 2182] },
+        // No effect on production, energy or costs (game descriptions): Linea di produzione, Fabbrica Celle a fusione,
+        // Network Aggiornamento, Centro Calcolo Quantistico, Centro Assemblaggio Automatizzato (ship build time),
+        // Linea di produzione Microchip, Sala Catena di Montaggio, Nanobot Riparazione
+      },
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
+      techs: [
+        { slot: 1,  tier: 1, key: 'catalyser_technology',    it: 'Tecnologia Catalizzatore',         perLevel: { deut: 0.0008 }, used: true },
+        { slot: 2,  tier: 1, key: 'plasma_drive',            it: 'Unità al plasma',                  perLevel: { ship_speed: 0.002 }, used: false }, // not the Deathstar
+        { slot: 3,  tier: 1, key: 'efficiency_module',       it: 'Modulo Efficienza',                perLevel: { fleet_fuel: -0.0003 }, used: false }, // max -90% of base, server setting
+        { slot: 4,  tier: 1, key: 'depot_ai',                it: 'IA deposito',                      perLevel: { alliance_depot_cost: -0.001, alliance_depot_time: -0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'light_fighter_overhaul',  it: 'Revisione generale (Caccia leggero)', perLevel: { ship: 'light_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 6,  tier: 1, key: 'automated_transport_lines', it: 'Linee di trasporto automatizzate', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 7,  tier: 2, key: 'improved_drone_ai',       it: 'IA Droni migliorata',              perLevel: { espionage_tech_cost: -0.001, espionage_tech_time: -0.002 }, used: false },
+        { slot: 8,  tier: 2, key: 'experimental_recycling',  it: 'Tecnica sperimentale Rigenerazione', perLevel: { ship: 'recycler', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
+        { slot: 9,  tier: 2, key: 'cruiser_overhaul',        it: 'Revisione generale (Incrociatore)', perLevel: { ship: 'cruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'slingshot_autopilot',     it: 'Pilota automatico Slingshot',      perLevel: { recall_fuel_recovered: 0.0015 }, used: false },
+        { slot: 11, tier: 2, key: 'high_temperature_superconductors', it: 'Superconduttore Alta temperatura', perLevel: { energy_tech_cost: -0.001, energy_tech_time: -0.002 }, used: false },
+        { slot: 12, tier: 2, key: 'battleship_overhaul',     it: 'Revisione generale (Nave da battaglia)', perLevel: { ship: 'battleship', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 13, tier: 3, key: 'artificial_swarm_intelligence', it: 'Intelligenza collettiva artificiale', perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 14, tier: 3, key: 'battlecruiser_overhaul',  it: 'Revisione generale (Incrociatore da battaglia)', perLevel: { ship: 'battlecruiser', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 15, tier: 3, key: 'bomber_overhaul',         it: 'Revisione generale (Bombardiere)', perLevel: { ship: 'bomber', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 16, tier: 3, key: 'destroyer_overhaul',      it: 'Revisione generale (Corazzata)',   perLevel: { ship: 'destroyer', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'experimental_weapons_tech', it: 'Tecnologia Armi sperimentale',   perLevel: { weapons_tech_cost: -0.002, weapons_tech_time: -0.002 }, used: false },
+        // raises the General class bonuses (fleet), except the ones listed in the game description
+        { slot: 18, tier: 3, key: 'mechan_general_enhancement', it: 'Rinforzo generale Mecha',      perLevel: { general_class_bonus: 0.002 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo
+    },
+    kaelesh: {
+      name: 'Kaelesh',
+      note: 'Boosts the Explorer class bonus (game description). How much: todo.',
+      buildings: {
+        // +0.25% effect per level, but ONLY on Kaelesh lifeform techs of this planet (game description),
+        // unlike Metropolis and the Mecha buildings that boost all techs of the planet. Energy not shown in the table.
+        cloning_lab: { it: 'Laboratorio Clonazione', effect: { techBoostOwnRace: 0.0025 }, perLevel: true, source: 'game' },
+        // Kaelesh research building: -0.25% research cost and -2% research time per level (shown rounded)
+        vortex_chamber: { it: 'Camera Vortex', effect: { techCost: -0.0025, techTime: -0.02 }, perLevel: true, source: 'game',
+          energy: [10, 23, 37, 54, 73, 95, 119, 148, 179, 215, 256, 302, 353, 411, 475] },
+        // No effect on production, energy or costs (game descriptions): Rifugio, Condensatore Antimateria,
+        // Sale della Conoscenza, Forum della Trascendenza, Convettore Antimateria, Acceleratore Crisalide,
+        // Biomodificatore, Modulatore psionico (population needed for tech slots), Sala Fabbricazione Navi, Soprarifrattore
+      },
+      // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
+      techs: [
+        { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },
+        { slot: 2,  tier: 1, key: 'sulphide_process',        it: 'Tecnologia Processo al solfuro',   perLevel: { deut: 0.0008 }, used: true },
+        { slot: 3,  tier: 1, key: 'psionic_network',         it: 'Network psionico',                 perLevel: { expedition_ship_loss: -0.0005 }, used: false },
+        { slot: 4,  tier: 1, key: 'telekinetic_tractor_beam', it: 'Raggio di trazione telecinetico', perLevel: { expedition_ships_found: 0.002 }, used: false },
+        { slot: 5,  tier: 1, key: 'enhanced_sensor_technology', it: 'Tecnologia Sensori migliorata', perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 6,  tier: 1, key: 'neuromodal_compressor',   it: 'Compattatore neuromodulare',       perLevel: { civil_cargo: 0.004 }, used: false },
+        { slot: 7,  tier: 2, key: 'neuro_interface',         it: 'Interfaccia neurologica',          perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 8,  tier: 2, key: 'interplanetary_analysis_network', it: 'Network di analisi superglobale', perLevel: { phalanx_range: 0.006 }, used: false },
+        { slot: 9,  tier: 2, key: 'heavy_fighter_overclocking', it: 'Overclocking (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 10, tier: 2, key: 'telekinetic_drive',       it: 'Sistema Potenziamento telecinetico', perLevel: { expedition_fleet_speed: 0.001 }, used: false },
+        { slot: 11, tier: 2, key: 'sixth_sense',             it: 'Sesto senso',                      perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 12, tier: 2, key: 'psychoharmoniser',        it: 'Armonizzatore psicologico',        perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, used: true },
+        { slot: 13, tier: 3, key: 'efficient_swarm_intelligence', it: 'Intelligenza collettiva efficiente', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
+        { slot: 14, tier: 3, key: 'large_cargo_overclocking', it: 'Overclocking (Cargo pesante)',    perLevel: { ship: 'large_cargo', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
+        { slot: 15, tier: 3, key: 'gravitation_sensors',     it: 'Sensori Gravità',                  perLevel: { expedition_dark_matter: 0.001 }, used: false },
+        { slot: 16, tier: 3, key: 'battleship_overclocking', it: 'Overclocking (Nave da battaglia)', perLevel: { ship: 'battleship', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
+        { slot: 17, tier: 3, key: 'psionic_shield_matrix',   it: 'Matrice Protezione psionica',      perLevel: { shield_tech_cost: -0.002, shield_tech_time: -0.002 }, used: false },
+        // raises the Explorer class bonuses (expeditions etc.), except the ones listed in the game description
+        { slot: 18, tier: 3, key: 'kaelesh_discoverer_enhancement', it: 'Rinforzo Esploratore Kaelesh', perLevel: { explorer_class_bonus: 0.002 }, used: false },
+      ],
+      techSource: 'game',
+      techCosts: null, // todo
+    },
+  },
+};
+
+if (typeof module !== 'undefined') module.exports = LIFEFORMS;
+
+</script>
+<script>
 // OGame Advisor - calculation engine
 // Pure functions: no DOM, no network. Works in the browser and in Node (for tests).
 
 const Engine = (() => {
+  // Lifeform data (src/lifeforms.js): global in the browser, require() in Node
+  const LF = typeof LIFEFORMS !== 'undefined' ? LIFEFORMS
+    : (typeof require !== 'undefined' ? require('./lifeforms.js') : null);
+  const LF_RACES = ['humans', 'rocktal', 'mechas', 'kaelesh'];
+  const LF_KEYS = ['metal', 'crystal', 'deut', 'energy', 'plasma_tech_cost'];
   const RES = ['metal', 'crystal', 'deut'];
 
   // ---- Cost of building the given level (from level-1 to level) ----
@@ -484,7 +739,12 @@ const Engine = (() => {
     deut_synth:   L => Math.ceil(20 * g(L)),
   };
   // Lifeform technologies can lower the energy used by the mines (e.g. -5%)
-  const consFactor = profile => 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
+  // Lower energy use of the mines: from the planet's lifeform buildings when lifeforms are entered
+  // (Rock'tal Disruption Chamber), otherwise from the manual account value
+  const consFactor = (profile, planet) => {
+    if (profile && profile._lf && profile._lf.computed && planet) return Math.max(0, 1 + buildingEffects(planet).mineConsumption);
+    return 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
+  };
   // The fusion reactor burns deuterium: 10 x L x 1.1^L per hour, times the economy speed
   const fusionDeut = L => 10 * g(L);
 
@@ -501,12 +761,13 @@ const Engine = (() => {
     return Math.max(0, Math.min(p, isCollector(profile) ? 1.5 : 1));
   };
   const workingCrawlers = (planet, profile) => Math.min(+planet.crawlers || 0, maxCrawlers(planet, profile));
+  // the crawlers can add at most +50% production (official guide: a Collector at 150% reaches it with 1,111 crawlers)
   const crawlerBonus = (profile, planet) =>
-    workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile);
+    Math.min(0.5, workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile));
   const crawlerEnergy = (profile, planet) => {
     const p = crawlerPct(planet, profile);
     const energyShare = p <= 1 ? p : 1 + 2 * (p - 1); // overload: +20% energy per +10%
-    return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile));
+    return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile, planet));
   };
 
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
@@ -518,6 +779,53 @@ const Engine = (() => {
   const solarEnergy = L => Math.floor(20 * g(L));
   const fusionEnergy = (L, energyTech) => Math.floor(30 * L * Math.pow(1.05 + 0.01 * energyTech, L));
   const satelliteEnergy = tMax => Math.max(1, Math.floor((tMax + 140) / 6));
+
+  // ---- Lifeforms ----
+  // Effects of the lifeform buildings of a planet (race of the planet, levels in planet.lf_buildings)
+  function buildingEffects(planet) {
+    const e = { metal: 0, crystal: 0, deut: 0, energy: 0, mineConsumption: 0, techBoost: 0, techBoostOwnRace: 0 };
+    const race = planet && planet.lf_race;
+    if (!LF || !race || !LF.races[race]) return e;
+    const levels = planet.lf_buildings || {};
+    for (const [key, b] of Object.entries(LF.races[race].buildings)) {
+      if (!b || !b.effect || key === 'mineral_centre') continue; // the Centre works on costs (mrc_level)
+      const lvl = +levels[key] || 0;
+      for (const k of Object.keys(e)) if (b.effect[k]) e[k] += b.effect[k] * lvl;
+    }
+    return e;
+  }
+  // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
+  // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
+  function techEffect(profile, planet, slot, entry) {
+    const out = {};
+    if (!LF || !entry || !LF.races[entry.race] || !(+entry.level > 0)) return out;
+    const tech = LF.races[entry.race].techs[slot - 1];
+    if (!tech) return out;
+    const be = buildingEffects(planet);
+    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
+    const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
+    for (const k of LF_KEYS) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    return out;
+  }
+  // Lifeform techs act on every planet: sum them over the whole account (all planets, also excluded ones)
+  function techTotals(profile, planets) {
+    const t = Object.fromEntries(LF_KEYS.map(k => [k, 0]));
+    for (const p of planets) {
+      const techs = p.lf_techs || {};
+      for (const slot of Object.keys(techs)) {
+        const eff = techEffect(profile, p, +slot, techs[slot]);
+        for (const k of LF_KEYS) t[k] += eff[k] || 0;
+      }
+    }
+    return t;
+  }
+  const hasLifeforms = p => !!p.lf_race || Object.values(p.lf_techs || {}).some(e => e && e.race && +e.level > 0);
+  // Profile with the lifeform totals attached. When no planet has a race or techs, the manual
+  // percentages of each planet (lf_metal...) are used instead, as before.
+  function withLifeforms(profile, planets) {
+    const computed = planets.some(hasLifeforms);
+    return { ...profile, _lf: { computed, tech: techTotals(profile, planets) } };
+  }
 
   // ---- Bonuses ----
   function positionBonus(pos) {
@@ -534,8 +842,13 @@ const Engine = (() => {
     const pos = positionBonus(planet.position);
     // per-resource booster plus the booster on all three resources (energy has its own)
     const it = k => (withItems ? ((+planet[k] || 0) + (k === 'item_energy' ? 0 : +planet.item_all || 0)) / 100 : 0);
-    // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
-    const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
+    // Lifeform bonus: from race, buildings and techs when entered; otherwise the manual % of the planet
+    // (older data falls back to the account value)
+    const LFX = profile._lf && profile._lf.computed;
+    const be = LFX ? buildingEffects(planet) : null;
+    const lfMap = { lf_metal: 'metal', lf_crystal: 'crystal', lf_deut: 'deut', lf_energy: 'energy' };
+    const lf = (k, old) => LFX ? be[lfMap[k]] + profile._lf.tech[lfMap[k]]
+      : (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)
       + (profile.commanding_staff ? 0.02 : 0)
       + (profile.player_class === 'collector' ? 0.25 : 0)
@@ -558,6 +871,18 @@ const Engine = (() => {
     bundle[0] * profile.ratio_metal + bundle[1] * profile.ratio_crystal + bundle[2] * profile.ratio_deut;
   const toMetalEq = (bundle, profile) => value(bundle, profile) / profile.ratio_metal;
 
+  // Energy the planet produces (solar plant, fusion reactor, solar satellites, with bonuses) and the
+  // energy its mines and crawlers use, from the building levels
+  function energyModel(profile, planet, mult = multipliers(profile, planet), needOwn) {
+    if (needOwn === undefined) needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
+      + consumption.crystal_mine(planet.crystal_mine) + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet))
+      + crawlerEnergy(profile, planet);
+    const produced = Math.floor((solarEnergy(planet.solar_plant)
+      + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
+      + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max)) * mult.energy);
+    return { produced, need: needOwn, balance: produced - needOwn };
+  }
+
   // ---- Planet state ----
   function planetState(profile, planet) {
     const speed = profile.economy_speed;
@@ -567,10 +892,8 @@ const Engine = (() => {
     // Energy used by mines and crawlers (lifeform buildings use energy too, but only the game knows how much)
     const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
-      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile)) + crawlerEnergy(profile, planet);
-    const producedModel = Math.floor((solarEnergy(planet.solar_plant)
-      + fusionEnergy(planet.fusion_reactor, profile.energy_tech)
-      + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max)) * mult.energy);
+      + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet)) + crawlerEnergy(profile, planet);
+    const { produced: producedModel } = energyModel(profile, planet, mult, needOwn);
 
     let balance, produced, need;
     if (planet.energy_balance !== null && planet.energy_balance !== undefined && planet.energy_balance !== '') {
@@ -676,7 +999,7 @@ const Engine = (() => {
     const astroCost = cost.slice();
     add(COLONY_SHIP);
     MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
-    const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile));
+    const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
     const fix = energyFix(profile, colony, needEnergy);
     if (fix) add(fix.cost);
 
@@ -704,6 +1027,7 @@ const Engine = (() => {
   const active = planets => planets.filter(p => p.included !== false);
 
   function recommendations(profile, allPlanets) {
+    if (!profile._lf) profile = withLifeforms(profile, allPlanets);
     const planets = active(allPlanets);
     const out = [];
     const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(r => r / profile.ratio_metal);
@@ -732,7 +1056,7 @@ const Engine = (() => {
         const next = L + 1;
         if (overCap(profile[m.cap], next)) return; // player's "stop at level"
         const cost = mineCost(m.key, next, mrcLevel(planet));
-        const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile));
+        const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile, planet));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
         const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
@@ -773,7 +1097,8 @@ const Engine = (() => {
     // 3) Plasma technology (global)
     const nextPlasma = (profile.plasma_tech || 0) + 1;
     const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
-    const plasmaCost = levelCost('plasma', nextPlasma);
+    const plasmaDisc = profile._lf ? Math.max(-0.99, profile._lf.tech.plasma_tech_cost) : 0; // e.g. Rock'tal Stellarator
+    const plasmaCost = levelCost('plasma', nextPlasma).map(x => Math.round(x * (1 + plasmaDisc)));
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
       const s = profile.economy_speed;
@@ -808,7 +1133,7 @@ const Engine = (() => {
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
       if (rec.withMrc) { patch.mrc_level = 1; balance -= MRC_ENERGY_L1; }
-      balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile));
+      balance -= Math.round((consumption[rec.key](rec.nextLevel) - consumption[rec.key](rec.nextLevel - 1)) * consFactor(profile, planet));
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
@@ -831,6 +1156,7 @@ const Engine = (() => {
   }
 
   function totals(profile, planets) {
+    if (!profile._lf) profile = withLifeforms(profile, planets);
     const t = [0, 0, 0];
     active(planets).forEach(p => planetState(profile, p).actual.forEach((x, i) => (t[i] += x)));
     return t;
@@ -838,7 +1164,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, buildingEffects, techEffect, techTotals, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
   };
 })();
 
@@ -850,6 +1176,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
+  {
+    id: 24, date: '2026-10-25', title: 'Energia sempre aggiornata',
+    text: 'Se hai inserito l\'energia del gioco e poi cambi satelliti solari, centrali, miniere o crawler, l\'app aggiorna da sola il valore. Inoltre il bonus dei crawler si ferma al +50% di produzione, come nel gioco.',
+  },
+  {
+    id: 23, date: '2026-10-25', title: 'Razza, edifici e ricerche delle forme di vita',
+    text: 'Nella scheda del pianeta scegli la razza, inserisci i livelli degli edifici e, per ogni slot T1/T2/T3, la ricerca e il suo livello. L\'app calcola i bonus da sola: edifici solo sul loro pianeta, ricerche su tutti i pianeti, potenziate dagli edifici e dal livello della razza (in Impostazioni). Il totale si confronta con la riga "Bonus Tecnologia Forme di vita" del gioco. Le percentuali manuali restano finché non inserisci razza e ricerche.',
+  },
   {
     id: 22, date: '2026-10-25', title: 'Centro di Mineralogia: energia',
     text: 'Il consiglio "Centro di Mineralogia 1 + miniera" ora conta anche i 120 di energia che il Centro consuma, con i satelliti necessari inclusi nel costo.',
@@ -961,11 +1295,12 @@ const PROFILE_DEFAULTS = {
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0,
+  lf_level_humans: 0, lf_level_rocktal: 0, lf_level_mechas: 0, lf_level_kaelesh: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
-const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
-const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'energy_balance', 'included'];
+const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'lf_level_humans', 'lf_level_rocktal', 'lf_level_mechas', 'lf_level_kaelesh', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'lf_race', 'energy_balance', 'included'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
 const FIELD_LIMITS = {
@@ -1075,12 +1410,12 @@ async function loadUserData() {
   openUpdates(true);
 }
 
-const numericProfile = p => {
+const numericProfile = (p, planets) => {
   const out = { ...PROFILE_DEFAULTS, ...p };
   NUM_FIELDS.forEach(k => (out[k] = Number(out[k]) || 0));
   if (!out.economy_speed) out.economy_speed = 1;
   ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => { if (out[k] <= 0) out[k] = PROFILE_DEFAULTS[k]; });
-  return out;
+  return Engine.withLifeforms(out, planets || state.planets); // lifeform techs act on the whole account
 };
 
 function readPlanetInputs(container) {
@@ -1091,6 +1426,7 @@ function readPlanetInputs(container) {
     if (el.type === 'checkbox') { p[f] = el.checked; return; }
     const v = el.value.trim();
     if (f === 'name') p[f] = v;
+    else if (f === 'lf_race') p[f] = v || null;
     else if (['energy_balance', 'galaxy', 'system', 'mrc_level'].includes(f)) p[f] = v === '' ? null : parseInt(v, 10);
     else if (f === 'crawler_pct') p[f] = v === '' ? 100 : Number(v);
     else if (f.startsWith('item_') || f.startsWith('lf_')) p[f] = v === '' ? 0 : Math.max(0, Number(v));
@@ -1292,16 +1628,17 @@ function tile(key, label, level, opts = {}) {
     <div class="lbl">${esc(label)}</div><div class="lvl">${opts.text ?? fmt(+level || 0)}</div></div>`;
 }
 // Summary of everything entered for a planet: mines, energy, crawlers, Mineral Centre, items, lifeforms
-function planetTiles(p) {
+function planetTiles(p, prof = numericProfile(state.profile)) {
   const pct = v => `${+(+v || 0).toFixed(1)}`;
   const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => (+v || 0) + (+p.item_all || 0));
-  const lf = [p.lf_metal, p.lf_crystal, p.lf_deut].map(v => +v || 0);
+  let lf = [p.lf_metal, p.lf_crystal, p.lf_deut].map(v => +v || 0);
+  if (prof._lf && prof._lf.computed) { const be = Engine.buildingEffects(p); lf = ['metal', 'crystal', 'deut'].map(k => (be[k] + prof._lf.tech[k]) * 100); }
   let t = tile('metal', 'Metallo', p.metal_mine) + tile('crystal', 'Cristallo', p.crystal_mine) + tile('deut', 'Deuterio', p.deut_synth)
     + tile('solar', 'Solare', p.solar_plant) + tile('fusion', 'Fusione', p.fusion_reactor) + tile('satellite', 'Satelliti', p.solar_satellites)
     + tile('crawler', `Crawler${+p.crawlers && +p.crawler_pct !== 100 ? ' ' + (+p.crawler_pct) + '%' : ''}`, p.crawlers);
   if (p.mrc_level !== null && p.mrc_level !== undefined && p.mrc_level !== '') t += tile('mrc', 'Centro Min.', p.mrc_level);
   if (items.some(Boolean) || +p.item_energy) t += tile('item', 'Item M/C/D', null, { wide: true, text: items.map(v => '+' + v).join('/') });
-  if (lf.some(Boolean)) t += tile('lf', 'Forme di vita %', null, { wide: true, text: lf.map(pct).join('/') });
+  if (lf.some(Boolean)) t += tile('lf', p.lf_race ? `${RACE_NAMES[p.lf_race]} %` : 'Forme di vita %', null, { wide: true, text: lf.map(pct).join('/') });
   return t;
 }
 
@@ -1310,7 +1647,7 @@ const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
   solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
   item_metal: 0, item_crystal: 0, item_deut: 0, item_all: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0,
-  crawlers: 0, crawler_pct: 100, mrc_level: null, included: true,
+  crawlers: 0, crawler_pct: 100, mrc_level: null, lf_race: null, lf_buildings: {}, lf_techs: {}, included: true,
 };
 const coordsText = p => (p.galaxy || p.system ? `[${p.galaxy ?? '?'}:${p.system ?? '?'}:${p.position}]` : `posizione ${p.position}`);
 
@@ -1367,8 +1704,12 @@ function fillPlanetForm(p) {
       el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // unusual value kept
     el.value = v ?? (el.tagName === 'SELECT' || el.type === 'hidden' ? '0' : '');
   });
+  $('#pe-form [data-f="lf_race"]').value = p.lf_race || '';
   $$('#lf-calc input').forEach(el => (el.value = ''));
+  if (state.editing) state.editing.lf = { buildings: { ...(p.lf_buildings || {}) }, techs: JSON.parse(JSON.stringify(p.lf_techs || {})) };
   renderBoosters();
+  renderLifeforms();
+  setEnergyBase();
 }
 
 /* Boosters: one per resource, one for all three resources, one for energy (per planet) */
@@ -1412,7 +1753,7 @@ function openPlanet(id, prefill) {
   if (state.editing && !confirmLeavePlanet()) return;
   const p = id ? state.planets.find(x => x.id === id) : { ...NEW_PLANET, ...(prefill || {}) };
   if (!p) return;
-  state.editing = { id: id || null, dirty: false };
+  state.editing = { id: id || null, dirty: false, mrcLevel: p.mrc_level ?? '' };
   fillPlanetForm(p);
   setPlanetDirty(false);
   message($('#pe-msg'), '');
@@ -1442,19 +1783,41 @@ const stepPlanet = d => {
 };
 $('#pe-prev').addEventListener('click', () => stepPlanet(-1));
 $('#pe-next').addEventListener('click', () => stepPlanet(1));
-$('#pe-form').addEventListener('input', () => { setPlanetDirty(true); renderPlanetPreview(); });
-$('#pe-form').addEventListener('change', () => { setPlanetDirty(true); renderPlanetPreview(); });
+// The in-game energy is a snapshot: when buildings change, it moves by the difference our model computes,
+// so satellites, plants, mines and crawlers count even after the game value was entered.
+function setEnergyBase() {
+  const el = $('#pe-form [data-f="energy_balance"]');
+  if (!state.editing) return;
+  if (el.value.trim() === '') { state.editing.energyBase = null; return; }
+  const p = { ...NEW_PLANET, ...editorPlanet() };
+  state.editing.energyBase = { balance: +el.value, model: Engine.energyModel(numericProfile(state.profile, planetsWithEdit(p)), p).balance };
+}
+function syncGameEnergy(p, prof) {
+  const b = state.editing?.energyBase;
+  if (!b || document.activeElement?.dataset?.f === 'energy_balance') return;
+  const v = Math.round(b.balance + Engine.energyModel(prof, p).balance - b.model);
+  $('#pe-form [data-f="energy_balance"]').value = v;
+  p.energy_balance = v;
+}
+const onFormEdit = e => {
+  setPlanetDirty(true);
+  if (e.target.dataset?.f === 'energy_balance') setEnergyBase(); // the player typed the game value: new baseline
+  renderPlanetPreview();
+};
+$('#pe-form').addEventListener('input', onFormEdit);
+$('#pe-form').addEventListener('change', onFormEdit);
 window.addEventListener('beforeunload', e => { if (state.editing?.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
 // Live production of the planet being edited, to compare with the game while typing
 function renderPlanetPreview() {
-  const p = { ...NEW_PLANET, ...readPlanetInputs($('#pe-form')) };
-  $('#pe-summary').innerHTML = planetTiles(p);
+  const p = { ...NEW_PLANET, ...editorPlanet() };
+  const prof = numericProfile(state.profile, planetsWithEdit(p));
+  syncGameEnergy(p, prof);
+  $('#pe-summary').innerHTML = planetTiles(p, prof);
   if (!(p.position >= 1 && p.position <= 15) || !Number.isFinite(p.temp_max)) { $('#pe-preview').innerHTML = ''; return; }
-  const st = Engine.planetState(numericProfile(state.profile), p);
-  const prof = numericProfile(state.profile);
+  const st = Engine.planetState(prof, p);
   const maxC = Engine.maxCrawlers(p, prof);
-  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Si costruiscono solo da Collezionista, ma quelli che possiedi producono con qualsiasi classe (0,02% ciascuno, 0,03% da Collezionista). Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia). Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
+  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Si costruiscono solo da Collezionista, ma quelli che possiedi producono con qualsiasi classe (0,02% ciascuno, 0,03% da Collezionista). Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia).`;
   const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
   $('#pe-preview').innerHTML =
     box(ri('metal') + 'Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
@@ -1465,7 +1828,7 @@ function renderPlanetPreview() {
 
 $('#pe-save').addEventListener('click', async () => {
   const msgEl = $('#pe-msg'), btn = $('#pe-save');
-  const data = readPlanetInputs($('#pe-form'));
+  const data = editorPlanet();
   const err = validatePlanet(data); if (err) return message(msgEl, err);
   const id = state.editing.id;
   btn.disabled = true;
@@ -1476,7 +1839,8 @@ $('#pe-save').addEventListener('click', async () => {
   if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
   if (id) Object.assign(state.planets.find(x => x.id === id), r.data);
   else state.planets.push(r.data);
-  state.editing = { id: r.data.id, dirty: false };
+  state.editing = { id: r.data.id, dirty: false, lf: state.editing.lf, mrcLevel: state.editing.mrcLevel };
+  setEnergyBase();
   setPlanetDirty(false);
   renderApp();
   const i = state.planets.findIndex(x => x.id === r.data.id);
@@ -1500,12 +1864,135 @@ $('#pe-delete').addEventListener('click', async () => {
   message($('#planets-msg'), `${pl.name} eliminato.`, 'ok');
 });
 
+/* Lifeforms on the planet page: race, buildings of that race, 18 tech slots */
+const RACE_NAMES = { humans: 'Umani', rocktal: "Rock'tal", mechas: 'Mecha', kaelesh: 'Kaelesh' };
+const RACE_SHORT = { humans: 'U', rocktal: 'R', mechas: 'M', kaelesh: 'K' };
+const LF_RACES = ['humans', 'rocktal', 'mechas', 'kaelesh'];
+const pctx = v => (v * 100).toLocaleString('it-IT', { maximumFractionDigits: 3 });
+const EFFECT_NAMES = {
+  metal: 'metallo', crystal: 'cristallo', deut: 'deuterio', energy: 'energia', mineConsumption: 'consumo energia miniere',
+  techBoost: 'effetto ricerche del pianeta', techBoostOwnRace: 'effetto ricerche Kaelesh del pianeta',
+  techCost: 'costo ricerche forme di vita', techTime: 'tempo ricerche forme di vita', mineCost: 'costo miniere',
+};
+const techDot = t => (['metal', 'crystal', 'deut'].some(k => t.perLevel[k]) ? 'g' : t.perLevel.energy ? 'y' : t.perLevel.plasma_tech_cost ? 'p' : '');
+
+// the planet as currently typed in the page (lifeform objects live in state.editing.lf)
+function editorPlanet() {
+  const p = readPlanetInputs($('#pe-form'));
+  const lf = state.editing?.lf || { buildings: {}, techs: {} };
+  p.lf_buildings = { ...lf.buildings };
+  p.lf_techs = JSON.parse(JSON.stringify(lf.techs));
+  if (p.lf_race !== 'rocktal') p.mrc_level = null; // the Mineral Research Centre is a Rock'tal building
+  return p;
+}
+// all planets with the one being edited replaced (or added): lifeform techs are summed over the account
+function planetsWithEdit(p) {
+  const id = state.editing?.id;
+  return id ? state.planets.map(x => (x.id === id ? { ...x, ...p } : x)) : [...state.planets, { ...p, id: '_new' }];
+}
+
+function renderLifeforms() {
+  const race = $('#pe-form [data-f="lf_race"]').value || '';
+  $('#lf-race').innerHTML = [['', 'Nessuna'], ...LF_RACES.map(r => [r, RACE_NAMES[r]])].map(([r, l]) =>
+    `<button type="button" class="chip" data-race="${r}" aria-pressed="${r === race}"><span class="box">${r === race ? '✓' : ''}</span>${l}</button>`).join('');
+  renderLfBuildings(race);
+  renderLfTechs();
+  renderLfSummary();
+}
+function renderLfBuildings(race) {
+  if (!race) { $('#lf-buildings').innerHTML = '<p class="muted small" style="margin:0">Scegli la razza per inserire gli edifici delle forme di vita di questo pianeta.</p>'; return; }
+  const lv = state.editing.lf.buildings;
+  const mrc = $('#pe-form [data-f="mrc_level"]');
+  const rows = Object.entries(Engine.LF.races[race].buildings).filter(([, b]) => b).map(([key, b]) => {
+    const isMrc = key === 'mineral_centre';
+    const level = isMrc ? (state.editing.mrcLevel ?? '') : (lv[key] ?? '');
+    const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ')
+      : 'riduce costi, energia e tempi degli edifici Rock\'tal (non usato nei calcoli)';
+    const input = isMrc
+      ? `<input data-f="mrc_level" type="number" min="0" value="${esc(level)}" placeholder="—" title="0 se puoi costruirlo ma non l'hai ancora fatto">`
+      : `<input data-lfb="${key}" type="number" min="0" value="${esc(level)}" placeholder="0">`;
+    return `<div class="lfb"><div>${esc(b.it)}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}${b.effect ? ' per livello' : ''}</div></div>`;
+  });
+  $('#lf-buildings').innerHTML = `<div><label>Edifici ${esc(RACE_NAMES[race])}</label>${rows.join('')}</div>` +
+    (race === 'rocktal' ? '<p class="muted small" style="margin:0">Centro di Mineralogia: scrivi 0 se puoi costruirlo ma non l\'hai ancora fatto, i consigli te lo suggeriranno.</p>' : '');
+}
+function renderLfTechs() {
+  const techs = state.editing.lf.techs;
+  let html = '';
+  for (let slot = 1; slot <= 18; slot++) {
+    if (slot === 1 || slot === 7 || slot === 13) html += `<div class="tier">T${(slot + 5) / 6 | 0}</div>`;
+    const cur = techs[slot] || {};
+    const chips = LF_RACES.map(r => {
+      const t = Engine.LF.races[r].techs[slot - 1], dot = techDot(t);
+      return `<button type="button" class="chip tchip" data-tslot="${slot}" data-trace="${r}" aria-pressed="${cur.race === r}"><span class="r R-${r}">${RACE_SHORT[r]}</span>${esc(t.it)}${dot ? ` <span class="dot ${dot}">●</span>` : ''}</button>`;
+    }).join('');
+    html += `<div class="trow"><div class="slot">${slot}</div><div class="chips">${chips}</div>
+      <input type="number" min="0" data-tlvl="${slot}" value="${cur.race ? esc(cur.level ?? '') : ''}" placeholder="—" ${cur.race ? '' : 'disabled'} aria-label="Livello slot ${slot}">
+      <div class="eff small muted" data-teff="${slot}"></div></div>`;
+  }
+  $('#lf-techs').innerHTML = html;
+  for (let slot = 1; slot <= 18; slot++) renderTechEffect(slot);
+}
+function renderTechEffect(slot) {
+  const cur = state.editing.lf.techs[slot];
+  const el = $(`[data-teff="${slot}"]`);
+  if (!cur || !cur.race) { el.textContent = ''; return; }
+  const p = editorPlanet();
+  const e = Engine.techEffect(numericProfile(state.profile, planetsWithEdit(p)), p, slot, cur);
+  const parts = ['metal', 'crystal', 'deut', 'energy'].filter(k => e[k]).map(k => `<b>+${pctx(e[k])}%</b> ${EFFECT_NAMES[k]}`);
+  if (e.plasma_tech_cost) parts.push(`<b>${pctx(e.plasma_tech_cost)}%</b> costo Plasma`);
+  el.innerHTML = parts.join(' · ');
+}
+function renderLfSummary() {
+  const p = editorPlanet();
+  const all = planetsWithEdit(p);
+  const prof = numericProfile(state.profile, all);
+  const be = Engine.buildingEffects(p);
+  const own = { metal: 0, crystal: 0, deut: 0, energy: 0 };
+  Object.entries(p.lf_techs).forEach(([slot, e]) => { const x = Engine.techEffect(prof, p, +slot, e); for (const k in own) own[k] += x[k] || 0; });
+  const t = prof._lf.tech;
+  const row = o => ['metal', 'crystal', 'deut', 'energy'].map(k => `${EFFECT_NAMES[k]} <b>+${pctx(o[k] || 0)}%</b>`).join(' · ');
+  $('#lf-sum').innerHTML = (p.lf_race ? `Edifici di questo pianeta: ${row(be)}<br>` : '') +
+    `Ricerche di questo pianeta: ${row(own)}<br>Ricerche di tutto l'account: ${row(t)}<br>` +
+    `<span>Il totale dell'account deve coincidere con la riga "Bonus Tecnologia Forme di vita" della pagina Impostazioni risorse del gioco.</span>`;
+  $('#lf-manual-note').textContent = prof._lf.computed
+    ? 'Ora l\'app usa razza, edifici e ricerche: queste percentuali vengono ignorate.'
+    : 'Usate solo finché nessun pianeta ha razza o ricerche inserite. Per ricavarle apri Risorse → Impostazioni risorse e usa il calcolatore.';
+}
+$('#lf-race').addEventListener('click', e => {
+  const b = e.target.closest('[data-race]'); if (!b) return;
+  const mrc = $('#pe-form [data-f="mrc_level"]');
+  if (mrc) state.editing.mrcLevel = mrc.value;
+  $('#pe-form [data-f="lf_race"]').value = b.dataset.race;
+  renderLifeforms(); setPlanetDirty(true); renderPlanetPreview();
+});
+$('#lf-buildings').addEventListener('input', e => {
+  const k = e.target.dataset.lfb;
+  if (k) { const v = e.target.value.trim(); if (v === '') delete state.editing.lf.buildings[k]; else state.editing.lf.buildings[k] = Math.max(0, parseInt(v, 10) || 0); }
+  if (e.target.dataset.f === 'mrc_level') state.editing.mrcLevel = e.target.value;
+  for (let s = 1; s <= 18; s++) renderTechEffect(s);
+  renderLfSummary();
+});
+$('#lf-techs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tslot]'); if (!b) return;
+  const slot = b.dataset.tslot, race = b.dataset.trace, techs = state.editing.lf.techs;
+  if (techs[slot]?.race === race) delete techs[slot];               // tap again to clear the slot
+  else techs[slot] = { race, level: techs[slot]?.level ?? 1 };
+  renderLfTechs(); renderLfSummary(); setPlanetDirty(true); renderPlanetPreview();
+  const input = $(`[data-tlvl="${slot}"]`); if (input && !input.disabled) input.focus();
+});
+$('#lf-techs').addEventListener('input', e => {
+  const slot = e.target.dataset.tlvl; if (!slot || !state.editing.lf.techs[slot]) return;
+  state.editing.lf.techs[slot].level = Math.max(0, parseInt(e.target.value, 10) || 0);
+  renderTechEffect(slot); renderLfSummary();
+});
+
 /* Copy: from the open planet to the planets the player picks */
 const COPY_GROUPS = {
   mines: ['metal_mine', 'crystal_mine', 'deut_synth', 'crawlers', 'crawler_pct'],
   energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
   items: ['item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy'],
-  lf: ['lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'mrc_level'],
+  lf: ['lf_race', 'lf_buildings', 'lf_techs', 'mrc_level', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy'],
 };
 $('#pe-copy').addEventListener('click', () => {
   const id = state.editing?.id;
