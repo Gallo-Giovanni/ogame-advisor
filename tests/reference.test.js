@@ -46,7 +46,7 @@ console.log('Reference page matched: metal', Math.round(st.actual[0]), 'crystal'
 const planet2 = {
   name: 'Reference 2', position: 8, temp_max: 42, metal_mine: 37, crystal_mine: 31, deut_synth: 32,
   solar_plant: 27, fusion_reactor: 11, solar_satellites: 750, crawlers: 100,
-  item_metal: 80, item_crystal: 40, item_deut: 40, item_energy: 0,
+  item_metal: 40, item_crystal: 0, item_deut: 0, item_all: 40, item_energy: 0,
   lf_metal: (75893 + 46694) / 252978 * 100, lf_crystal: (5908 + 8290) / 59082 * 100,
   lf_deut: (4266 + 10298) / 42667 * 100, lf_energy: 15,
 };

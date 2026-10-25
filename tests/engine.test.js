@@ -89,4 +89,9 @@ const noOver = E.planetState(profile, cr), over = E.planetState({ ...profile, pl
 assert.ok(Math.abs(noOver.mult.metal / 1.23 - (1 + 640 * 0.0002)) < 1e-9, 'non-collector capped at 100%');
 assert.ok(Math.abs(over.mult.metal / 1.23 - (1.25 + 640 * 0.0003 * 1.5)) < 1e-9, 'collector overload 150%');
 
+// Booster on all three resources adds to the per-resource booster, not to energy
+const both = E.planetState(profile, { ...planets[0], item_metal: 40, item_all: 40 });
+assert.ok(Math.abs(both.full[0] / base - 1.80) < 1e-9);
+assert.ok(Math.abs(both.mult.energy - E.planetState(profile, planets[0]).mult.energy) < 1e-12);
+
 console.log('All tests passed');

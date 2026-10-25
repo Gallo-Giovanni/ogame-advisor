@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 21, date: '2026-10-25', title: 'Booster a spunta',
+    text: 'Nella scheda del pianeta i booster si scelgono con le spunte: uno per metallo, cristallo e deuterio (10-40%), uno su tutte e 3 le risorse (10-40%) e uno per l\'energia (20-80%), con il totale per risorsa. Se avevi inserito una somma (per esempio +80%), resta visibile tratteggiata finché non scegli i booster giusti.',
+  },
+  {
     id: 20, date: '2026-10-25', title: 'Icone delle risorse',
     text: 'Metallo, cristallo, deuterio ed energia hanno ora la loro icona nella barra della produzione, nei costi dei consigli e nella scheda del pianeta.',
   },

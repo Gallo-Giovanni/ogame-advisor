@@ -87,7 +87,8 @@ const Engine = (() => {
   // withItems: include temporary item boosters set on the planet (percent values)
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
-    const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
+    // per-resource booster plus the booster on all three resources (energy has its own)
+    const it = k => (withItems ? ((+planet[k] || 0) + (k === 'item_energy' ? 0 : +planet.item_all || 0)) / 100 : 0);
     // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
     const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)

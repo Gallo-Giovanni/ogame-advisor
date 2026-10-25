@@ -123,10 +123,23 @@
   .pcard .move button { padding: 2px 8px; }
   .pe-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
   .pe-grid h3 { margin: 0; }
+  .pe-wide { grid-column: span 2; }
+  @media (max-width: 1060px) { .pe-wide { grid-column: auto; } }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
   .ri { display: inline-flex; width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: 3px; }
   .ri svg { width: 100%; height: 100%; }
+  .brow { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+  .brow:first-child { border-top: 0; }
+  .brow .lbl { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+  .brow .lbl .ri { width: 1.4em; height: 1.4em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg2); color: var(--muted); font: 500 .85rem Inter, sans-serif; }
+  .chip .box { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid #4a5786; display: grid; place-items: center; font-size: 10px; line-height: 1; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); color: #fff; background: #2b2410; }
+  .chip[aria-pressed="true"] .box { background: var(--accent); border-color: var(--accent); color: #1a1200; }
+  .chip.odd { border-style: dashed; }
+  @media (max-width: 600px) { .brow { grid-template-columns: 1fr; gap: 6px; } }
   .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
   .tile { position: relative; width: 74px; border-radius: 8px; overflow: hidden; background: var(--bg2); border: 1px solid var(--line); }
   .tile .art { height: 50px; display: grid; place-items: center; }
@@ -324,15 +337,13 @@
             </div>
             <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Visuale impero, anche negativo. Se la inserisci i calcoli usano quella, che è il valore più preciso.</p>
           </div>
-          <div class="card stack">
-            <h3>Item attivi</h3>
-            <div class="grid">
-              <div><label>Booster metallo</label><select data-f="item_metal"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
-              <div><label>Booster cristallo</label><select data-f="item_crystal"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
-              <div><label>Booster deuterio</label><select data-f="item_deut"><option value="0">Nessuno</option><option value="10">+10%</option><option value="20">+20%</option><option value="30">+30%</option><option value="40">+40%</option><option value="50">+50%</option><option value="60">+60%</option><option value="70">+70%</option><option value="80">+80%</option></select></div>
-              <div><label>Booster energia %</label><input data-f="item_energy" type="number" min="0" max="1000"></div>
-            </div>
-            <p class="muted small" style="margin:0">Usa la somma dei booster attivi su quella risorsa: per esempio un booster metallo +40% e uno su tutte le risorse +40% fanno +80% di metallo. Nel gioco è la riga "Item" diviso la riga della miniera.</p>
+          <div class="card stack pe-wide">
+            <h3>Booster attivi</h3>
+            <p class="muted small" style="margin:0">Spunta i booster attivi su questo pianeta. Se ne spunti un altro nella stessa riga, sostituisce il precedente; tocca di nuovo per toglierlo.</p>
+            <div id="boosters"></div>
+            <input type="hidden" data-f="item_metal"><input type="hidden" data-f="item_crystal"><input type="hidden" data-f="item_deut">
+            <input type="hidden" data-f="item_all"><input type="hidden" data-f="item_energy">
+            <div class="small muted" id="booster-total"></div>
           </div>
           <div class="card stack">
             <h3>Forme di vita</h3>
@@ -520,7 +531,8 @@ const Engine = (() => {
   // withItems: include temporary item boosters set on the planet (percent values)
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
-    const it = k => (withItems ? (+planet[k] || 0) / 100 : 0);
+    // per-resource booster plus the booster on all three resources (energy has its own)
+    const it = k => (withItems ? ((+planet[k] || 0) + (k === 'item_energy' ? 0 : +planet.item_all || 0)) / 100 : 0);
     // Lifeform bonus: set per planet (lf_*); older data falls back to the account value
     const lf = (k, old) => (planet[k] !== undefined && planet[k] !== null && planet[k] !== '' ? +planet[k] : +profile[old] || 0) / 100;
     const common = (profile.geologist ? 0.10 : 0)
@@ -835,6 +847,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 21, date: '2026-10-25', title: 'Booster a spunta',
+    text: 'Nella scheda del pianeta i booster si scelgono con le spunte: uno per metallo, cristallo e deuterio (10-40%), uno su tutte e 3 le risorse (10-40%) e uno per l\'energia (20-80%), con il totale per risorsa. Se avevi inserito una somma (per esempio +80%), resta visibile tratteggiata finché non scegli i booster giusti.',
+  },
+  {
     id: 20, date: '2026-10-25', title: 'Icone delle risorse',
     text: 'Metallo, cristallo, deuterio ed energia hanno ora la loro icona nella barra della produzione, nei costi dei consigli e nella scheda del pianeta.',
   },
@@ -941,7 +957,7 @@ const PROFILE_DEFAULTS = {
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
 const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'energy_consumption_reduction', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
-const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'energy_balance', 'included'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'energy_balance', 'included'];
 
 // Allowed range of each planet field. Temperature and energy can be negative in OGame.
 const FIELD_LIMITS = {
@@ -1246,6 +1262,7 @@ const ICONS = {
   metal: '<svg viewBox="0 0 48 48"><path d="M6 34l7-15 9 3-3 17z" fill="#7d879c"/><path d="M13 19l9 3 6-9-10-4z" fill="#c3cbdb"/><path d="M22 22l6-9 11 6-2 13-12 6z" fill="#9aa5bb"/><path d="M28 13l11 6-3-8z" fill="#e3e8f2"/><path d="M19 39l6-1 12-6 5 7-11 4z" fill="#5d6679"/><path d="M25 38l12-6-2-13-10 3z" fill="#aeb8cc" opacity=".55"/></svg>',
   crystal: '<svg viewBox="0 0 48 48"><path d="M10 40l4-19 6 6-2 13z" fill="#4fb8e8"/><path d="M14 21l6 6 2-8z" fill="#bdeeff"/><path d="M18 40l3-31 9 12-3 19z" fill="#6fd3ff"/><path d="M21 9l9 12-6 1z" fill="#e2f8ff"/><path d="M27 40l7-22 6 8-3 14z" fill="#3aa8d8"/><path d="M34 18l6 8-5 1z" fill="#a9e7ff"/></svg>',
   deut: '<svg viewBox="0 0 48 48"><circle cx="18" cy="28" r="11" fill="#2fbf97"/><circle cx="32" cy="20" r="8" fill="#47d8ae"/><circle cx="33" cy="35" r="6" fill="#26a882"/><circle cx="14" cy="24" r="3" fill="#d9fff2" opacity=".85"/><circle cx="29" cy="17" r="2.2" fill="#d9fff2" opacity=".85"/><circle cx="31" cy="33" r="1.6" fill="#d9fff2" opacity=".85"/></svg>',
+  all: '<svg viewBox="0 0 48 48"><path d="M4 26l4-9 6 2-2 10z" fill="#9aa5bb"/><path d="M8 17l6 2 3-5-6-3z" fill="#c3cbdb"/><path d="M20 24l2-18 6 7-2 11z" fill="#6fd3ff"/><path d="M27 24l4-12 4 5-2 7z" fill="#3aa8d8"/><circle cx="20" cy="36" r="8" fill="#2fbf97"/><circle cx="31" cy="34" r="5.5" fill="#47d8ae"/><circle cx="17" cy="33" r="2.2" fill="#d9fff2" opacity=".85"/><path d="M38 6v10M33 11h10" stroke="#f5a524" stroke-width="3" stroke-linecap="round"/></svg>',
   energy: '<svg viewBox="0 0 48 48"><path d="M27 4L11 27h11l-5 17 20-25H26z" fill="#ff4f6d"/><path d="M27 4l-7 15h6z" fill="#ffb3c1"/><path d="M6 14l7 3M38 32l6 2M40 10l-5 4" stroke="#ff8fa6" stroke-width="2.4" stroke-linecap="round"/></svg>',
   solar: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6" fill="#ffd27a"/><g stroke="#ffb547" stroke-width="2.4" stroke-linecap="round"><path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></g></svg>',
   fusion: '<svg viewBox="0 0 32 32" fill="none" stroke="#ff8f6b" stroke-width="2"><ellipse cx="16" cy="16" rx="12" ry="5"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(60 16 16)"/><ellipse cx="16" cy="16" rx="12" ry="5" transform="rotate(120 16 16)"/><circle cx="16" cy="16" r="2.6" fill="#ffd27a" stroke="none"/></svg>',
@@ -1269,7 +1286,7 @@ function tile(key, label, level, opts = {}) {
 // Summary of everything entered for a planet: mines, energy, crawlers, Mineral Centre, items, lifeforms
 function planetTiles(p) {
   const pct = v => `${+(+v || 0).toFixed(1)}`;
-  const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => +v || 0);
+  const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => (+v || 0) + (+p.item_all || 0));
   const lf = [p.lf_metal, p.lf_crystal, p.lf_deut].map(v => +v || 0);
   let t = tile('metal', 'Metallo', p.metal_mine) + tile('crystal', 'Cristallo', p.crystal_mine) + tile('deut', 'Deuterio', p.deut_synth)
     + tile('solar', 'Solare', p.solar_plant) + tile('fusion', 'Fusione', p.fusion_reactor) + tile('satellite', 'Satelliti', p.solar_satellites)
@@ -1284,7 +1301,7 @@ function planetTiles(p) {
 const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
   solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
-  item_metal: 0, item_crystal: 0, item_deut: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0,
+  item_metal: 0, item_crystal: 0, item_deut: 0, item_all: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0,
   crawlers: 0, crawler_pct: 100, mrc_level: null, included: true,
 };
 const coordsText = p => (p.galaxy || p.system ? `[${p.galaxy ?? '?'}:${p.system ?? '?'}:${p.position}]` : `posizione ${p.position}`);
@@ -1340,10 +1357,38 @@ function fillPlanetForm(p) {
     if (el.type === 'checkbox') { el.checked = v !== false; return; }
     if (el.tagName === 'SELECT' && v && ![...el.options].some(o => +o.value === +v))
       el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // unusual value kept
-    el.value = v ?? (el.tagName === 'SELECT' ? '0' : '');
+    el.value = v ?? (el.tagName === 'SELECT' || el.type === 'hidden' ? '0' : '');
   });
   $$('#lf-calc input').forEach(el => (el.value = ''));
+  renderBoosters();
 }
+
+/* Boosters: one per resource, one for all three resources, one for energy (per planet) */
+const BOOSTERS = [
+  ['item_metal', 'metal', 'Metallo', [10, 20, 30, 40]],
+  ['item_crystal', 'crystal', 'Cristallo', [10, 20, 30, 40]],
+  ['item_deut', 'deut', 'Deuterio', [10, 20, 30, 40]],
+  ['item_all', 'all', 'Tutte e 3 le risorse', [10, 15, 20, 25, 30, 35, 40]],
+  ['item_energy', 'energy', 'Energia', [20, 40, 60, 80]],
+];
+function renderBoosters() {
+  const val = k => +$(`#pe-form [data-f="${k}"]`).value || 0;
+  $('#boosters').innerHTML = BOOSTERS.map(([k, icon, label, vals]) => {
+    const cur = val(k);
+    // a saved value that is not a booster size (older data) stays visible until it is changed
+    const list = cur && !vals.includes(cur) ? [...vals, cur] : vals;
+    return `<div class="brow"><div class="lbl">${ri(icon)}<span>${label}</span></div><div class="chips">${list.map(v =>
+      `<button type="button" class="chip ${vals.includes(v) ? '' : 'odd'}" data-bk="${k}" data-bv="${v}" aria-pressed="${v === cur}"${vals.includes(v) ? '' : ' title="valore salvato in precedenza: scegli il booster giusto"'}><span class="box">${v === cur ? '✓' : ''}</span>+${v}%</button>`).join('')}</div></div>`;
+  }).join('');
+  const all = val('item_all');
+  $('#booster-total').innerHTML = `Totale su questo pianeta: metallo <b>+${val('item_metal') + all}%</b> · cristallo <b>+${val('item_crystal') + all}%</b> · deuterio <b>+${val('item_deut') + all}%</b> · energia <b>+${val('item_energy')}%</b>`;
+}
+$('#boosters').addEventListener('click', e => {
+  const b = e.target.closest('[data-bk]'); if (!b) return;
+  const input = $(`#pe-form [data-f="${b.dataset.bk}"]`);
+  input.value = b.getAttribute('aria-pressed') === 'true' ? 0 : b.dataset.bv; // tap again to remove
+  renderBoosters(); setPlanetDirty(true); renderPlanetPreview();
+});
 function setPlanetDirty(d) {
   if (state.editing) state.editing.dirty = d;
   $('#pe-dirty').classList.toggle('hidden', !d);
@@ -1451,7 +1496,7 @@ $('#pe-delete').addEventListener('click', async () => {
 const COPY_GROUPS = {
   mines: ['metal_mine', 'crystal_mine', 'deut_synth', 'crawlers', 'crawler_pct'],
   energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
-  items: ['item_metal', 'item_crystal', 'item_deut', 'item_energy'],
+  items: ['item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy'],
   lf: ['lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'mrc_level'],
 };
 $('#pe-copy').addEventListener('click', () => {
