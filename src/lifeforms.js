@@ -24,7 +24,7 @@ const LIFEFORMS = {
     buildingEnergyFormula: 'floor(L * base * factor^L)',
     // Cost of a lifeform tech at level L = base x factor^(L-1) x L, lowered by the research building of the planet
     // where it is researched. Base costs from the game's research window (levels 1 and 2 of six T1 and six T2 techs, all with
-    // a -2.5% research discount: 10000 x 0.975 = 9.8k, 10000 x 1.5 x 2 x 0.975 = 29.3k). The factor differs per tech (most 1.5, Telekinetic Drive 1.2). Checked on the game up to level 10 (six T1 techs).
+    // a -2.5% research discount: 10000 x 0.975 = 9.8k, 10000 x 1.5 x 2 x 0.975 = 29.3k). The factor differs per tech (most 1.5, Telekinetic Drive 1.2). Checked on the game up to level 10 (all T1 and T2 techs above).
     techCostFormula: 'base * factor^(L-1) * L',
     levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
   },

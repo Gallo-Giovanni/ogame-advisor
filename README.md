@@ -57,4 +57,4 @@ Add an entry at the top of `src/changelog.js` with the next `id`, a date, a titl
 `tests/reference.test.js` reproduces an in-game "Impostazioni risorse" page (metal, crystal, deuterium and energy per hour) within a few units. Bonus stacking follows the game: the position bonus multiplies the mine's base output, and every other bonus (plasma, officers, class, Trader alliance, lifeforms, items) is a percentage of that value.
 
 ## Limits
-Energy used by lifeform buildings is only known from the in-game energy balance. Some lifeform effects are recorded but not applied until checked on the game: crawler boost and Collector enhancement (Rock'tal), T3 lifeform research costs; T2 research costs checked on levels 1-2 only (T1 up to level 10).
+Energy used by lifeform buildings is only known from the in-game energy balance. Some lifeform effects are recorded but not applied until checked on the game: crawler boost and Collector enhancement (Rock'tal), T3 lifeform research costs; T1 and T2 research costs are checked on the game up to level 10.
