@@ -516,7 +516,7 @@ const LIFEFORMS = {
     // (Magma Forge 15->16: (2940 - 2506) x 0.95 = 413 shown by the game).
     buildingEnergyFormula: 'floor(L * base * factor^L)',
     // Cost of a lifeform tech at level L = base x factor^(L-1) x L, lowered by the research building of the planet
-    // where it is researched. Base costs from the game's research window (levels 1 and 2 of six T1 and five T2 techs, all with
+    // where it is researched. Base costs from the game's research window (levels 1 and 2 of six T1 and six T2 techs, all with
     // a -2.5% research discount: 10000 x 0.975 = 9.8k, 10000 x 1.5 x 2 x 0.975 = 29.3k). The factor differs per tech (most 1.5, Telekinetic Drive 1.2). Higher levels: to check.
     techCostFormula: 'base * factor^(L-1) * L',
     levelBonusPerLevel: { value: 0.001, source: 'game' }, // game: Humans level 40 = 4%, Rock'tal level 44 = 4.4% (guide says 1% per level: outdated)
@@ -739,7 +739,7 @@ const LIFEFORMS = {
         { slot: 8,  tier: 2, key: 'interplanetary_analysis_network', it: 'Network di analisi superglobale', perLevel: { phalanx_range: 0.006 }, used: false },
         { slot: 9,  tier: 2, key: 'heavy_fighter_overclocking', it: 'Overclocking (Caccia pesante)', perLevel: { ship: 'heavy_fighter', armour: 0.003, shield: 0.003, weapons: 0.003, cargo: 0.003, speed: 0.003 }, used: false },
         { slot: 10, tier: 2, key: 'telekinetic_drive',       it: 'Sistema Potenziamento telecinetico', perLevel: { expedition_fleet_speed: 0.001 }, cost: { base: [85000, 40000, 35000], factor: 1.2 }, used: false },
-        { slot: 11, tier: 2, key: 'sixth_sense',             it: 'Sesto senso',                      perLevel: { expedition_resources: 0.002 }, used: false },
+        { slot: 11, tier: 2, key: 'sixth_sense',             it: 'Sesto senso',                      perLevel: { expedition_resources: 0.002 }, cost: { base: [120000, 30000, 25000], factor: 1.5 }, used: false },
         { slot: 12, tier: 2, key: 'psychoharmoniser',        it: 'Armonizzatore psicologico',        perLevel: { metal: 0.0006, crystal: 0.0006, deut: 0.0006 }, cost: { base: [100000, 40000, 30000], factor: 1.5 }, used: true },
         { slot: 13, tier: 3, key: 'efficient_swarm_intelligence', it: 'Intelligenza collettiva efficiente', perLevel: { research_time: -0.001, lf_research_time: -0.001 }, used: false },
         { slot: 14, tier: 3, key: 'large_cargo_overclocking', it: 'Overclocking (Cargo pesante)',    perLevel: { ship: 'large_cargo', armour: 0.01, shield: 0.01, weapons: 0.01, cargo: 0.01, speed: 0.01 }, used: false },
