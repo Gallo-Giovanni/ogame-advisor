@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 18, date: '2026-10-25', title: 'Regole della guida ufficiale',
+    text: 'Con la guida del forum: il Collezionista con il Geologo attivo può usare il 10% di crawler in più e può spingerli fino al 150% (ogni +10% costa +20% di energia); il costo dell\'Astrofisica è arrotondato alle centinaia come nel gioco.',
+  },
+  {
     id: 17, date: '2026-10-25', title: 'Riepilogo con icone',
     text: 'Ogni pianeta ha un riepilogo a riquadri con icone: miniere, centrali, satelliti, crawler, Centro di Mineralogia, item e forme di vita, con il livello in basso a destra. Si aggiorna mentre scrivi nella scheda e compare in piccolo anche nell\'elenco dei pianeti.',
   },

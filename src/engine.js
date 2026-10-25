@@ -18,7 +18,9 @@ const Engine = (() => {
   const COLONY_SHIP = [10000, 20000, 10000];
 
   function levelCost(key, level) {
-    const b = key === 'plasma' ? PLASMA : key === 'astro' ? ASTRO : BUILD[key];
+    // Astrophysics is rounded to hundreds: 100 x round(40 / 80 / 40 x 1.75^(level-1)) (official guide)
+    if (key === 'astro') return [40, 80, 40].map(x => 100 * Math.floor(0.5 + x * Math.pow(1.75, level - 1)));
+    const b = key === 'plasma' ? PLASMA : BUILD[key];
     const m = Math.pow(b.factor, level - 1);
     return b.base.map(x => Math.floor(x * m));
   }
@@ -44,13 +46,24 @@ const Engine = (() => {
 
   // Crawlers (checked against the game page): each working crawler adds 0.02% of every mine row
   // (x1.5 for the Collector class) and uses 50 energy, both scaled by the crawler production %.
-  // At most 8 crawlers per mine level (metal + crystal + deuterium) work.
-  const maxCrawlers = planet => 8 * ((+planet.metal_mine || 0) + (+planet.crystal_mine || 0) + (+planet.deut_synth || 0));
-  const crawlerPct = planet => (planet.crawler_pct === undefined || planet.crawler_pct === null || planet.crawler_pct === '' ? 100 : +planet.crawler_pct) / 100;
-  const workingCrawlers = planet => Math.min(+planet.crawlers || 0, maxCrawlers(planet));
+  // At most 8 crawlers per mine level (metal + crystal + deuterium) work; a Collector with the
+  // Geologist gets 10% more. Only a Collector can overload them up to 150%, and every 10% above 100%
+  // costs 20% more energy (official guide).
+  const isCollector = profile => profile && profile.player_class === 'collector';
+  const maxCrawlers = (planet, profile) => Math.floor(8 * ((+planet.metal_mine || 0) + (+planet.crystal_mine || 0) + (+planet.deut_synth || 0))
+    * (isCollector(profile) && profile.geologist ? 1.1 : 1));
+  const crawlerPct = (planet, profile) => {
+    const p = (planet.crawler_pct === undefined || planet.crawler_pct === null || planet.crawler_pct === '' ? 100 : +planet.crawler_pct) / 100;
+    return Math.max(0, Math.min(p, isCollector(profile) ? 1.5 : 1));
+  };
+  const workingCrawlers = (planet, profile) => Math.min(+planet.crawlers || 0, maxCrawlers(planet, profile));
   const crawlerBonus = (profile, planet) =>
-    workingCrawlers(planet) * 0.0002 * (profile.player_class === 'collector' ? 1.5 : 1) * crawlerPct(planet);
-  const crawlerEnergy = (profile, planet) => Math.round(workingCrawlers(planet) * 50 * crawlerPct(planet) * consFactor(profile));
+    workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile);
+  const crawlerEnergy = (profile, planet) => {
+    const p = crawlerPct(planet, profile);
+    const energyShare = p <= 1 ? p : 1 + 2 * (p - 1); // overload: +20% energy per +10%
+    return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile));
+  };
 
   // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper.
   // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).

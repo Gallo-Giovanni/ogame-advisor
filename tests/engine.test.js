@@ -74,11 +74,19 @@ assert.deepStrictEqual(E.buildUpCost('metal_mine', 2), [150, 37, 0]);
 const empire = Array.from({ length: 11 }, (_, i) => ({ ...planets[0], id: 'p' + i, name: 'P' + i, metal_mine: i === 0 ? 10 : 30, energy_balance: 3000 }));
 const colony = E.recommendations({ ...profile, astro_tech: 20 }, empire).find(r => r.type === 'colony');
 assert.ok(colony && colony.nextLevel === 21 && colony.colony.metal_mine === 30, 'median ignores the planet far behind');
-assert.strictEqual(colony.astroCost[0], Math.floor(4000 * Math.pow(1.75, 20)));
+assert.strictEqual(colony.astroCost[0], 100 * Math.floor(0.5 + 40 * Math.pow(1.75, 20)));
 // Caps
 const capped = E.recommendations({ ...profile, cap_metal: 30, cap_plasma: 0, cap_astro: 20, astro_tech: 20 }, empire);
 assert.ok(!capped.some(r => (r.key === 'metal_mine' && r.nextLevel > 30) || r.type === 'plasma' || r.type === 'colony'));
 assert.ok(capped.some(r => r.key === 'crystal_mine'));
 assert.strictEqual(E.applyRecommendation(profile, null, colony).profile.astro_tech, 21);
+
+// Crawlers: Collector bonus x1.5, +10% crawlers with Geologist, overload only for the Collector
+const cr = { ...planets[0], crawlers: 10000, crawler_pct: 150 };
+assert.strictEqual(E.maxCrawlers(cr, profile), 640);
+assert.strictEqual(E.maxCrawlers(cr, { ...profile, player_class: 'collector', geologist: true }), 704);
+const noOver = E.planetState(profile, cr), over = E.planetState({ ...profile, player_class: 'collector' }, cr);
+assert.ok(Math.abs(noOver.mult.metal / 1.23 - (1 + 640 * 0.0002)) < 1e-9, 'non-collector capped at 100%');
+assert.ok(Math.abs(over.mult.metal / 1.23 - (1.25 + 640 * 0.0003 * 1.5)) < 1e-9, 'collector overload 150%');
 
 console.log('All tests passed');

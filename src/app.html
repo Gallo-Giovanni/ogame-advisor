@@ -306,7 +306,7 @@
             </div>
             <div class="grid">
               <div><label>Crawler</label><input data-f="crawlers" type="number" min="0"></div>
-              <div><label>Produzione crawler</label><select data-f="crawler_pct"><option value="150">150%</option><option value="100">100%</option><option value="90">90%</option><option value="80">80%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option><option value="40">40%</option><option value="30">30%</option><option value="20">20%</option><option value="10">10%</option><option value="0">0%</option></select></div>
+              <div><label>Produzione crawler</label><select data-f="crawler_pct"><option value="150">150%</option><option value="140">140%</option><option value="130">130%</option><option value="120">120%</option><option value="110">110%</option><option value="100">100%</option><option value="90">90%</option><option value="80">80%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option><option value="40">40%</option><option value="30">30%</option><option value="20">20%</option><option value="10">10%</option><option value="0">0%</option></select></div>
               <div><label>Centro di Mineralogia</label><input data-f="mrc_level" type="number" min="0" placeholder="vuoto se non Rock'tal"></div>
             </div>
             <p class="muted small" style="margin:0" id="pe-crawler-info">Funzionano al massimo 8 crawler per livello di miniera. Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.</p>
@@ -910,8 +910,9 @@ function renderPlanetPreview() {
   $('#pe-summary').innerHTML = planetTiles(p);
   if (!(p.position >= 1 && p.position <= 15) || !Number.isFinite(p.temp_max)) { $('#pe-preview').innerHTML = ''; return; }
   const st = Engine.planetState(numericProfile(state.profile), p);
-  const maxC = Engine.maxCrawlers(p);
-  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera)${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
+  const prof = numericProfile(state.profile);
+  const maxC = Engine.maxCrawlers(p, prof);
+  $('#pe-crawler-info').firstChild.textContent = `Su questo pianeta funzionano al massimo ${fmt(maxC)} crawler (8 per livello di miniera${prof.player_class === 'collector' && prof.geologist ? ', +10% col Geologo' : ''})${p.crawlers > maxC ? ': quelli in più non producono' : ''}. Oltre il 100% di produzione solo il Collezionista (ogni +10% costa +20% di energia). Il Centro di Mineralogia (forme di vita Rock'tal) rende le miniere più economiche dello 0,5% per livello: se lo puoi costruire ma è a 0, scrivi 0 e i consigli te lo suggeriranno.`;
   const box = (label, cls, v, sub) => `<div class="card stat"><div class="muted small">${label}</div><div class="v ${cls}">${v}</div><div class="muted small">${sub}</div></div>`;
   $('#pe-preview').innerHTML =
     box('Metallo / ora', 'res-m', fmt(st.actual[0]), fmt(st.actual[0] * 24) + ' al giorno') +
