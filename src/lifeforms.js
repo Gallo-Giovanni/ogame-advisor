@@ -35,10 +35,20 @@ const LIFEFORMS = {
     humans: {
       name: 'Umani',
       note: 'Does not boost the class bonus (game description).',
+      // Energy used by each building, levels 1-15, from the game's Tech Info tables (needed when we suggest these buildings)
       buildings: {
-        metropolis:      { it: 'Metropolis', effect: { techBoost: 0.005 }, perLevel: true, source: 'guide' }, // level 9 = +4.5%
-        research_centre: { it: 'Centro di Ricerca', effect: { techCost: -0.005, techTime: -0.02 }, perLevel: true,
-                           max: { techCost: -0.25, techTime: -0.99 }, source: 'guide' }, // level 15 = -7.5% cost, -30% time
+        high_energy_smelting: { it: 'Fusione ad alta energia', effect: { metal: 0.015 }, perLevel: true, source: 'game',
+          energy: [40, 96, 159, 234, 322, 425, 545, 685, 848, 1037, 1255, 1506, 1795, 2126, 2506] },
+        fusion_production:    { it: 'Tecniche estrattive a fusione', effect: { crystal: 0.015, deut: 0.01 }, perLevel: true, source: 'game',
+          energy: [80, 193, 319, 468, 644, 850, 1091, 1371, 1697, 2074, 2510, 3012, 3590, 4253, 5012] },
+        metropolis:           { it: 'Metropolis', effect: { techBoost: 0.005 }, perLevel: true, source: 'game', // boosts all techs on this planet
+          energy: [90, 198, 312, 437, 574, 723, 886, 1063, 1256, 1466, 1693, 1939, 2206, 2494, 2806] },
+        research_centre:      { it: 'Centro di Ricerca', effect: { techCost: -0.005, techTime: -0.02 }, perLevel: true,
+          max: { techCost: -0.25, techTime: -0.99 }, source: 'guide', // level 15 = -7.5% cost, -30% time
+          energy: { 13: 353, 14: 411, 15: 475, 16: 548, 17: 629, 18: 719, 19: 819, 20: 932, 21: 1057, 22: 1196, 23: 1350, 24: 1521, 25: 1712, 26: 1923, 27: 2156 } },
+        // No effect on production, energy or costs (game descriptions): Zona residenziale, Fattoria della Biosfera,
+        // Accademia delle Scienze, Centro di Neuro-calibrazione, Magazzino Alimentare, Grattacielo,
+        // Laboratorio Biotecnologico, Scudo planetario
       },
       techs: null, // todo
     },
