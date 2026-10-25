@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 30, date: '2026-10-25', title: 'Primo accesso più veloce',
+    text: 'Chi si registra sceglie subito come caricare l\'impero: importandolo dalla Vista impero del gioco con il pulsante nei preferiti (consigliato, da PC) oppure inserendolo a mano. Dopo l\'importazione resta solo una schermata con ufficiali e livelli delle razze, poi si va ai consigli.',
+  },
+  {
     id: 29, date: '2026-10-25', title: 'Importa dalla Vista impero',
     text: 'In Impostazioni trovi il pulsante "OGame Advisor" da trascinare nei preferiti del browser (da PC). Premilo sulla Vista impero del gioco: l\'app legge miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica, ti mostra cosa cambia e salva solo se confermi. Il pulsante legge solo la pagina aperta: non fa richieste al gioco.',
   },

@@ -72,6 +72,10 @@
 
   /* Wizard */
   .steps { display: flex; gap: 8px; margin-bottom: 16px; }
+  .choice { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+  .choice .opt { background: var(--bg2); }
+  .tag-rec { font-size: .7rem; padding: 2px 6px; border-radius: 4px; background: var(--accent); color: #0b1020; vertical-align: middle; }
+  @media (max-width: 700px) { .choice { grid-template-columns: 1fr; } }
   .step { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
   .step.on { background: var(--accent); }
   .planet-card { border: 1px dashed var(--line); border-radius: 10px; padding: 12px; }
@@ -218,7 +222,49 @@
     <header class="top"><h1>Configura il tuo impero</h1><button class="ghost" data-action="logout">Esci</button></header>
     <div class="steps"><div class="step" data-step="1"></div><div class="step" data-step="2"></div><div class="step" data-step="3"></div></div>
 
-    <div class="card stack" data-wiz="1">
+    <div class="card stack" data-wiz="0">
+      <h2>Come vuoi caricare il tuo impero?</h2>
+      <div class="choice">
+        <div class="card stack opt">
+          <h3 style="margin:0">Importa dal gioco <span class="tag-rec">consigliato</span></h3>
+          <p class="small" style="margin:0">Un clic e arrivano tutti i pianeti: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, velocità, Plasma, Energia e Astrofisica.</p>
+          <ol class="small" style="margin:0;padding-left:20px">
+            <li>Trascina questo pulsante sulla barra dei preferiti: <a class="bm" data-bm href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
+            <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
+            <li>Premi <b>OGame Advisor</b> nei preferiti: si apre l'app con l'elenco di cosa verrà salvato.</li>
+          </ol>
+          <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: sul telefono questi preferiti non funzionano.</p>
+          <p class="muted small" style="margin:0">Il pulsante legge solo la pagina che hai aperto: non fa richieste al gioco e non legge la sessione.</p>
+        </div>
+        <div class="card stack opt">
+          <h3 style="margin:0">Inserisci a mano</h3>
+          <p class="small" style="margin:0">Compili account e bonus, poi un pianeta alla volta (con Copia per riportare gli stessi livelli sugli altri). Va bene anche da telefono, e potrai importare dal gioco più avanti da Impostazioni.</p>
+          <div class="row"><button class="secondary" data-next="1">Inserisci a mano</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card stack hidden" data-wiz="4">
+      <h2>Ultimi dettagli</h2>
+      <p class="muted small" style="margin:0">Questi dati non sono nella Vista impero. Li puoi cambiare quando vuoi da Impostazioni.</p>
+      <div class="row">
+        <label class="check"><input type="checkbox" data-q="geologist"> Geologo attivo</label>
+        <label class="check"><input type="checkbox" data-q="engineer"> Ingegnere attivo</label>
+        <label class="check"><input type="checkbox" data-q="commanding_staff"> Staff di comando completo</label>
+      </div>
+      <p class="muted small" style="margin:0">Livello di ogni forma di vita (0 se non la usi): lo trovi nella pagina Forme di vita del gioco.</p>
+      <div class="grid">
+        <div><label>Livello Umani</label><input data-q="lf_level_humans" type="number" min="0" value="0"></div>
+        <div><label>Livello Rock'tal</label><input data-q="lf_level_rocktal" type="number" min="0" value="0"></div>
+        <div><label>Livello Mecha</label><input data-q="lf_level_mechas" type="number" min="0" value="0"></div>
+        <div><label>Livello Kaelesh</label><input data-q="lf_level_kaelesh" type="number" min="0" value="0"></div>
+      </div>
+      <p class="muted small" style="margin:0">Item (booster) attivi e percentuale dei crawler si impostano nella scheda di ogni pianeta, se li usi.</p>
+      <div id="wiz4-msg" class="msg hidden"></div>
+      <div class="row"><button id="wiz4-finish">Vai ai consigli</button></div>
+    </div>
+
+    <div class="card stack hidden" data-wiz="1">
       <h2>1 · Account</h2>
       <p class="muted small">Li trovi nel gioco: classe e tecnologie nella pagina Ricerca, la velocità nelle impostazioni del server.</p>
       <div class="grid">
@@ -237,7 +283,7 @@
         <label class="check"><input type="checkbox" data-p="commanding_staff"> Staff di comando completo</label>
         <label class="check"><input type="checkbox" data-p="alliance_trader"> Alleanza di classe Mercante (+5%)</label>
       </div>
-      <div class="row"><button data-next="2">Avanti</button></div>
+      <div class="row"><button class="secondary" data-next="0">Indietro</button><button data-next="2">Avanti</button></div>
     </div>
 
     <div class="card stack hidden" data-wiz="2">
@@ -1494,6 +1540,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 30, date: '2026-10-25', title: 'Primo accesso più veloce',
+    text: 'Chi si registra sceglie subito come caricare l\'impero: importandolo dalla Vista impero del gioco con il pulsante nei preferiti (consigliato, da PC) oppure inserendolo a mano. Dopo l\'importazione resta solo una schermata con ufficiali e livelli delle razze, poi si va ai consigli.',
+  },
+  {
     id: 29, date: '2026-10-25', title: 'Importa dalla Vista impero',
     text: 'In Impostazioni trovi il pulsante "OGame Advisor" da trascinare nei preferiti del browser (da PC). Premilo sulla Vista impero del gioco: l\'app legge miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica, ti mostra cosa cambia e salva solo se confermi. Il pulsante legge solo la pagina aperta: non fa richieste al gioco.',
   },
@@ -1737,7 +1787,11 @@ async function loadUserData() {
   state.profile = profile;
   state.planets = planets || [];
   state.editing = null;
-  if (!profile || !profile.onboarded) { startOnboarding(); return; }
+  if (!profile || !profile.onboarded) {
+    startOnboarding();
+    if (pendingImport()) openImport();
+    return;
+  }
   renderApp();
   if (pendingImport()) { openImport(); return; }
   if (!state.planets.length) {
@@ -1788,12 +1842,13 @@ function startOnboarding() {
   $$('[data-p]').forEach(el => {
     if (el.type === 'checkbox') el.checked = !!p[el.dataset.p]; else el.value = p[el.dataset.p] ?? '';
   });
-  goStep(1);
+  goStep(0);
   show('onboarding');
 }
 function goStep(n) {
   $$('[data-wiz]').forEach(el => el.classList.toggle('hidden', el.dataset.wiz != n));
   $$('.step').forEach(el => el.classList.toggle('on', el.dataset.step <= n));
+  $('#view-onboarding .steps').classList.toggle('hidden', n === 0 || n === 4);
   window.scrollTo(0, 0);
 }
 $$('[data-next]').forEach(b => b.addEventListener('click', () => goStep(+b.dataset.next)));
@@ -2453,7 +2508,7 @@ function captureImport() {
 }
 captureImport();
 // app already open in this tab: import right away if logged in
-window.addEventListener('hashchange', () => { if (captureImport() && state.profile && state.profile.onboarded) openImport(); });
+window.addEventListener('hashchange', () => { if (captureImport() && state.user) openImport(); });
 function pendingImport() {
   let raw = state.importRaw;
   try { raw = sessionStorage.getItem('ogadv-import') || raw; } catch (e) {}
@@ -2512,13 +2567,21 @@ function openImport() {
   message($('#import-msg'), '');
   $('#import-modal').classList.remove('hidden');
 }
-function closeImport() { dropImport(); state.importPlan = null; $('#import-modal').classList.add('hidden'); openUpdates(true); }
+function closeImport() {
+  dropImport(); state.importPlan = null; $('#import-modal').classList.add('hidden');
+  if (state.profile && state.profile.onboarded) openUpdates(true);
+}
 $('#import-cancel').addEventListener('click', closeImport);
 $('#import-ok').addEventListener('click', async () => {
   const m = state.importPlan; if (!m) return;
   const btn = $('#import-ok'); btn.disabled = true; message($('#import-msg'), 'Importazione…', 'ok');
   const fail = e => { btn.disabled = false; message($('#import-msg'), 'Errore: ' + e.message); };
-  if (Object.keys(m.profile).length) {
+  const isNew = !state.profile || !state.profile.onboarded;
+  if (isNew) {
+    const r = await sb.from('profiles').upsert({ user_id: state.user.id, ...m.profile, onboarded: true }).select().single();
+    if (r.error) return fail(r.error);
+    state.profile = r.data;
+  } else if (Object.keys(m.profile).length) {
     const r = await sb.from('profiles').update(m.profile).eq('user_id', state.user.id).select().single();
     if (r.error) return fail(r.error);
     state.profile = r.data;
@@ -2535,11 +2598,31 @@ $('#import-ok').addEventListener('click', async () => {
   btn.disabled = false;
   dropImport(); state.importPlan = null;
   $('#import-modal').classList.add('hidden');
+  if (isNew) {
+    const pl = await sb.from('planets').select('*').order('sort_order').order('created_at');
+    state.planets = pl.data || [];
+    $$('[data-q]').forEach(el => { const v = state.profile[el.dataset.q]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? 0; });
+    goStep(4); show('onboarding');
+    return;
+  }
   await loadUserData();
   message($('#planets-msg'), `Importati ${m.planets.length} pianeti dalla Vista impero.`, 'ok');
 });
-$('#bm-link').href = Importer.bookmarkletHref(location.origin + location.pathname);
-$('#bm-link').addEventListener('click', e => { if (!e.defaultPrevented) { e.preventDefault(); alert('Non cliccarlo qui: trascinalo sulla barra dei preferiti del browser, poi premilo sulla Vista impero di OGame.'); } });
+$$('#bm-link, [data-bm]').forEach(a => {
+  a.href = Importer.bookmarkletHref(location.origin + location.pathname);
+  a.addEventListener('click', e => { e.preventDefault(); alert('Non cliccarlo qui: trascinalo sulla barra dei preferiti del browser, poi premilo sulla Vista impero di OGame.'); });
+});
+// phones and tablets: the bookmarklet cannot be used, say so
+$('#wiz-mobile-note').classList.toggle('hidden', !matchMedia('(pointer: coarse)').matches);
+$('#wiz4-finish').addEventListener('click', async () => {
+  const patch = {};
+  $$('[data-q]').forEach(el => { patch[el.dataset.q] = el.type === 'checkbox' ? el.checked : Math.max(0, Number(el.value) || 0); });
+  const btn = $('#wiz4-finish'); btn.disabled = true;
+  const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
+  btn.disabled = false;
+  if (r.error) return message($('#wiz4-msg'), 'Errore: ' + r.error.message);
+  await loadUserData();
+});
 
 /* Settings */
 function renderSettings() {
