@@ -58,5 +58,10 @@ for (const [pct, balance, want] of [[100, -2680, [631984, 108497, 78681]], [50, 
 }
 assert.strictEqual(E.maxCrawlers(planet2), 800);
 
-// Mineral Research Centre: 0.5% cheaper mines per level (matches another tool's numbers)
+// Mineral Research Centre level 1 = 0.5% cheaper mines, checked on the game (Gonnia, Centre 1):
+// metal 38 = 195.59M / 48.90M, crystal 32 = 101.57M / 50.79M, deuterium 33 = 96.59M / 32.20M
+const M = x => Math.round(x / 1e4) / 100;
+assert.deepStrictEqual(E.mineCost('metal_mine', 38, 1).slice(0, 2).map(M), [195.59, 48.9]);
+assert.deepStrictEqual(E.mineCost('crystal_mine', 32, 1).slice(0, 2).map(M), [101.57, 50.79]);
+assert.deepStrictEqual(E.mineCost('deut_synth', 33, 1).slice(0, 2).map(M), [96.59, 32.2]);
 assert.deepStrictEqual(E.mineCost('metal_mine', 38, 1), [195591922, 48897981, 0]);
