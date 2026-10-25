@@ -1,10 +1,12 @@
 // App updates shown to users ("Novità").
 // To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
 // each user stores the last id they have seen, and sees every entry with a higher id.
+// bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
     id: 37, date: '2026-10-25', title: 'Azzera tutto e nuovo pulsante di importazione',
-    text: 'In Impostazioni c\'è "Azzera tutto": cancella pianeti e dati dell\'account e riparte dalla configurazione iniziale, utile se cambi server. Il pulsante "OGame Advisor" da mettere nei preferiti ora legge anche Tecnologia iperspaziale, Fabbrica di robot e Naniti: se l\'avevi già, eliminalo e trascinalo di nuovo da Impostazioni.',
+    text: 'In Impostazioni c\'è "Azzera tutto": cancella pianeti e dati dell\'account e riparte dalla configurazione iniziale, utile se cambi server. Il pulsante "OGame Advisor" da mettere nei preferiti ora legge anche Tecnologia iperspaziale, Fabbrica di robot e Naniti.',
+    bookmarklet: true, // the bookmark must be dragged again
   },
   {
     id: 36, date: '2026-10-25', title: 'Importa anche dopo l\'inserimento a mano',
