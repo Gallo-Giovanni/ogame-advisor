@@ -1594,7 +1594,7 @@ const CHANGELOG = [
   },
   {
     id: 34, date: '2026-10-25', title: 'Massimale delle spedizioni',
-    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento, con e senza Pathfinder, e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
+    text: 'Nella scheda Bonus, sezione Spedizioni, trovi il massimo di metallo, cristallo, deuterio e navi di un ritrovamento (con un Pathfinder nella flotta) e quanti Cargo pesanti servono per portarlo a casa (stesso calcolo di OGame Tracker). In Impostazioni scegli la fascia di punti del primo in classifica del tuo universo; la Tecnologia iperspaziale arriva con l\'importazione dalla Vista impero.',
   },
   {
     id: 33, date: '2026-10-25', title: 'Scheda Bonus',
@@ -2836,7 +2836,7 @@ function renderBonus() {
       return `<tr><td>${label}</td><td>${fmt(m)}</td><td>${fmt(m / 2)}</td><td>${fmt(m / 3)}</td><td>${fmt(band[2] * k * pf / 2 * ships)}</td><td>${fmt(Math.ceil(m / cargo))}</td></tr>`;
     };
     maxHtml = `<b class="small">Massimale di un ritrovamento</b>
-      ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder', 2), line('Senza Pathfinder', 1)])}
+      ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
       <p class="muted small" style="margin:0">Primo in classifica tra 50 e 75 milioni di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}. Stesso calcolo di OGame Tracker.</p>`;
   }
   h += `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
