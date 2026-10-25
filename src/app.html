@@ -555,6 +555,12 @@
         <div id="settings-msg" class="msg hidden"></div>
         <div class="row"><button id="save-settings">Salva impostazioni</button></div>
       </div>
+      <div class="card stack">
+        <h2 style="margin:0">Azzera tutto</h2>
+        <p class="small" style="margin:0">Cancella tutti i pianeti e i dati dell'account (classe, tecnologie, bonus, livelli delle razze, impostazioni) e riparte dalla configurazione iniziale, per esempio se cambi server. Non si può annullare. L'accesso con la tua email resta.</p>
+        <div class="row"><input id="reset-confirm" placeholder="Scrivi AZZERA per confermare" style="max-width:260px" autocomplete="off"><button class="danger" id="reset-all" disabled>Azzera tutto</button></div>
+        <div id="reset-msg" class="msg hidden"></div>
+      </div>
       <div class="card small muted">
         Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). I bonus delle forme di vita si inseriscono nella scheda di ogni pianeta, come percentuale. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
@@ -1491,7 +1497,7 @@ function pendingImport() {
   let raw = state.importRaw;
   try { raw = sessionStorage.getItem('ogadv-import') || raw; } catch (e) {}
   if (!raw) return null;
-  try { const snap = JSON.parse(raw); return snap && snap.v === 1 && Array.isArray(snap.pl) ? snap : null; } catch (e) { return null; }
+  try { const snap = JSON.parse(raw); return snap && snap.v >= 1 && Array.isArray(snap.pl) ? snap : null; } catch (e) { return null; }
 }
 function dropImport() { state.importRaw = null; try { sessionStorage.removeItem('ogadv-import'); } catch (e) {} }
 
@@ -1548,6 +1554,7 @@ function renderImportPlan() {
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
+  if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
   m.planets.forEach(({ match, data }, i) => {
     const nb = Object.keys(data.lf_buildings).length, nt = Object.keys(data.lf_techs).length;
@@ -1796,6 +1803,21 @@ document.addEventListener('click', e => {
   const input = b.closest('.top1-chips').parentElement.querySelector('input[type=hidden]');
   input.value = input.value !== '' && TOP1_RANGES.findIndex(([m]) => m === +b.dataset.top1) === TOP1_RANGES.reduce((k, [m], i) => (+input.value >= m ? i : k), 0) ? '' : b.dataset.top1;
   paintTop1();
+});
+
+/* Reset: delete every planet and bring the profile back to the defaults, then start the first-run setup again */
+$('#reset-confirm').addEventListener('input', e => { $('#reset-all').disabled = e.target.value.trim().toUpperCase() !== 'AZZERA'; });
+$('#reset-all').addEventListener('click', async () => {
+  const btn = $('#reset-all'); btn.disabled = true;
+  message($('#reset-msg'), 'Azzeramento…', 'ok');
+  const d = await sb.from('planets').delete().eq('user_id', state.user.id);
+  if (d.error) { btn.disabled = false; return message($('#reset-msg'), 'Errore: ' + d.error.message); }
+  const r = await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id);
+  if (r.error) { btn.disabled = false; return message($('#reset-msg'), 'Errore: ' + r.error.message); }
+  $('#reset-confirm').value = '';
+  try { ['ogadv-planet', 'ogadv-ftype'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  message($('#reset-msg'), '');
+  await loadUserData();
 });
 
 /* Settings */

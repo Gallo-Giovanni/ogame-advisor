@@ -27,14 +27,17 @@ function grabEmpire(html, meta) {
   const strip = s => String(s || '').replace(/<[^>]*>/g, '');
   const num = s => { const m = strip(s).replace(/\./g, '').match(/[-+]?\d+/); return m ? +m[0] : null; };
   const first = data.planets[0] || {};
+  const research = {};
+  for (const id of ((data.groups || {}).research || [])) if (first[id] != null) research[id] = +first[id] || 0;
   return {
-    v: 1,
+    v: 2,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
-    res: { plasma: first['122'], energy: first['113'], astro: first['124'], hyper: first['114'] },
+    res: research,
     pl: data.planets.map(p => {
-      const lf = {};
+      const lf = {}, b = {};
       for (const k of Object.keys(p)) {
+        if (/^\d+$/.test(k) && !/^1[1-4]\d\d\d$/.test(k) && !research.hasOwnProperty(k) && +p[k] > 0) b[k] = +p[k];
         if (!/^1[1-4][12]\d\d$/.test(k)) continue;
         const on = !/darkgrey/.test(p[k + '_html'] || '');
         if (+p[k] > 0 || on) lf[k] = [+p[k] || 0, on ? 1 : 0];
@@ -43,7 +46,7 @@ function grabEmpire(html, meta) {
       return {
         n: p.name, g: +p.galaxy, s: +p.system, p: +p.position, t: temps.length ? +temps[temps.length - 1] : null,
         e: num(p.energy),
-        b: { 1: p['1'], 2: p['2'], 3: p['3'], 4: p['4'], 12: p['12'], 14: p['14'], 15: p['15'], 212: p['212'], 217: p['217'] },
+        b,
         lf,
       };
     }),
@@ -71,12 +74,12 @@ function mapImport(snap, existing, LF) {
   const profile = {};
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
-  if (snap.res) {
-    if (snap.res.plasma != null) profile.plasma_tech = +snap.res.plasma;
-    if (snap.res.energy != null) profile.energy_tech = +snap.res.energy;
-    if (snap.res.astro != null) profile.astro_tech = +snap.res.astro;
-    if (snap.res.hyper != null) profile.hyperspace_tech = +snap.res.hyper;
-  }
+  // research levels by game id (version 1 of the bookmarklet sent them by name)
+  const r = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
+  if (r[122] != null) profile.plasma_tech = +r[122];
+  if (r[113] != null) profile.energy_tech = +r[113];
+  if (r[124] != null) profile.astro_tech = +r[124];
+  if (r[114] != null) profile.hyperspace_tech = +r[114];
   if (snap.ally) profile.alliance_trader = snap.ally === ALLY_TRADER_ID;
   if (snap.uni) profile.universe = snap.uni;
   if (snap.nick) profile.nickname = snap.nick;
@@ -95,9 +98,10 @@ function mapImport(snap, existing, LF) {
     const data = {
       name: ip.n, galaxy: ip.g, system: ip.s, position: ip.p,
       metal_mine: +ip.b[1] || 0, crystal_mine: +ip.b[2] || 0, deut_synth: +ip.b[3] || 0,
-      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, robotics_factory: +ip.b[14] || 0, nanite_factory: +ip.b[15] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
+      solar_plant: +ip.b[4] || 0, fusion_reactor: +ip.b[12] || 0, solar_satellites: +ip.b[212] || 0, crawlers: +ip.b[217] || 0,
       lf_race: race,
     };
+    if (snap.v >= 2 || ip.b[14] != null) { data.robotics_factory = +ip.b[14] || 0; data.nanite_factory = +ip.b[15] || 0; }
     if (ip.t != null) data.temp_max = ip.t;
     if (ip.e != null) data.energy_balance = ip.e;
     const lfb = {};
@@ -121,5 +125,9 @@ function mapImport(snap, existing, LF) {
   return { profile, planets, unmatched };
 }
 
-const Importer = { grabEmpire, bookmarkletHref, mapImport };
+// Bookmarklets dragged before this version miss some data: the app asks to drag the new one
+const BOOKMARKLET_VERSION = 2;
+const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
+
+const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };
 if (typeof module !== 'undefined') module.exports = Importer;

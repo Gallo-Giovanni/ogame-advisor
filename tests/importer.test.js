@@ -15,8 +15,9 @@ set(12106, 12, true); set(12108, 3, true); set(12111, 2, true); // Magma Forge, 
 for (let s = 1; s <= 18; s++) for (const b of [11, 12, 13, 14]) set(b * 1000 + 200 + s, 0, false);
 set(13201, 4, true); set(11201, 2, false); // slot 1: Mecha active, an old Human level greyed out
 set(12207, 0, true);                       // slot 7: Rock'tal chosen, level 0
+planet.groups = null;
 const html = `<meta name="ogame-session" content="SECRET"><script>var planetType = 0;
-  createImperiumHtml("#mainWrapper", "#loading", ${JSON.stringify({ planets: [planet], translations: {}, groups: {} })}, 0 );</script>`;
+  createImperiumHtml("#mainWrapper", "#loading", ${JSON.stringify({ planets: [planet], translations: {}, groups: { research: [122, 113, 124, 114] } })}, 0 );</script>`;
 const metas = { 'universe-name': 'Test', 'player-name': 'Someone', 'universe-speed': '3', 'player-characterclass-id': '1', 'allianceclass-id': '0', session: 'SECRET' };
 const meta = n => metas[n] || '';
 
@@ -34,6 +35,11 @@ assert.strictEqual(d.mrc_level, 2);
 assert.deepStrictEqual(d.lf_techs, { 1: { race: 'mechas', level: 4 }, 7: { race: 'rocktal', level: 0 } });
 assert.deepStrictEqual([d.robotics_factory, d.nanite_factory], [10, 5]);
 assert.deepStrictEqual([d.metal_mine, d.crystal_mine, d.deut_synth, d.solar_plant, d.fusion_reactor, d.solar_satellites, d.crawlers], [30, 25, 26, 24, 9, 400, 50]);
+
+// An old bookmarklet (version 1) still works, and the app asks to replace it
+const old = { ...snap, v: 1, res: { plasma: 12, energy: 14, astro: 11 } };
+assert.ok(require('../src/importer.js').outdated(old) && !require('../src/importer.js').outdated(snap));
+assert.strictEqual(mapImport(old, [], LF).profile.plasma_tech, 12);
 
 // Matching: coordinates first, then name; planets not on the page are reported
 const existing = [{ id: 'x', name: 'Other', galaxy: 2, system: 100, position: 8 }, { id: 'y', name: 'Old', galaxy: null, system: null, position: 4 }];

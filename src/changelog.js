@@ -3,6 +3,10 @@
 // each user stores the last id they have seen, and sees every entry with a higher id.
 const CHANGELOG = [
   {
+    id: 37, date: '2026-10-25', title: 'Azzera tutto e nuovo pulsante di importazione',
+    text: 'In Impostazioni c\'è "Azzera tutto": cancella pianeti e dati dell\'account e riparte dalla configurazione iniziale, utile se cambi server. Il pulsante "OGame Advisor" da mettere nei preferiti ora legge anche Tecnologia iperspaziale, Fabbrica di robot e Naniti: se l\'avevi già, eliminalo e trascinalo di nuovo da Impostazioni.',
+  },
+  {
     id: 36, date: '2026-10-25', title: 'Importa anche dopo l\'inserimento a mano',
     text: 'Se hai inserito l\'impero a mano puoi importare dalla Vista impero quando vuoi senza perdere nulla: nell\'anteprima scegli per ogni pianeta quale dei tuoi aggiornare (utile se l\'hai chiamato in un altro modo). Item, percentuale dei crawler, ufficiali e livelli delle razze restano quelli inseriti; nessun pianeta viene cancellato.',
   },
