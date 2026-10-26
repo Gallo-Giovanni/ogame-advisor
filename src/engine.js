@@ -566,14 +566,15 @@ const Engine = (() => {
   // A building or research that stays the best choice for several levels in a row shows up several times.
   const recKey = r => r.type === 'lftech' ? `lftech:${r.planetId}:${r.slot}`
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
-  function plan(profile, planets, steps = 100) {
+  // skip: ids of planets the player does not want suggestions for (busy building); they still count for account-wide gains
+  function plan(profile, planets, steps = 100, skip = []) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
     const out = [];
     let colonyDone = false; // a new colony is planned once: the player fills in its data after colonising
     for (let i = 0; i < steps; i++) {
       const recs = recommendations(withLifeforms(prof, pls), pls);
-      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone));
+      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)));
       if (!r) break;
       out.push({ ...r, group: recKey(r), step: i });
       const planet = pls.find(p => p.id === r.planetId);

@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 39, date: '2026-10-26', title: 'Scegli i pianeti nei consigli',
+    text: 'Sotto il filtro dei tipi c\'è l\'elenco dei pianeti: togli la spunta a quelli che stanno già costruendo e il piano ti suggerisce gli upgrade degli altri. I pianeti esclusi contano comunque per le ricerche e il Plasma. L\'app ricorda la scelta.',
+  },
+  {
     id: 38, date: '2026-10-26', title: 'Consigli su più livelli',
     text: 'La classifica ora è un piano: l\'app sceglie l\'upgrade migliore, lo considera fatto e ricalcola, e così via. Se una costruzione o una ricerca conviene per più livelli di fila, la trovi in una sola riga (per esempio "Armonizzatore psicologico 1 → 5"), con i giorni del primo e dell\'ultimo livello; aprendo la riga vedi costo e guadagno di ogni livello e il totale. Fatto segna il primo livello.',
   },

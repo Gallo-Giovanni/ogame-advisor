@@ -370,6 +370,7 @@
           <button type="button" class="chip" data-ftype="lft" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="lft"></span>Ricerche forme di vita</button>
           <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="plasma"></span>Plasma e colonia</button>
         </div>
+        <div class="chips" id="filter-planets" role="group" aria-label="Pianeti nei consigli" style="margin-top:6px"></div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
           <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci mette la produzione in più a ripagare la spesa. Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
@@ -1439,14 +1440,15 @@ const Engine = (() => {
   // A building or research that stays the best choice for several levels in a row shows up several times.
   const recKey = r => r.type === 'lftech' ? `lftech:${r.planetId}:${r.slot}`
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
-  function plan(profile, planets, steps = 100) {
+  // skip: ids of planets the player does not want suggestions for (busy building); they still count for account-wide gains
+  function plan(profile, planets, steps = 100, skip = []) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
     const out = [];
     let colonyDone = false; // a new colony is planned once: the player fills in its data after colonising
     for (let i = 0; i < steps; i++) {
       const recs = recommendations(withLifeforms(prof, pls), pls);
-      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone));
+      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)));
       if (!r) break;
       out.push({ ...r, group: recKey(r), step: i });
       const planet = pls.find(p => p.id === r.planetId);
@@ -1639,6 +1641,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
+  {
+    id: 39, date: '2026-10-26', title: 'Scegli i pianeti nei consigli',
+    text: 'Sotto il filtro dei tipi c\'è l\'elenco dei pianeti: togli la spunta a quelli che stanno già costruendo e il piano ti suggerisce gli upgrade degli altri. I pianeti esclusi contano comunque per le ricerche e il Plasma. L\'app ricorda la scelta.',
+  },
   {
     id: 38, date: '2026-10-26', title: 'Consigli su più livelli',
     text: 'La classifica ora è un piano: l\'app sceglie l\'upgrade migliore, lo considera fatto e ricalcola, e così via. Se una costruzione o una ricerca conviene per più livelli di fila, la trovi in una sola riga (per esempio "Armonizzatore psicologico 1 → 5"), con i giorni del primo e dell\'ultimo livello; aprendo la riga vedi costo e guadagno di ogni livello e il totale. Fatto segna il primo livello.',
@@ -2078,10 +2084,13 @@ function renderAdvice() {
 
   const limit = +$('#filter-count').value;
   // Plan: best upgrade, then the best one after it, and so on; levels of the same item are grouped in one row
-  const planKey = JSON.stringify([state.profile, planets, limit]);
+  // planets the player switched off (for example already building): no suggestions there
+  const skip = planets.filter(pl => state.hiddenPlanets.has(pl.id)).map(pl => pl.id);
+  paintPlanetChips(planets);
+  const planKey = JSON.stringify([state.profile, planets, limit, skip]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20)));
+    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip));
   }
   let groups = state.planGroups;
   if (filter) groups = groups.filter(g => g.first.planetId === filter);
@@ -2131,6 +2140,27 @@ $('#filter-planet').addEventListener('change', () => {
   renderAdvice();
 });
 $('#filter-count').addEventListener('change', renderAdvice);
+// Planets in the advice: all ticked by default; untick a planet to get suggestions only for the others
+state.hiddenPlanets = new Set();
+try { (localStorage.getItem('ogadv-hidden') || '').split(',').filter(Boolean).forEach(id => state.hiddenPlanets.add(id)); } catch (e) {}
+function paintPlanetChips(planets) {
+  const box = $('#filter-planets');
+  if (planets.length < 2 || $('#filter-planet').value) { box.innerHTML = ''; return; }
+  const all = !planets.some(p => state.hiddenPlanets.has(p.id));
+  box.innerHTML = `<span class="muted small" style="align-self:center">Pianeti:</span>
+    <button type="button" class="chip" data-fpl="" aria-pressed="${all}"><span class="box">${all ? '✓' : ''}</span>Tutti</button>` +
+    planets.map(p => { const on = !state.hiddenPlanets.has(p.id); return `<button type="button" class="chip" data-fpl="${p.id}" aria-pressed="${on}"><span class="box">${on ? '✓' : ''}</span>${esc(p.name)}</button>`; }).join('');
+}
+$('#filter-planets').addEventListener('click', e => {
+  const b = e.target.closest('[data-fpl]'); if (!b) return;
+  const id = b.dataset.fpl;
+  if (!id) state.hiddenPlanets.clear();
+  else if (state.hiddenPlanets.has(id)) state.hiddenPlanets.delete(id);
+  else if (state.planets.filter(p => !state.hiddenPlanets.has(p.id)).length > 1) state.hiddenPlanets.add(id); // keep at least one
+  try { localStorage.setItem('ogadv-hidden', [...state.hiddenPlanets].join(',')); } catch (err) {}
+  renderAdvice();
+});
+
 // Type filter: tick one or more types; "Tutti" (or ticking every type) shows everything
 const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
 state.ftypes = new Set();
@@ -3019,7 +3049,7 @@ $('#reset-all').addEventListener('click', async () => {
   const r = await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id);
   if (r.error) { btn.disabled = false; return message($('#reset-msg'), 'Errore: ' + r.error.message); }
   $('#reset-confirm').value = '';
-  try { ['ogadv-planet', 'ogadv-ftype'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  try { ['ogadv-planet', 'ogadv-ftype', 'ogadv-hidden'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
   message($('#reset-msg'), '');
   await loadUserData();
 });
