@@ -131,4 +131,12 @@ assert.ok(Math.abs(ms - (1 + 0.25 + 0.5)) < 1e-9);
 // energyModel counts solar satellites
 assert.strictEqual(E.energyModel(profile, { ...planets[0], solar_satellites: 100 }).produced - E.energyModel(profile, planets[0]).produced, 100 * E.satelliteEnergy(40));
 
+// Plan: applying the best upgrade and ranking again; levels of the same item grouped, first step = current best
+const planSteps = E.plan(profile, planets, 30);
+assert.strictEqual(planSteps[0].title, E.recommendations(profile, planets)[0].title);
+const groups = E.planGroups(planSteps);
+assert.strictEqual(groups.reduce((t, g) => t + g.count, 0), planSteps.length);
+assert.ok(groups.some(g => g.count > 1), 'some item stays the best choice for several levels');
+assert.ok(groups.every(g => g.steps.every((x, i) => i === 0 || x.nextLevel === g.steps[i - 1].nextLevel + 1 || x.type === 'energy')));
+
 console.log('All tests passed');

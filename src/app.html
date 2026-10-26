@@ -151,6 +151,7 @@
   .kind svg { width: 16px; height: 16px; }
   .kchip svg { width: 14px; height: 14px; display: block; }
   .bh { margin: 0; display: flex; align-items: center; gap: 10px; }
+  .btable.lv { font-size: .8rem; }
   .btable { width: 100%; border-collapse: collapse; font-size: .88rem; }
   .btable th, .btable td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
   .btable th:first-child, .btable td:first-child { text-align: left; white-space: normal; }
@@ -893,35 +894,50 @@ function renderAdvice() {
   }
 
   const limit = +$('#filter-count').value;
-  let recs = Engine.recommendations(profile, planets);
-  if (filter) recs = recs.filter(r => r.planetId === filter);
+  // Plan: best upgrade, then the best one after it, and so on; levels of the same item are grouped in one row
+  const planKey = JSON.stringify([state.profile, planets, limit]);
+  if (state.planKey !== planKey) {
+    state.planKey = planKey;
+    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20)));
+  }
+  let groups = state.planGroups;
+  if (filter) groups = groups.filter(g => g.first.planetId === filter);
   // type filter: mines (with the energy fixes they need), lifeform buildings, lifeform research
   // several types can be chosen together; none chosen = all
   const types = state.ftypes;
   const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
-  if (types.size) recs = recs.filter(r => types.has(TYPE_OF[r.type]));
+  if (types.size) groups = groups.filter(g => types.has(TYPE_OF[g.first.type]));
   const ftype = types.size === 1 ? [...types][0] : '';
-  recs = recs.slice(0, limit);
+  groups = groups.slice(0, limit);
+  const recs = groups.map(g => g.first);
   state.recs = recs;
   let n = 0;
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
     : types.size ? 'Nessun consiglio per i tipi scelti.' : 'Nessun consiglio: aggiungi almeno un pianeta.';
-  $('#recs').innerHTML = recs.length ? recs.map((r, i) => `
+  const lvlCost = c => c.filter(Boolean).length ? costHTML(c) : '';
+  $('#recs').innerHTML = recs.length ? groups.map((g, i) => {
+    const r = g.first, last = g.steps[g.steps.length - 1];
+    const title = shortTitle(r) + (g.count > 1 ? ` → ${g.to}` : '');
+    const levels = g.count > 1 ? `<div class="muted">Livelli che conviene fare (${g.count}), in ordine nel piano:</div>
+        <table class="btable lv"><tr><th>Livello</th><th>Costo</th><th>Rende</th><th>Si ripaga in</th></tr>${g.steps.map(x => `<tr><td>${x.nextLevel}</td><td>${lvlCost(x.cost)}</td><td>+${fmt(x.gainEq)}/h</td><td>${paybackText(x.payback)}</td></tr>`).join('')}</table>
+        <div class="muted">Totale: ${costHTML(g.cost)}</div>` : '';
+    return `
     <details class="rec ${r.urgent ? 'urgent' : ''}">
       <summary>
         <span class="rank">${r.urgent ? '!' : ++n}</span>
-        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
-        <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
-        <button class="secondary done" data-done="${i}">Fatto</button>
+        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(title)}</b><span class="muted small">${esc(r.planet)}${g.count > 1 ? ` · ${g.count} livelli` : ''}</span></span>
+        <span class="payback" title="tempo di ammortamento del primo livello${g.count > 1 ? ' → dell\'ultimo' : ''}">${paybackText(r.payback)}${g.count > 1 ? `<span class="muted small"> → ${paybackText(last.payback)}</span>` : ''}</span>
+        <button class="secondary done" data-done="${i}" title="Segna fatto il primo livello">Fatto</button>
       </summary>
       <div class="more stack">
         <div>${esc(r.title)}: ${esc(r.detail)}</div>
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
+        ${levels}
       </div>
-    </details>`).join('') : `<p class="muted">${emptyText}</p>`;
+    </details>`; }).join('') : `<p class="muted">${emptyText}</p>`;
   $$('[data-done]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation(); // don't open the row
     completeRec(state.recs[+b.dataset.done], b);

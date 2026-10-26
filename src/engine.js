@@ -562,6 +562,41 @@ const Engine = (() => {
     return { planet: patch };
   }
 
+  // Plan of the next upgrades: take the best recommendation, apply it, rank again, and so on.
+  // A building or research that stays the best choice for several levels in a row shows up several times.
+  const recKey = r => r.type === 'lftech' ? `lftech:${r.planetId}:${r.slot}`
+    : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
+  function plan(profile, planets, steps = 100) {
+    let prof = { ...profile }; delete prof._lf;
+    let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
+    const out = [];
+    let colonyDone = false; // a new colony is planned once: the player fills in its data after colonising
+    for (let i = 0; i < steps; i++) {
+      const recs = recommendations(withLifeforms(prof, pls), pls);
+      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone));
+      if (!r) break;
+      out.push({ ...r, group: recKey(r), step: i });
+      const planet = pls.find(p => p.id === r.planetId);
+      const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
+      if (patch.profile) prof = { ...prof, ...patch.profile };
+      if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
+      if (r.type === 'colony') colonyDone = true;
+    }
+    return out;
+  }
+  // Groups the plan: one row per building or research, with every level the plan does for it
+  function planGroups(steps) {
+    const by = new Map();
+    for (const s of steps) {
+      if (!by.has(s.group)) by.set(s.group, { first: s, steps: [] });
+      by.get(s.group).steps.push(s);
+    }
+    return [...by.values()].map(g => ({
+      ...g, from: g.first.nextLevel, to: g.steps[g.steps.length - 1].nextLevel, count: g.steps.length,
+      cost: g.steps.reduce((t, s) => t.map((x, i) => x + (s.cost[i] || 0)), [0, 0, 0]),
+    }));
+  }
+
   function fixText(fix) {
     if (!fix) return '';
     return fix.kind === 'satellites'
@@ -582,7 +617,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

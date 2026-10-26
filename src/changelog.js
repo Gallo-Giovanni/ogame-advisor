@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 38, date: '2026-10-26', title: 'Consigli su più livelli',
+    text: 'La classifica ora è un piano: l\'app sceglie l\'upgrade migliore, lo considera fatto e ricalcola, e così via. Se una costruzione o una ricerca conviene per più livelli di fila, la trovi in una sola riga (per esempio "Armonizzatore psicologico 1 → 5"), con i giorni del primo e dell\'ultimo livello; aprendo la riga vedi costo e guadagno di ogni livello e il totale. Fatto segna il primo livello.',
+  },
+  {
     id: 37, date: '2026-10-25', title: 'Azzera tutto e nuovo pulsante di importazione',
     text: 'In Impostazioni c\'è "Azzera tutto": cancella pianeti e dati dell\'account e riparte dalla configurazione iniziale, utile se cambi server. Il pulsante "OGame Advisor" da mettere nei preferiti ora legge anche Tecnologia iperspaziale, Fabbrica di robot e Naniti.',
     bookmarklet: true, // the bookmark must be dragged again
