@@ -4,6 +4,11 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 40, date: '2026-10-26', title: 'Lavori in corso contati come fatti',
+    text: 'Importando dalla Vista impero, gli edifici e le ricerche in costruzione o in ricerca contano come già fatti, perché sono già pagati: i consigli partono dal livello successivo (per esempio Astrofisica 19 in corso verso il 20 conta come 20). Le code non ancora iniziate non contano.',
+    bookmarklet: true,
+  },
+  {
     id: 39, date: '2026-10-26', title: 'Scegli i pianeti nei consigli',
     text: 'Sotto il filtro dei tipi c\'è l\'elenco dei pianeti: togli la spunta a quelli che stanno già costruendo e il piano ti suggerisce gli upgrade degli altri. I pianeti esclusi contano comunque per le ricerche e il Plasma. L\'app ricorda la scelta.',
   },

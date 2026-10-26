@@ -29,14 +29,24 @@ function grabEmpire(html, meta) {
   const first = data.planets[0] || {};
   const research = {};
   for (const id of ((data.groups || {}).research || [])) if (first[id] != null) research[id] = +first[id] || 0;
+  const going = (p, k) => {
+    const m = String(p[k + '_html'] || '').match(/<img[^>]*title='([^']*)'/);
+    if (!m) return 0;
+    const n = (m[1].match(/\d+/g) || []).map(Number).pop() || 0;
+    return Math.max(n, (+p[k] || 0) + 1);
+  };
+  const resGoing = {};
+  for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 2,
+    v: 3,
+    rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
     res: research,
     pl: data.planets.map(p => {
-      const lf = {}, b = {};
+      const lf = {}, b = {}, q = {};
       for (const k of Object.keys(p)) {
+        if (/^\d+$/.test(k) && !research.hasOwnProperty(k)) { const t = going(p, k); if (t) q[k] = t; }
         if (/^\d+$/.test(k) && !/^1[1-4]\d\d\d$/.test(k) && !research.hasOwnProperty(k) && +p[k] > 0) b[k] = +p[k];
         if (!/^1[1-4][12]\d\d$/.test(k)) continue;
         const on = !/darkgrey/.test(p[k + '_html'] || '');
@@ -48,6 +58,7 @@ function grabEmpire(html, meta) {
         e: num(p.energy),
         b,
         lf,
+        q,
       };
     }),
   };
@@ -75,7 +86,11 @@ function mapImport(snap, existing, LF) {
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
   // research levels by game id (version 1 of the bookmarklet sent them by name)
-  const r = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
+  const r0 = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
+  // what is being built or researched right now counts as done: it is already paid for
+  const r = { ...r0 };
+  for (const [id, t] of Object.entries(snap.rg || {})) r[id] = Math.max(+r[id] || 0, t);
+  const inProgress = Object.keys(snap.rg || {}).map(Number);
   if (r[122] != null) profile.plasma_tech = +r[122];
   if (r[113] != null) profile.energy_tech = +r[113];
   if (r[124] != null) profile.astro_tech = +r[124];
@@ -90,7 +105,9 @@ function mapImport(snap, existing, LF) {
     const byName = existing.find(x => !used.has(x.id) && String(x.name).trim().toLowerCase() === String(ip.n).trim().toLowerCase());
     const match = byCoords || byName || null;
     if (match) used.add(match.id);
-    const lfv = id => (ip.lf[id] || [0, 0]);
+    const q = ip.q || {};
+    for (const [id, t] of Object.entries(q)) if (!/^1[1-4]\d\d\d$/.test(id)) ip.b[id] = Math.max(+ip.b[id] || 0, t);
+    const lfv = id => { const v = ip.lf[id] || [0, 0]; return q[id] ? [Math.max(v[0], q[id]), v[1]] : v; };
     // race of the planet = the one whose buildings are not greyed out
     let race = null;
     for (const [r, base] of Object.entries(RACE_IDS))
@@ -119,14 +136,14 @@ function mapImport(snap, existing, LF) {
         if (on) { techs[slot] = { race: r, level: lvl }; break; }
       }
     data.lf_techs = techs;
-    return { match, data };
+    return { match, data, inProgress: Object.keys(q).map(Number) };
   });
   const unmatched = existing.filter(x => !used.has(x.id));
-  return { profile, planets, unmatched };
+  return { profile, planets, unmatched, inProgress };
 }
 
 // Bookmarklets dragged before this version miss some data: the app asks to drag the new one
-const BOOKMARKLET_VERSION = 2;
+const BOOKMARKLET_VERSION = 3;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };

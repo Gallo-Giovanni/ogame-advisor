@@ -15,6 +15,10 @@ set(12106, 12, true); set(12108, 3, true); set(12111, 2, true); // Magma Forge, 
 for (let s = 1; s <= 18; s++) for (const b of [11, 12, 13, 14]) set(b * 1000 + 200 + s, 0, false);
 set(13201, 4, true); set(11201, 2, false); // slot 1: Mecha active, an old Human level greyed out
 set(12207, 0, true);                       // slot 7: Rock'tal chosen, level 0
+// in progress: Magma Forge 12 -> 13 and Plasma 12 -> 13 (the game shows an hourglass image with a title)
+planet['12106_html'] = "<a title='Sviluppa'>12</a><img src='x.gif' title='In corso al livello 13!'>";
+planet['122_html'] = "<a>12</a><img src='x.gif' title='In corso al livello 0!'>";
+planet['122'] = 12;
 planet.groups = null;
 const html = `<meta name="ogame-session" content="SECRET"><script>var planetType = 0;
   createImperiumHtml("#mainWrapper", "#loading", ${JSON.stringify({ planets: [planet], translations: {}, groups: { research: [122, 113, 124, 114] } })}, 0 );</script>`;
@@ -27,17 +31,17 @@ const p = snap.pl[0];
 assert.strictEqual(p.t, 30);
 assert.strictEqual(p.e, -1250);
 const m = mapImport(snap, [], LF);
-assert.deepStrictEqual(m.profile, { player_class: 'collector', economy_speed: 3, plasma_tech: 12, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
+assert.deepStrictEqual(m.profile, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
 const d = m.planets[0].data;
 assert.strictEqual(d.lf_race, 'rocktal');
-assert.deepStrictEqual(d.lf_buildings, { magma_forge: 12, monolith: 3 });
+assert.deepStrictEqual(d.lf_buildings, { magma_forge: 13, monolith: 3 }); // in progress counts as done
 assert.strictEqual(d.mrc_level, 2);
 assert.deepStrictEqual(d.lf_techs, { 1: { race: 'mechas', level: 4 }, 7: { race: 'rocktal', level: 0 } });
 assert.deepStrictEqual([d.robotics_factory, d.nanite_factory], [10, 5]);
 assert.deepStrictEqual([d.metal_mine, d.crystal_mine, d.deut_synth, d.solar_plant, d.fusion_reactor, d.solar_satellites, d.crawlers], [30, 25, 26, 24, 9, 400, 50]);
 
 // An old bookmarklet (version 1) still works, and the app asks to replace it
-const old = { ...snap, v: 1, res: { plasma: 12, energy: 14, astro: 11 } };
+const old = { ...snap, v: 1, rg: undefined, res: { plasma: 12, energy: 14, astro: 11 } };
 assert.ok(require('../src/importer.js').outdated(old) && !require('../src/importer.js').outdated(snap));
 assert.strictEqual(mapImport(old, [], LF).profile.plasma_tech, 12);
 

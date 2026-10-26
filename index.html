@@ -1531,14 +1531,24 @@ function grabEmpire(html, meta) {
   const first = data.planets[0] || {};
   const research = {};
   for (const id of ((data.groups || {}).research || [])) if (first[id] != null) research[id] = +first[id] || 0;
+  const going = (p, k) => {
+    const m = String(p[k + '_html'] || '').match(/<img[^>]*title='([^']*)'/);
+    if (!m) return 0;
+    const n = (m[1].match(/\d+/g) || []).map(Number).pop() || 0;
+    return Math.max(n, (+p[k] || 0) + 1);
+  };
+  const resGoing = {};
+  for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 2,
+    v: 3,
+    rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
     res: research,
     pl: data.planets.map(p => {
-      const lf = {}, b = {};
+      const lf = {}, b = {}, q = {};
       for (const k of Object.keys(p)) {
+        if (/^\d+$/.test(k) && !research.hasOwnProperty(k)) { const t = going(p, k); if (t) q[k] = t; }
         if (/^\d+$/.test(k) && !/^1[1-4]\d\d\d$/.test(k) && !research.hasOwnProperty(k) && +p[k] > 0) b[k] = +p[k];
         if (!/^1[1-4][12]\d\d$/.test(k)) continue;
         const on = !/darkgrey/.test(p[k + '_html'] || '');
@@ -1550,6 +1560,7 @@ function grabEmpire(html, meta) {
         e: num(p.energy),
         b,
         lf,
+        q,
       };
     }),
   };
@@ -1577,7 +1588,11 @@ function mapImport(snap, existing, LF) {
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
   // research levels by game id (version 1 of the bookmarklet sent them by name)
-  const r = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
+  const r0 = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
+  // what is being built or researched right now counts as done: it is already paid for
+  const r = { ...r0 };
+  for (const [id, t] of Object.entries(snap.rg || {})) r[id] = Math.max(+r[id] || 0, t);
+  const inProgress = Object.keys(snap.rg || {}).map(Number);
   if (r[122] != null) profile.plasma_tech = +r[122];
   if (r[113] != null) profile.energy_tech = +r[113];
   if (r[124] != null) profile.astro_tech = +r[124];
@@ -1592,7 +1607,9 @@ function mapImport(snap, existing, LF) {
     const byName = existing.find(x => !used.has(x.id) && String(x.name).trim().toLowerCase() === String(ip.n).trim().toLowerCase());
     const match = byCoords || byName || null;
     if (match) used.add(match.id);
-    const lfv = id => (ip.lf[id] || [0, 0]);
+    const q = ip.q || {};
+    for (const [id, t] of Object.entries(q)) if (!/^1[1-4]\d\d\d$/.test(id)) ip.b[id] = Math.max(+ip.b[id] || 0, t);
+    const lfv = id => { const v = ip.lf[id] || [0, 0]; return q[id] ? [Math.max(v[0], q[id]), v[1]] : v; };
     // race of the planet = the one whose buildings are not greyed out
     let race = null;
     for (const [r, base] of Object.entries(RACE_IDS))
@@ -1621,14 +1638,14 @@ function mapImport(snap, existing, LF) {
         if (on) { techs[slot] = { race: r, level: lvl }; break; }
       }
     data.lf_techs = techs;
-    return { match, data };
+    return { match, data, inProgress: Object.keys(q).map(Number) };
   });
   const unmatched = existing.filter(x => !used.has(x.id));
-  return { profile, planets, unmatched };
+  return { profile, planets, unmatched, inProgress };
 }
 
 // Bookmarklets dragged before this version miss some data: the app asks to drag the new one
-const BOOKMARKLET_VERSION = 2;
+const BOOKMARKLET_VERSION = 3;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };
@@ -1641,6 +1658,11 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
+  {
+    id: 40, date: '2026-10-26', title: 'Lavori in corso contati come fatti',
+    text: 'Importando dalla Vista impero, gli edifici e le ricerche in costruzione o in ricerca contano come già fatti, perché sono già pagati: i consigli partono dal livello successivo (per esempio Astrofisica 19 in corso verso il 20 conta come 20). Le code non ancora iniziate non contano.',
+    bookmarklet: true,
+  },
   {
     id: 39, date: '2026-10-26', title: 'Scegli i pianeti nei consigli',
     text: 'Sotto il filtro dei tipi c\'è l\'elenco dei pianeti: togli la spunta a quelli che stanno già costruendo e il piano ti suggerisce gli upgrade degli altri. I pianeti esclusi contano comunque per le ricerche e il Plasma. L\'app ricorda la scelta.',
@@ -2777,23 +2799,26 @@ function renderImportPlan() {
   const byId = Object.fromEntries(state.planets.map(p => [p.id, p]));
   const m = {
     profile: base.profile,
-    planets: base.planets.map((x, i) => ({ data: x.data, match: links[i] ? byId[links[i]] : null })),
+    planets: base.planets.map((x, i) => ({ data: x.data, match: links[i] ? byId[links[i]] : null, inProgress: x.inProgress || [] })),
   };
   m.unmatched = state.planets.filter(p => !links.includes(p.id));
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
   if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
+  if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
-  m.planets.forEach(({ match, data }, i) => {
+  m.planets.forEach(({ match, data, inProgress }, i) => {
     const nb = Object.keys(data.lf_buildings).length, nt = Object.keys(data.lf_techs).length;
     const ch = match ? importChanges(match, data) : [`Miniere ${data.metal_mine}/${data.crystal_mine}/${data.deut_synth} · Solare ${data.solar_plant} · Fusione ${data.fusion_reactor} · Satelliti ${fmt(data.solar_satellites)}${data.crawlers ? ` · Crawler ${fmt(data.crawlers)}` : ''} · Temp. max ${data.temp_max}° · Energia ${fmt(data.energy_balance ?? 0)}${data.lf_race ? ` · ${RACE_NAMES[data.lf_race]}: ${nb} edifici, ${nt} ricerche` : ''}`];
+    if (inProgress.length) ch.push(`In costruzione o in ricerca, contati come già fatti: <b>${inProgress.length}</b>`);
     const pick = state.planets.length ? `<div class="small" style="margin-top:4px">Aggiorna: <select data-implink="${i}">
         <option value="">nuovo pianeta</option>${state.planets.map(p => `<option value="${p.id}" ${match && match.id === p.id ? 'selected' : ''}>${esc(p.name)}${p.galaxy ? ` [${p.galaxy}:${p.system}:${p.position}]` : ` (posizione ${p.position})`}</option>`).join('')}</select></div>` : '';
     html += `<div class="imp"><b>${esc(data.name)}</b> <span class="muted">[${data.galaxy}:${data.system}:${data.position}]</span>${match ? '' : '<span class="tag new">nuovo</span>'}${pick}
       ${ch.length ? `<ul>${ch.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
   });
   if (m.unmatched.length) html += `<div class="imp muted">Restano come sono: ${m.unmatched.map(p => esc(p.name)).join(', ')}. Se uno di questi è lo stesso pianeta con un altro nome, collegalo sopra con "Aggiorna".</div>`;
+  html += '<div class="imp muted">Quello che è in costruzione o in ricerca adesso conta come già fatto, perché è già pagato: i consigli partono dal livello successivo. Le code non ancora iniziate non contano.</div>';
   html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
   $('#import-list').innerHTML = html;
 }

@@ -1589,23 +1589,26 @@ function renderImportPlan() {
   const byId = Object.fromEntries(state.planets.map(p => [p.id, p]));
   const m = {
     profile: base.profile,
-    planets: base.planets.map((x, i) => ({ data: x.data, match: links[i] ? byId[links[i]] : null })),
+    planets: base.planets.map((x, i) => ({ data: x.data, match: links[i] ? byId[links[i]] : null, inProgress: x.inProgress || [] })),
   };
   m.unmatched = state.planets.filter(p => !links.includes(p.id));
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
   if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
+  if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
-  m.planets.forEach(({ match, data }, i) => {
+  m.planets.forEach(({ match, data, inProgress }, i) => {
     const nb = Object.keys(data.lf_buildings).length, nt = Object.keys(data.lf_techs).length;
     const ch = match ? importChanges(match, data) : [`Miniere ${data.metal_mine}/${data.crystal_mine}/${data.deut_synth} · Solare ${data.solar_plant} · Fusione ${data.fusion_reactor} · Satelliti ${fmt(data.solar_satellites)}${data.crawlers ? ` · Crawler ${fmt(data.crawlers)}` : ''} · Temp. max ${data.temp_max}° · Energia ${fmt(data.energy_balance ?? 0)}${data.lf_race ? ` · ${RACE_NAMES[data.lf_race]}: ${nb} edifici, ${nt} ricerche` : ''}`];
+    if (inProgress.length) ch.push(`In costruzione o in ricerca, contati come già fatti: <b>${inProgress.length}</b>`);
     const pick = state.planets.length ? `<div class="small" style="margin-top:4px">Aggiorna: <select data-implink="${i}">
         <option value="">nuovo pianeta</option>${state.planets.map(p => `<option value="${p.id}" ${match && match.id === p.id ? 'selected' : ''}>${esc(p.name)}${p.galaxy ? ` [${p.galaxy}:${p.system}:${p.position}]` : ` (posizione ${p.position})`}</option>`).join('')}</select></div>` : '';
     html += `<div class="imp"><b>${esc(data.name)}</b> <span class="muted">[${data.galaxy}:${data.system}:${data.position}]</span>${match ? '' : '<span class="tag new">nuovo</span>'}${pick}
       ${ch.length ? `<ul>${ch.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
   });
   if (m.unmatched.length) html += `<div class="imp muted">Restano come sono: ${m.unmatched.map(p => esc(p.name)).join(', ')}. Se uno di questi è lo stesso pianeta con un altro nome, collegalo sopra con "Aggiorna".</div>`;
+  html += '<div class="imp muted">Quello che è in costruzione o in ricerca adesso conta come già fatto, perché è già pagato: i consigli partono dal livello successivo. Le code non ancora iniziate non contano.</div>';
   html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
   $('#import-list').innerHTML = html;
 }
