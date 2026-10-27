@@ -912,7 +912,8 @@ function renderAdvice() {
     state.planKey = planKey;
     state.planSteps = Engine.plan(profile, planets, limit + 5, skip, allow);
   }
-  const steps = state.planSteps.slice(0, limit);
+  const noneChosen = !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id));
+  const steps = noneChosen ? [] : state.planSteps.slice(0, limit);
   const ftype = types.size === 1 ? [...types][0] : '';
   // only the first row of each building can be marked done: the later ones need the earlier levels first
   const seen = new Map();
@@ -922,6 +923,7 @@ function renderAdvice() {
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
+    : !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id)) ? 'Scegli uno o più pianeti qui sopra.'
     : types.size ? 'Nessun consiglio per i tipi scelti.' : 'Nessun consiglio: aggiungi almeno un pianeta.';
   $('#recs').innerHTML = rows.length ? rows.map(({ r, prev }, i) => `
     <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}">
@@ -962,9 +964,10 @@ function paintPlanetChips(planets) {
 $('#filter-planets').addEventListener('click', e => {
   const b = e.target.closest('[data-fpl]'); if (!b) return;
   const id = b.dataset.fpl;
-  if (!id) state.hiddenPlanets.clear();
+  // "Tutti": selects every planet, or clears them all when they are all selected (then pick one or two)
+  if (!id) { if (state.hiddenPlanets.size) state.hiddenPlanets.clear(); else state.planets.forEach(p => state.hiddenPlanets.add(p.id)); }
   else if (state.hiddenPlanets.has(id)) state.hiddenPlanets.delete(id);
-  else if (state.planets.filter(p => !state.hiddenPlanets.has(p.id)).length > 1) state.hiddenPlanets.add(id); // keep at least one
+  else state.hiddenPlanets.add(id);
   try { localStorage.setItem('ogadv-hidden', [...state.hiddenPlanets].join(',')); } catch (err) {}
   renderAdvice();
 });
