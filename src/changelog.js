@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 41, date: '2026-10-27', title: 'Piano più realistico',
-    text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
+    text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più, e una riga si ferma al livello che impiega più del doppio del primo a ripagarsi. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
   },
   {
     id: 40, date: '2026-10-26', title: 'Lavori in corso contati come fatti',

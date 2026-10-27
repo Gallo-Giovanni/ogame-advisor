@@ -1660,7 +1660,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 41, date: '2026-10-27', title: 'Piano più realistico',
-    text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
+    text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più, e una riga si ferma al livello che impiega più del doppio del primo a ripagarsi. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
   },
   {
     id: 40, date: '2026-10-26', title: 'Lavori in corso contati come fatti',
@@ -2128,10 +2128,12 @@ function renderAdvice() {
   if (types.size) groups = groups.filter(g => types.has(TYPE_OF[g.first.type]));
   const ftype = types.size === 1 ? [...types][0] : '';
   groups = groups.slice(0, limit);
-  // a row keeps only the levels that come before the last row shown: later levels are worse than everything on screen
+  // a row keeps only the levels that come before the last row shown (later levels are worse than everything on screen)
   const lastStep = Math.max(...groups.map(g => g.first.step));
   groups = groups.map(g => {
-    const steps = g.steps.filter(x => x.step <= lastStep);
+    // and stops at the first level that takes more than twice as long to pay back as the first one
+    const steps = [];
+    for (const x of g.steps) { if (x.step > lastStep || (steps.length && x.payback > 2 * g.first.payback)) break; steps.push(x); }
     return { ...g, steps, count: steps.length, to: steps[steps.length - 1].nextLevel,
       cost: steps.reduce((t, x) => t.map((v, i) => v + (x.cost[i] || 0)), [0, 0, 0]) };
   });
@@ -2145,7 +2147,7 @@ function renderAdvice() {
   const lvlCost = c => c.filter(Boolean).length ? costHTML(c) : '';
   $('#recs').innerHTML = recs.length ? groups.map((g, i) => {
     const r = g.first, last = g.steps[g.steps.length - 1];
-    const title = shortTitle(r).replace(' ⚡', '') + (g.count > 1 ? ` → ${g.to}` : '') + (r.fix ? ' ⚡' : '');
+    const title = shortTitle(r).replace(' ⚡', '') + (g.count > 1 ? ` → ${g.to}` : '') + (r.fix && r.type !== 'energy' ? ' ⚡' : '');
     const levels = g.count > 1 ? `<div class="muted">Livelli che conviene fare (${g.count}), in ordine nel piano:</div>
         <table class="btable lv"><tr><th>Livello</th><th>Costo</th><th>Rende</th><th>Si ripaga in</th></tr>${g.steps.map(x => `<tr><td>${x.nextLevel}</td><td>${lvlCost(x.cost)}</td><td>+${fmt(x.gainEq)}/h</td><td>${paybackText(x.payback)}</td></tr>`).join('')}</table>
         <div class="muted">Totale: ${costHTML(g.cost)}</div>` : '';
