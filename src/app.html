@@ -916,10 +916,13 @@ function renderAdvice() {
   groups = groups.slice(0, limit);
   // a row keeps only the levels that come before the last row shown (later levels are worse than everything on screen)
   const lastStep = Math.max(...groups.map(g => g.first.step));
+  // very expensive upgrades (more than 3 times the typical cost on screen) are shown one level at a time
+  const eqs = groups.map(g => g.first.costEq).sort((x, y) => x - y);
+  const typical = eqs.length ? eqs[Math.floor(eqs.length / 2)] : Infinity;
   groups = groups.map(g => {
     // and stops at the first level that takes more than twice as long to pay back as the first one
     const steps = [];
-    for (const x of g.steps) { if (x.step > lastStep || (steps.length && x.payback > 2 * g.first.payback)) break; steps.push(x); }
+    for (const x of g.steps) { if (steps.length && (x.step > lastStep || x.payback > 2 * g.first.payback || x.costEq > 3 * typical)) break; steps.push(x); }
     return { ...g, steps, count: steps.length, to: steps[steps.length - 1].nextLevel,
       cost: steps.reduce((t, x) => t.map((v, i) => v + (x.cost[i] || 0)), [0, 0, 0]) };
   });
