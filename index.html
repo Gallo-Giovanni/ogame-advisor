@@ -151,7 +151,8 @@
   .kind svg { width: 16px; height: 16px; }
   .kchip svg { width: 14px; height: 14px; display: block; }
   .bh { margin: 0; display: flex; align-items: center; gap: 10px; }
-  .btable.lv { font-size: .8rem; }
+  .rec.later .what b { font-weight: 600; opacity: .85; }
+  .after { min-width: 64px; text-align: center; }
   .btable { width: 100%; border-collapse: collapse; font-size: .88rem; }
   .btable th, .btable td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
   .btable th:first-child, .btable td:first-child { text-align: left; white-space: normal; }
@@ -1660,6 +1661,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 43, date: '2026-10-27', title: 'Un livello per riga',
+    text: 'Ogni riga dei consigli è un solo livello. I livelli successivi della stessa costruzione o ricerca compaiono più in basso, nel punto del piano in cui conviene farli, già calcolati come se avessi fatto tutto quello che c\'è prima (per esempio prima Metallo 38 su tutti i pianeti, poi i 39). Fatto si preme sul primo livello di ogni costruzione; i successivi indicano "dopo il …".',
+  },
+  {
     id: 42, date: '2026-10-27', title: 'Filtri completi',
     text: 'Con un filtro attivo (per esempio solo Miniere, o solo alcuni pianeti) il piano viene calcolato solo con quei consigli, quindi la lista arriva sempre a 25, 50 o 100 righe invece di mostrare solo quelli che rientravano nella classifica completa.',
   },
@@ -2123,59 +2128,39 @@ function renderAdvice() {
   const types = state.ftypes;
   const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
   const allow = types.size ? r => types.has(TYPE_OF[r.type]) : null;
+  // Plan: best upgrade, then the best one after it, and so on, one level per row.
+  // The next levels of the same building come later in the list, where they belong in the plan.
   const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip, allow));
+    state.planSteps = Engine.plan(profile, planets, limit + 5, skip, allow);
   }
-  let groups = state.planGroups;
-  if (filter) groups = groups.filter(g => g.first.planetId === filter);
-  // type filter: mines (with the energy fixes they need), lifeform buildings, lifeform research
-  // several types can be chosen together; none chosen = all
-  if (types.size) groups = groups.filter(g => types.has(TYPE_OF[g.first.type]));
+  const steps = state.planSteps.slice(0, limit);
   const ftype = types.size === 1 ? [...types][0] : '';
-  groups = groups.slice(0, limit);
-  // a row keeps only the levels that come before the last row shown (later levels are worse than everything on screen)
-  const lastStep = Math.max(...groups.map(g => g.first.step));
-  // very expensive upgrades (more than 3 times the typical cost on screen) are shown one level at a time
-  const eqs = groups.map(g => g.first.costEq).sort((x, y) => x - y);
-  const typical = eqs.length ? eqs[Math.floor(eqs.length / 2)] : Infinity;
-  groups = groups.map(g => {
-    // and stops at the first level that takes more than twice as long to pay back as the first one
-    const steps = [];
-    for (const x of g.steps) { if (steps.length && (x.step > lastStep || x.payback > 2 * g.first.payback || x.costEq > 3 * typical)) break; steps.push(x); }
-    return { ...g, steps, count: steps.length, to: steps[steps.length - 1].nextLevel,
-      cost: steps.reduce((t, x) => t.map((v, i) => v + (x.cost[i] || 0)), [0, 0, 0]) };
-  });
-  const recs = groups.map(g => g.first);
-  state.recs = recs;
+  // only the first row of each building can be marked done: the later ones need the earlier levels first
+  const seen = new Map();
+  const rows = steps.map(r => { const prev = seen.get(r.group); seen.set(r.group, r); return { r, prev }; });
+  state.recs = rows.map(x => x.r);
   let n = 0;
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
     : types.size ? 'Nessun consiglio per i tipi scelti.' : 'Nessun consiglio: aggiungi almeno un pianeta.';
-  const lvlCost = c => c.filter(Boolean).length ? costHTML(c) : '';
-  $('#recs').innerHTML = recs.length ? groups.map((g, i) => {
-    const r = g.first, last = g.steps[g.steps.length - 1];
-    const title = shortTitle(r).replace(' ⚡', '') + (g.count > 1 ? ` → ${g.to}` : '') + (r.fix && r.type !== 'energy' ? ' ⚡' : '');
-    const levels = g.count > 1 ? `<div class="muted">Livelli che conviene fare (${g.count}), in ordine nel piano:</div>
-        <table class="btable lv"><tr><th>Livello</th><th>Costo</th><th>Rende</th><th>Si ripaga in</th></tr>${g.steps.map(x => `<tr><td>${x.nextLevel}</td><td>${lvlCost(x.cost)}</td><td>+${fmt(x.gainEq)}/h</td><td>${paybackText(x.payback)}</td></tr>`).join('')}</table>
-        <div class="muted">Totale: ${costHTML(g.cost)}</div>` : '';
-    return `
-    <details class="rec ${r.urgent ? 'urgent' : ''}">
+  $('#recs').innerHTML = rows.length ? rows.map(({ r, prev }, i) => `
+    <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}">
       <summary>
         <span class="rank">${r.urgent ? '!' : ++n}</span>
-        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(title)}</b><span class="muted small">${esc(r.planet)}${g.count > 1 ? ` · ${g.count} livelli` : ''}</span></span>
-        <span class="payback" title="tempo di ammortamento del primo livello${g.count > 1 ? ' → dell\'ultimo' : ''}">${paybackText(r.payback)}${g.count > 1 ? `<span class="muted small"> → ${paybackText(last.payback)}</span>` : ''}</span>
-        <button class="secondary done" data-done="${i}" title="Segna fatto il primo livello">Fatto</button>
+        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
+        <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
+        ${prev ? `<span class="muted small after" title="Si fa dopo il livello precedente della stessa costruzione">dopo il ${prev.nextLevel}</span>` : `<button class="secondary done" data-done="${i}">Fatto</button>`}
       </summary>
       <div class="more stack">
         <div>${esc(r.title)}: ${esc(r.detail)}</div>
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
-        ${levels}
+        ${prev ? '<div class="muted">Calcolato come se avessi già fatto i consigli che vengono prima in lista.</div>' : ''}
       </div>
-    </details>`; }).join('') : `<p class="muted">${emptyText}</p>`;
+    </details>`).join('') : `<p class="muted">${emptyText}</p>`;
   $$('[data-done]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation(); // don't open the row
     completeRec(state.recs[+b.dataset.done], b);

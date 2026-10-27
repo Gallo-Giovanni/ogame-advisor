@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 43, date: '2026-10-27', title: 'Un livello per riga',
+    text: 'Ogni riga dei consigli è un solo livello. I livelli successivi della stessa costruzione o ricerca compaiono più in basso, nel punto del piano in cui conviene farli, già calcolati come se avessi fatto tutto quello che c\'è prima (per esempio prima Metallo 38 su tutti i pianeti, poi i 39). Fatto si preme sul primo livello di ogni costruzione; i successivi indicano "dopo il …".',
+  },
+  {
     id: 42, date: '2026-10-27', title: 'Filtri completi',
     text: 'Con un filtro attivo (per esempio solo Miniere, o solo alcuni pianeti) il piano viene calcolato solo con quei consigli, quindi la lista arriva sempre a 25, 50 o 100 righe invece di mostrare solo quelli che rientravano nella classifica completa.',
   },
