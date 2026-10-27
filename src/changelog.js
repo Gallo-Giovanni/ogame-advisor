@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 41, date: '2026-10-27', title: 'Piano più realistico',
+    text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
+  },
+  {
     id: 40, date: '2026-10-26', title: 'Lavori in corso contati come fatti',
     text: 'Importando dalla Vista impero, gli edifici e le ricerche in costruzione o in ricerca contano come già fatti, perché sono già pagati: i consigli partono dal livello successivo (per esempio Astrofisica 19 in corso verso il 20 conta come 20). Le code non ancora iniziate non contano.',
     bookmarklet: true,
