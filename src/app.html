@@ -1586,6 +1586,21 @@ function importChanges(oldObj, data) {
   }
   return out;
 }
+// Names of game ids (buildings, lifeform buildings and research) for the import preview
+const GAME_NAMES = { 1: 'Miniera di metallo', 2: 'Miniera di cristallo', 3: 'Sintetizzatore di deuterio', 4: 'Centrale solare', 12: 'Centrale a fusione',
+  14: 'Fabbrica di robot', 15: 'Fabbrica di naniti', 21: 'Cantiere spaziale', 22: 'Deposito di metallo', 23: 'Deposito di cristallo', 24: 'Cisterna di deuterio',
+  31: 'Laboratorio di ricerca', 33: 'Terraformer', 34: 'Deposito dell\'alleanza', 36: 'Porto spaziale', 44: 'Silo missilistico' };
+function gameName(id) {
+  id = +id;
+  if (GAME_NAMES[id]) return GAME_NAMES[id];
+  const race = { 11: 'humans', 12: 'rocktal', 13: 'mechas', 14: 'kaelesh' }[Math.floor(id / 1000)];
+  if (race) {
+    const R = Engine.LF.races[race], n = id % 1000;
+    if (n > 100 && n <= 112) return (R.buildings[R.buildingOrder[n - 101]] || {}).it || String(id);
+    if (n > 200 && n <= 218) { const t = R.techs[n - 201]; return t ? `${techTag(n - 200)} ${t.it}` : String(id); }
+  }
+  return 'elemento ' + id;
+}
 function openImport() {
   const snap = pendingImport(); if (!snap) return;
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
@@ -1614,7 +1629,7 @@ function renderImportPlan() {
   m.planets.forEach(({ match, data, inProgress }, i) => {
     const nb = Object.keys(data.lf_buildings).length, nt = Object.keys(data.lf_techs).length;
     const ch = match ? importChanges(match, data) : [`Miniere ${data.metal_mine}/${data.crystal_mine}/${data.deut_synth} · Solare ${data.solar_plant} · Fusione ${data.fusion_reactor} · Satelliti ${fmt(data.solar_satellites)}${data.crawlers ? ` · Crawler ${fmt(data.crawlers)}` : ''} · Temp. max ${data.temp_max}° · Energia ${fmt(data.energy_balance ?? 0)}${data.lf_race ? ` · ${RACE_NAMES[data.lf_race]}: ${nb} edifici, ${nt} ricerche` : ''}`];
-    if (inProgress.length) ch.push(`In costruzione o in ricerca, contati come già fatti: <b>${inProgress.length}</b>`);
+    if (inProgress.length) ch.push(`In costruzione o in ricerca, contati come già fatti: <b>${inProgress.map(id => esc(gameName(id))).join(', ')}</b>`);
     const pick = state.planets.length ? `<div class="small" style="margin-top:4px">Aggiorna: <select data-implink="${i}">
         <option value="">nuovo pianeta</option>${state.planets.map(p => `<option value="${p.id}" ${match && match.id === p.id ? 'selected' : ''}>${esc(p.name)}${p.galaxy ? ` [${p.galaxy}:${p.system}:${p.position}]` : ` (posizione ${p.position})`}</option>`).join('')}</select></div>` : '';
     html += `<div class="imp"><b>${esc(data.name)}</b> <span class="muted">[${data.galaxy}:${data.system}:${data.position}]</span>${match ? '' : '<span class="tag new">nuovo</span>'}${pick}
