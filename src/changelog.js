@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 42, date: '2026-10-27', title: 'Filtri completi',
+    text: 'Con un filtro attivo (per esempio solo Miniere, o solo alcuni pianeti) il piano viene calcolato solo con quei consigli, quindi la lista arriva sempre a 25, 50 o 100 righe invece di mostrare solo quelli che rientravano nella classifica completa.',
+  },
+  {
     id: 41, date: '2026-10-27', title: 'Piano più realistico',
     text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più, e una riga si ferma al livello che impiega più del doppio del primo a ripagarsi. Gli upgrade molto più costosi degli altri in lista (per esempio le miniere) compaiono un livello alla volta. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
   },

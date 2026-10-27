@@ -900,17 +900,19 @@ function renderAdvice() {
   // one planet shown: plan only its upgrades; otherwise skip the planets the player switched off
   const skip = planets.filter(pl => (filter ? pl.id !== filter : state.hiddenPlanets.has(pl.id))).map(pl => pl.id);
   paintPlanetChips(planets);
-  const planKey = JSON.stringify([state.profile, planets, limit, skip]);
+  // the type filter goes into the plan itself: with "Miniere" the plan is made of mines only, so it reaches as far as the others
+  const types = state.ftypes;
+  const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
+  const allow = types.size ? r => types.has(TYPE_OF[r.type]) : null;
+  const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip));
+    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip, allow));
   }
   let groups = state.planGroups;
   if (filter) groups = groups.filter(g => g.first.planetId === filter);
   // type filter: mines (with the energy fixes they need), lifeform buildings, lifeform research
   // several types can be chosen together; none chosen = all
-  const types = state.ftypes;
-  const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
   if (types.size) groups = groups.filter(g => types.has(TYPE_OF[g.first.type]));
   const ftype = types.size === 1 ? [...types][0] : '';
   groups = groups.slice(0, limit);

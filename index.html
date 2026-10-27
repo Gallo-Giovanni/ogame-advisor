@@ -1441,14 +1441,15 @@ const Engine = (() => {
   const recKey = r => r.type === 'lftech' ? `lftech:${r.planetId}:${r.slot}`
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
   // skip: ids of planets the player does not want suggestions for (busy building); they still count for account-wide gains
-  function plan(profile, planets, steps = 100, skip = []) {
+  // allow: optional test on a recommendation (the type filter): the plan only takes upgrades it accepts
+  function plan(profile, planets, steps = 100, skip = [], allow = null) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
     const out = [];
     let colonyDone = false; // a new colony is planned once: the player fills in its data after colonising
     for (let i = 0; i < steps; i++) {
       const recs = recommendations(withLifeforms(prof, pls), pls);
-      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)));
+      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
       if (!r) break;
       out.push({ ...r, group: recKey(r), step: i });
       const planet = pls.find(p => p.id === r.planetId);
@@ -1658,6 +1659,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // each user stores the last id they have seen, and sees every entry with a higher id.
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
+  {
+    id: 42, date: '2026-10-27', title: 'Filtri completi',
+    text: 'Con un filtro attivo (per esempio solo Miniere, o solo alcuni pianeti) il piano viene calcolato solo con quei consigli, quindi la lista arriva sempre a 25, 50 o 100 righe invece di mostrare solo quelli che rientravano nella classifica completa.',
+  },
   {
     id: 41, date: '2026-10-27', title: 'Piano più realistico',
     text: 'In ogni riga restano solo i livelli che conviene fare prima dell\'ultimo consiglio mostrato: i livelli più lontani, che rendono meno di tutto quello che vedi, non compaiono più, e una riga si ferma al livello che impiega più del doppio del primo a ripagarsi. Gli upgrade molto più costosi degli altri in lista (per esempio le miniere) compaiono un livello alla volta. Se scegli un solo pianeta in "Mostra", il piano considera solo i suoi upgrade.',
@@ -2114,17 +2119,19 @@ function renderAdvice() {
   // one planet shown: plan only its upgrades; otherwise skip the planets the player switched off
   const skip = planets.filter(pl => (filter ? pl.id !== filter : state.hiddenPlanets.has(pl.id))).map(pl => pl.id);
   paintPlanetChips(planets);
-  const planKey = JSON.stringify([state.profile, planets, limit, skip]);
+  // the type filter goes into the plan itself: with "Miniere" the plan is made of mines only, so it reaches as far as the others
+  const types = state.ftypes;
+  const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
+  const allow = types.size ? r => types.has(TYPE_OF[r.type]) : null;
+  const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip));
+    state.planGroups = Engine.planGroups(Engine.plan(profile, planets, Math.min(250, limit * 2 + 20), skip, allow));
   }
   let groups = state.planGroups;
   if (filter) groups = groups.filter(g => g.first.planetId === filter);
   // type filter: mines (with the energy fixes they need), lifeform buildings, lifeform research
   // several types can be chosen together; none chosen = all
-  const types = state.ftypes;
-  const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
   if (types.size) groups = groups.filter(g => types.has(TYPE_OF[g.first.type]));
   const ftype = types.size === 1 ? [...types][0] : '';
   groups = groups.slice(0, limit);
