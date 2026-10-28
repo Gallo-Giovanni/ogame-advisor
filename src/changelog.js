@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 45, date: '2026-10-28', title: 'Dove si trova il livello successivo',
+    text: 'Aprendo un consiglio vedi a che numero della lista si trova il livello successivo della stessa costruzione o ricerca, se è tra i primi 100.',
+  },
+  {
     id: 44, date: '2026-10-27', title: 'Togli tutti i pianeti in un clic',
     text: 'Nella riga dei pianeti dei consigli, "Tutti" ora funziona nei due sensi: se sono tutti spuntati li toglie tutti, così puoi sceglierne uno o due; altrimenti li spunta tutti.',
   },

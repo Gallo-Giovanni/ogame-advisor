@@ -1661,6 +1661,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 45, date: '2026-10-28', title: 'Dove si trova il livello successivo',
+    text: 'Aprendo un consiglio vedi a che numero della lista si trova il livello successivo della stessa costruzione o ricerca, se è tra i primi 100.',
+  },
+  {
     id: 44, date: '2026-10-27', title: 'Togli tutti i pianeti in un clic',
     text: 'Nella riga dei pianeti dei consigli, "Tutti" ora funziona nei due sensi: se sono tutti spuntati li toglie tutti, così puoi sceglierne uno o due; altrimenti li spunta tutti.',
   },
@@ -2137,7 +2141,7 @@ function renderAdvice() {
   const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planSteps = Engine.plan(profile, planets, limit + 5, skip, allow);
+    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow); // always 100: the next level is looked up there
   }
   const noneChosen = !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id));
   const steps = noneChosen ? [] : state.planSteps.slice(0, limit);
@@ -2146,6 +2150,11 @@ function renderAdvice() {
   const seen = new Map();
   const rows = steps.map(r => { const prev = seen.get(r.group); seen.set(r.group, r); return { r, prev }; });
   state.recs = rows.map(x => x.r);
+  // position in the list of every step of the first 100 (urgent energy rows have no number)
+  const all = noneChosen ? [] : state.planSteps.slice(0, 100);
+  const posOf = new Map(); let k = 0;
+  all.forEach(x => { if (!x.urgent) posOf.set(x, ++k); });
+  const nextOf = r => { const i = all.indexOf(r); return i < 0 ? null : all.slice(i + 1).find(x => x.group === r.group) || null; };
   let n = 0;
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
@@ -2165,6 +2174,9 @@ function renderAdvice() {
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
         ${prev ? '<div class="muted">Calcolato come se avessi già fatto i consigli che vengono prima in lista.</div>' : ''}
+        ${(() => { const nx = nextOf(r); return r.type === 'energy' ? '' : nx
+          ? `<div class="muted">Livello successivo (${nx.nextLevel}): <b>n° ${posOf.get(nx)}</b> della lista, ${paybackText(nx.payback)}.</div>`
+          : '<div class="muted">Il livello successivo non è tra i primi 100 consigli.</div>'; })()}
       </div>
     </details>`).join('') : `<p class="muted">${emptyText}</p>`;
   $$('[data-done]').forEach(b => b.addEventListener('click', e => {
