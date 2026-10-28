@@ -349,13 +349,7 @@
     </div>
 
     <section data-panel="advice" class="stack">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="gap:8px">
-          <label for="filter-planet" style="margin:0">Mostra</label>
-          <select id="filter-planet" style="width:auto;min-width:200px"></select>
-        </div>
-        <div id="planet-info" class="muted small"></div>
-      </div>
+      <div id="planet-info" class="muted small"></div>
       <div class="card statbar" id="stats"></div>
       <div class="card">
         <div class="row" style="justify-content:space-between">
@@ -1661,6 +1655,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 46, date: '2026-10-28', title: 'Via il menu "Mostra"',
+    text: 'In Consigli il menu "Mostra" non c\'è più: si sceglie tutto dalla riga dei pianeti. Con un solo pianeta spuntato la barra in alto mostra la sua produzione, la sua energia e il pulsante per aprirne la scheda; con più pianeti mostra il totale di quelli scelti.',
+  },
+  {
     id: 45, date: '2026-10-28', title: 'Dove si trova il livello successivo',
     text: 'Aprendo un consiglio vedi a che numero della lista si trova il livello successivo della stessa costruzione o ricerca, se è tra i primi 100.',
   },
@@ -2064,11 +2062,6 @@ function renderApp() {
   const p = state.profile;
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
   $('#who').textContent = [p.nickname, p.universe, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
-  const sel = $('#filter-planet'), cur = sel.value;
-  sel.innerHTML = '<option value="">Tutto l\'impero</option>' + state.planets.map(pl => `<option value="${pl.id}">${esc(pl.name)}</option>`).join('');
-  let saved = cur;
-  if (!saved) { try { saved = localStorage.getItem('ogadv-planet') || ''; } catch (e) {} }
-  sel.value = state.planets.some(pl => pl.id === saved) ? saved : '';
   renderAdvice(); renderPlanetCards(); renderBonus(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
@@ -2103,8 +2096,10 @@ function renderAdvice() {
   paintTypeChips();
   const profile = numericProfile(state.profile);
   const planets = state.planets;
-  const filter = $('#filter-planet').value;
-  const sel = planets.find(pl => pl.id === filter);
+  // the planets ticked in the row under the filters: one planet = its own numbers, several = their totals
+  const filter = '';
+  const chosen = planets.filter(pl => !state.hiddenPlanets.has(pl.id));
+  const sel = chosen.length === 1 ? chosen[0] : null;
   const RK = { Metallo: 'metal', Cristallo: 'crystal', Deuterio: 'deut' };
   const resStat = (label, cls, v) =>
     `<div class="it" title="${label}: ${fmt(v * 24)} al giorno">${ri(RK[label])}<span class="v ${cls}">${fmt(v)}</span><span class="muted small">/h</span></div>`;
@@ -2119,11 +2114,12 @@ function renderAdvice() {
     $('#planet-info').innerHTML = `${esc(`[${coords}] · metallo ${sel.metal_mine} · cristallo ${sel.crystal_mine} · deuterio ${sel.deut_synth} · ${sel.temp_max}°C`)} <button class="ghost" id="open-sel-planet">Apri scheda</button>`;
     $('#open-sel-planet').onclick = () => { goToTab('planets'); openPlanet(sel.id); };
   } else {
-    const tot = Engine.totals(profile, planets);
-    const deficits = planets.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
+    const part = chosen.length && chosen.length < planets.length ? chosen : planets;
+    const tot = Engine.totals(profile, part);
+    const deficits = part.filter(pl => Engine.planetState(profile, pl).balance < 0).length;
     $('#stats').innerHTML = resStat('Metallo', 'res-m', tot[0]) + resStat('Cristallo', 'res-c', tot[1]) + resStat('Deuterio', 'res-d', tot[2]) + `
-      <div class="it"><span class="muted small">Senza energia</span><span class="v ${deficits ? 'neg' : ''}">${deficits}/${planets.length}</span></div>`;
-    $('#planet-info').textContent = `${planets.length} pianeti`;
+      <div class="it"><span class="muted small">Senza energia</span><span class="v ${deficits ? 'neg' : ''}">${deficits}/${part.length}</span></div>`;
+    $('#planet-info').textContent = part === planets ? `Tutto l'impero · ${planets.length} pianeti` : `${part.length} pianeti scelti: ${part.map(p => p.name).join(', ')}`;
   }
 
   const limit = +$('#filter-count').value;
@@ -2184,17 +2180,13 @@ function renderAdvice() {
     completeRec(state.recs[+b.dataset.done], b);
   }));
 }
-$('#filter-planet').addEventListener('change', () => {
-  try { localStorage.setItem('ogadv-planet', $('#filter-planet').value); } catch (e) {}
-  renderAdvice();
-});
 $('#filter-count').addEventListener('change', renderAdvice);
 // Planets in the advice: all ticked by default; untick a planet to get suggestions only for the others
 state.hiddenPlanets = new Set();
 try { (localStorage.getItem('ogadv-hidden') || '').split(',').filter(Boolean).forEach(id => state.hiddenPlanets.add(id)); } catch (e) {}
 function paintPlanetChips(planets) {
   const box = $('#filter-planets');
-  if (planets.length < 2 || $('#filter-planet').value) { box.innerHTML = ''; return; }
+  if (planets.length < 2) { box.innerHTML = ''; return; }
   const all = !planets.some(p => state.hiddenPlanets.has(p.id));
   box.innerHTML = `<span class="muted small" style="align-self:center">Pianeti:</span>
     <button type="button" class="chip" data-fpl="" aria-pressed="${all}"><span class="box">${all ? '✓' : ''}</span>Tutti</button>` +

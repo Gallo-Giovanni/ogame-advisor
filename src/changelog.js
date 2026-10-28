@@ -4,6 +4,10 @@
 // bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
 const CHANGELOG = [
   {
+    id: 46, date: '2026-10-28', title: 'Via il menu "Mostra"',
+    text: 'In Consigli il menu "Mostra" non c\'è più: si sceglie tutto dalla riga dei pianeti. Con un solo pianeta spuntato la barra in alto mostra la sua produzione, la sua energia e il pulsante per aprirne la scheda; con più pianeti mostra il totale di quelli scelti.',
+  },
+  {
     id: 45, date: '2026-10-28', title: 'Dove si trova il livello successivo',
     text: 'Aprendo un consiglio vedi a che numero della lista si trova il livello successivo della stessa costruzione o ricerca, se è tra i primi 100.',
   },
