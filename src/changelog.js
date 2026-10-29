@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 48, date: '2026-10-29', title: 'Calcolatore dei costi',
+    text: 'Nuova scheda Costi: scegli un pianeta e una categoria (edifici, ricerche, edifici o ricerche forme di vita), scrivi fino a che livello vuoi arrivare e vedi quanto costa in metallo, cristallo, deuterio, metallo equivalente e punti, con il totale, le risorse che ti mancano e quanti cargo servono per trasportarle. Livelli attuali e sconti vengono dal pianeta scelto.',
+  },
+  {
     id: 47, date: '2026-10-29', title: 'Costi di tutte le forme di vita',
     text: 'Ora l\'app conosce i costi di tutti gli edifici e di tutte le ricerche delle quattro razze, presi da due fogli di calcolo della community e controllati con i valori già verificati sul gioco (coincidono tutti). Nei consigli entrano anche gli edifici di produzione di Umani e Mecha e le ricerche che mancavano, come Sondaggio acustico e Tecniche estrattive magmatiche.',
   },
