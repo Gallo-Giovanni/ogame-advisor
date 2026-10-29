@@ -675,7 +675,7 @@ const LIFEFORMS = {
       buildingOrder: ['meditation_enclave', 'crystal_farm', 'tecnologicus_runarum', 'rune_forge', 'oriktorium', 'magma_forge', 'disruption_chamber', 'monolith', 'crystal_refinery', 'deuterium_tuner', 'mineral_centre', 'recycling_plant'],
       // 18 techs from the game's Tech Info tables. Slots 1-6 = T1, 7-12 = T2, 13-18 = T3. Base values per level.
       techs: [
-        { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, used: true },
+        { slot: 1,  tier: 1, key: 'volcanic_batteries',      it: 'Batterie vulcaniche',              perLevel: { energy: 0.0025 }, cost: { base: [10000, 6000, 1000], factor: 1.5 }, used: true },
         { slot: 2,  tier: 1, key: 'acoustic_scanning',       it: 'Sondaggio acustico',               perLevel: { crystal: 0.0008 }, used: true },
         { slot: 3,  tier: 1, key: 'high_energy_pump_systems', it: 'Sistemi di pompaggio ad alta energia', perLevel: { deut: 0.0008 }, cost: { base: [15000, 10000, 5000], factor: 1.5 }, used: true },
         { slot: 4,  tier: 1, key: 'cargo_hold_expansion_civil', it: 'Espansione stiva (navi civili)', perLevel: { civil_cargo: 0.004 }, used: false },
