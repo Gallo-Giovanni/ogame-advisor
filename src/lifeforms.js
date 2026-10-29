@@ -43,6 +43,9 @@ const LIFEFORMS = {
         recycling_plant: { it: 'Impianto di Riciclaggio', used: false }, // nessun effetto su produzione, energia o costi
         magma_forge:        { it: 'Fusione magmatica', effect: { metal: 0.02 }, perLevel: true, source: 'game',
           cost: { base: [10000, 8000, 1000], factor: 1.4 }, energyCons: { base: 40, factor: 1.1 },
+          // durata: livello x 2000 x 1,3^livello, ridotta dal Monolite, divisa per (1 + robot) x 2^naniti x velocità
+          // (gioco, Gonnia con Robot 10, Naniti 7, Monolite 5: livelli 15, 16, 17 = 3m 27s, 4m 47s, 6m 36s)
+          duration: { base: 2000, factor: 1.3 },
           energy: { 13: 1795, 14: 2126, 15: 2506, 16: 2940, 17: 3437, 18: 4003, 19: 4648, 20: 5381, 21: 6216, 22: 7163, 23: 8237, 24: 9455, 25: 10834, 26: 12394, 27: 14158 } },
         crystal_refinery:   { it: 'Cristalleria', effect: { crystal: 0.02 }, perLevel: true, source: 'game',
           cost: { base: [85000, 44000, 25000], factor: 1.4 }, energyCons: { base: 90, factor: 1.1 },

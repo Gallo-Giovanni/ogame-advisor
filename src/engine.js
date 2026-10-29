@@ -160,6 +160,10 @@ const Engine = (() => {
   // dalle ricerche sul tempo delle ricerche forme di vita, divisa per la velocità di sviluppo
   const lfTechTime = (t, L, timeDisc, speed, lfTime = 0) => !t.duration ? null
     : Math.max(1, Math.floor(L * t.duration.base * Math.pow(t.duration.factor, L) * (1 - timeDisc) * (1 + Math.min(0, lfTime)) / (speed || 1)));
+  // Durata di un edificio forme di vita in secondi (solo quelli con la durata verificata): livello x base x fattore^livello,
+  // ridotta dal Monolite (edifici Rock'tal), divisa per (1 + Fabbrica di robot) x 2^Naniti x velocità di sviluppo
+  const lfBuildingTime = (b, L, disc, robot, nanite, speed) => !b.duration ? null
+    : Math.max(1, Math.floor(L * b.duration.base * Math.pow(b.duration.factor, L) * (1 - disc) / ((1 + (robot || 0)) * Math.pow(2, nanite || 0) * (speed || 1))));
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Effetto base di una ricerca, potenziato dagli edifici del suo pianeta e dal livello della sua razza
   // (gioco: effettivo = base x (1 + potenziamento edifici) x (1 + 0,1% x livello razza))
@@ -654,7 +658,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

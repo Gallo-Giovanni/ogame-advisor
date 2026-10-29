@@ -53,4 +53,7 @@ const hum = { id: 'h', name: 'H', position: 8, temp_max: 40, metal_mine: 30, cry
 const rec = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [hum]).find(r => r.key === 'high_energy_smelting');
 assert.ok(rec && rec.nextLevel === 6 && rec.race === 'humans');
 assert.deepStrictEqual(rec.buildCost, E2.lfBuildingCost(LF.races.humans.buildings.high_energy_smelting, 6, 0));
-console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti');
+// Durata della Fusione magmatica su Gonnia (Robot 10, Naniti 7, Monolite 5, velocità 5): 15 = 3m 27s, 16 = 4m 47s, 17 = 6m 36s
+const mf = LF.races.rocktal.buildings.magma_forge;
+assert.deepStrictEqual([15, 16, 17].map(L => E2.lfBuildingTime(mf, L, 0.05, 10, 7, 5)), [207, 287, 396]);
+console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durata della Fusione magmatica uguale al gioco');
