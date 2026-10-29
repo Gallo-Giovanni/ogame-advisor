@@ -1974,7 +1974,8 @@ function ccRows() {
   if (cat === 'lfb') {
     const disc = Engine.monolithDisc(pl);
     return R.buildingOrder.map(k => ({ k, name: R.buildings[k].it, from: k === 'mineral_centre' ? +(pl && pl.mrc_level) || 0 : +((pl && pl.lf_buildings) || {})[k] || 0,
-      cost: L => Engine.lfBuildingCost(R.buildings[k], L, disc) }));
+      cost: L => Engine.lfBuildingCost(R.buildings[k], L, disc),
+      time: R.buildings[k].duration ? L => Engine.lfBuildingTime(R.buildings[k], L, disc, bl('robotics_factory'), bl('nanite_factory'), prof.economy_speed) : null }));
   }
   const disc = Engine.researchDisc(pl);
   return R.techs.map((t, i) => {
@@ -2003,11 +2004,11 @@ function renderCostTable() {
   const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco); i tempi di ricerche e forme di vita arriveranno dopo la verifica.` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
     research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
       ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}${state.profile.technocrat || state.profile.commanding_staff ? ', Tecnico -25%' : ''}.`
-      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
+      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}. Il tempo c'è solo per gli edifici verificati sul gioco (per ora la Fusione magmatica).` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
     lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%), tempi ridotti del ${(Engine.researchTimeDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%.` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
-  const hasTime = state.cc.cat === 'build' || state.cc.cat === 'lft' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
+  const hasTime = state.cc.cat === 'build' || state.cc.cat === 'lft' || state.cc.cat === 'lfb' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
   const body = rows.map(r => {
     const key = state.cc.cat + ':' + r.k, t = to[key] || {};
     const from = t.from != null ? t.from : r.from, target = t.to != null ? t.to : '';
