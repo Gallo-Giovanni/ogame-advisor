@@ -238,7 +238,7 @@ const LIFEFORMS = {
       techs: [
         { slot: 1,  tier: 1, key: 'heat_recovery',           it: 'Recupero calore',                  perLevel: { fleet_fuel: -0.0003 }, used: false },
         { slot: 2,  tier: 1, key: 'sulphide_process',        it: 'Tecnologia Processo al solfuro',   perLevel: { deut: 0.0008 }, used: true },
-        { slot: 3,  tier: 1, key: 'psionic_network',         it: 'Network psionico',                 perLevel: { expedition_ship_loss: -0.0005 }, used: false },
+        { slot: 3,  tier: 1, key: 'psionic_network',         it: 'Network psionico',                 perLevel: { expedition_ship_loss: -0.0005 }, cost: { base: [15000, 10000, 5000], factor: 1.5 }, used: false },
         { slot: 4,  tier: 1, key: 'telekinetic_tractor_beam', it: 'Raggio di trazione telecinetico', perLevel: { expedition_ships_found: 0.002 }, cost: { base: [20000, 15000, 7500], factor: 1.5 }, used: false },
         { slot: 5,  tier: 1, key: 'enhanced_sensor_technology', it: 'Tecnologia Sensori migliorata', perLevel: { expedition_resources: 0.002 }, cost: { base: [25000, 20000, 10000], factor: 1.5 }, used: false },
         { slot: 6,  tier: 1, key: 'neuromodal_compressor',   it: 'Compattatore neuromodulare',       perLevel: { civil_cargo: 0.004 }, used: false },
