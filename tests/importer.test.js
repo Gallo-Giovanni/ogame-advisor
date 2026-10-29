@@ -22,7 +22,7 @@ planet['122'] = 12;
 planet.groups = null;
 const html = `<meta name="ogame-session" content="SECRET"><script>var planetType = 0;
   createImperiumHtml("#mainWrapper", "#loading", ${JSON.stringify({ planets: [planet], translations: {}, groups: { research: [122, 113, 124, 114] } })}, 0 );</script>`;
-const metas = { 'universe-name': 'Test', 'player-name': 'Someone', 'universe-speed': '3', 'player-characterclass-id': '1', 'allianceclass-id': '0', session: 'SECRET' };
+const metas = { universe: 's999-it.ogame.gameforge.com', 'universe-name': 'Test', 'player-name': 'Someone', 'universe-speed': '3', 'player-characterclass-id': '1', 'allianceclass-id': '0', session: 'SECRET' };
 const meta = n => metas[n] || '';
 
 const snap = grabEmpire(html, meta);
@@ -32,7 +32,7 @@ assert.strictEqual(p.t, 30);
 assert.strictEqual(p.e, -1250);
 const m = mapImport(snap, [], LF);
 const { research, ...profRest } = m.profile;
-assert.deepStrictEqual(profRest, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
+assert.deepStrictEqual(profRest, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', server: 's999-it', nickname: 'Someone' });
 assert.deepStrictEqual(research, { 113: 14, 114: 8, 122: 13, 124: 11 });
 const d = m.planets[0].data;
 assert.strictEqual(d.lf_race, 'rocktal');

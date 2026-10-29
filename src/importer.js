@@ -38,9 +38,10 @@ function grabEmpire(html, meta) {
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 3, at: Date.now(),
+    v: 4, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
+    srv: String(meta('universe') || '').split('.')[0],
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
     res: research,
     pl: data.planets.map(p => {
@@ -100,6 +101,7 @@ function mapImport(snap, existing, LF) {
   if (snap.v >= 2) profile.research = Object.fromEntries(Object.entries(r).filter(([, v]) => v != null).map(([k, v]) => [k, +v || 0]));
   if (snap.ally) profile.alliance_trader = snap.ally === ALLY_TRADER_ID;
   if (snap.uni) profile.universe = snap.uni;
+  if (snap.srv) profile.server = snap.srv; // es. s278-it
   if (snap.nick) profile.nickname = snap.nick;
 
   const used = new Set();
@@ -149,7 +151,7 @@ function mapImport(snap, existing, LF) {
 }
 
 // I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo
-const BOOKMARKLET_VERSION = 3;
+const BOOKMARKLET_VERSION = 4;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };

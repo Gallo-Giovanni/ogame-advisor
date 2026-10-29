@@ -1672,9 +1672,10 @@ function grabEmpire(html, meta) {
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 3, at: Date.now(),
+    v: 4, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
+    srv: String(meta('universe') || '').split('.')[0],
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
     res: research,
     pl: data.planets.map(p => {
@@ -1734,6 +1735,7 @@ function mapImport(snap, existing, LF) {
   if (snap.v >= 2) profile.research = Object.fromEntries(Object.entries(r).filter(([, v]) => v != null).map(([k, v]) => [k, +v || 0]));
   if (snap.ally) profile.alliance_trader = snap.ally === ALLY_TRADER_ID;
   if (snap.uni) profile.universe = snap.uni;
+  if (snap.srv) profile.server = snap.srv; // es. s278-it
   if (snap.nick) profile.nickname = snap.nick;
 
   const used = new Set();
@@ -1783,7 +1785,7 @@ function mapImport(snap, existing, LF) {
 }
 
 // I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo
-const BOOKMARKLET_VERSION = 3;
+const BOOKMARKLET_VERSION = 4;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };
@@ -1796,6 +1798,11 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 51, date: '2026-10-29', title: 'Server e nuovo sfondo',
+    text: 'L\'importazione riconosce il server (per esempio West, s278-it) e lo mostra in alto. Se importi da un server diverso da quello del tuo account, l\'app te lo dice e ti propone di azzerare e ripartire. Nuovo sfondo spaziale con stelle e nebulose.',
+    bookmarklet: true,
+  },
   {
     id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
     text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnico: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnico se lo hai. Anche le ricerche forme di vita hanno il tempo, ridotto dall\'edificio di ricerca del pianeta.',
@@ -2231,7 +2238,7 @@ $$('[data-tab]').forEach(b => b.addEventListener('click', () => {
 function renderApp() {
   const p = state.profile;
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
-  $('#who').textContent = [p.nickname, p.universe, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
+  $('#who').textContent = [p.nickname, p.universe ? p.universe + (p.server ? ` (${p.server})` : '') : p.server, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
   renderAdvice(); renderPlanetCards(); renderBonus(); renderCosts(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
@@ -2947,7 +2954,7 @@ const IMPORT_LABELS = {
   solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
-  astro_tech: 'Astrofisica', hyperspace_tech: 'Tecnologia iperspaziale', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+  astro_tech: 'Astrofisica', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
 };
 const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
   : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
@@ -3009,6 +3016,10 @@ function renderImportPlan() {
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
+  // importazione da un server diverso da quello dell'account: proponi di azzerare e ripartire
+  if (state.profile && state.profile.onboarded && state.profile.server && snap.srv && snap.srv !== state.profile.server)
+    html += `<div class="msg" style="display:block">Stai importando da <b>${esc(snap.uni || '')} (${esc(snap.srv)})</b>, ma il tuo account è su <b>${esc(state.profile.universe || '')} (${esc(state.profile.server)})</b>.
+      Se hai cambiato server, azzera e riparti con i dati nuovi: <button type="button" class="danger" id="import-reset">Azzera tutto e importa questo server</button></div>`;
   if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
   if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
@@ -3026,6 +3037,16 @@ function renderImportPlan() {
   html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
   $('#import-list').innerHTML = html;
 }
+$('#import-list').addEventListener('click', async e => {
+  if (e.target.id !== 'import-reset') return;
+  if (!confirm('Cancellare tutti i pianeti e i dati dell\'account e importare il nuovo server?')) return;
+  e.target.disabled = true;
+  const d = await sb.from('planets').delete().eq('user_id', state.user.id);
+  const r = d.error ? d : await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id).select().single();
+  if (r.error) { e.target.disabled = false; return message($('#import-msg'), 'Errore: ' + r.error.message); }
+  state.profile = r.data; state.planets = [];
+  openImport();
+});
 $('#import-list').addEventListener('change', e => {
   const sel = e.target.closest('[data-implink]'); if (!sel) return;
   const i = +sel.dataset.implink, id = sel.value || null;

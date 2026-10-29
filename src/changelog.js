@@ -4,6 +4,11 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 51, date: '2026-10-29', title: 'Server e nuovo sfondo',
+    text: 'L\'importazione riconosce il server (per esempio West, s278-it) e lo mostra in alto. Se importi da un server diverso da quello del tuo account, l\'app te lo dice e ti propone di azzerare e ripartire. Nuovo sfondo spaziale con stelle e nebulose.',
+    bookmarklet: true,
+  },
+  {
     id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
     text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnico: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnico se lo hai. Anche le ricerche forme di vita hanno il tempo, ridotto dall\'edificio di ricerca del pianeta.',
   },

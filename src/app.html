@@ -887,7 +887,7 @@ $$('[data-tab]').forEach(b => b.addEventListener('click', () => {
 function renderApp() {
   const p = state.profile;
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
-  $('#who').textContent = [p.nickname, p.universe, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
+  $('#who').textContent = [p.nickname, p.universe ? p.universe + (p.server ? ` (${p.server})` : '') : p.server, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
   renderAdvice(); renderPlanetCards(); renderBonus(); renderCosts(); renderSettings(); renderUpdatesBadge();
   show('app');
 }
@@ -1603,7 +1603,7 @@ const IMPORT_LABELS = {
   solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
-  astro_tech: 'Astrofisica', hyperspace_tech: 'Tecnologia iperspaziale', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+  astro_tech: 'Astrofisica', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
 };
 const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
   : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
@@ -1665,6 +1665,10 @@ function renderImportPlan() {
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
+  // importazione da un server diverso da quello dell'account: proponi di azzerare e ripartire
+  if (state.profile && state.profile.onboarded && state.profile.server && snap.srv && snap.srv !== state.profile.server)
+    html += `<div class="msg" style="display:block">Stai importando da <b>${esc(snap.uni || '')} (${esc(snap.srv)})</b>, ma il tuo account è su <b>${esc(state.profile.universe || '')} (${esc(state.profile.server)})</b>.
+      Se hai cambiato server, azzera e riparti con i dati nuovi: <button type="button" class="danger" id="import-reset">Azzera tutto e importa questo server</button></div>`;
   if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
   if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
@@ -1682,6 +1686,16 @@ function renderImportPlan() {
   html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
   $('#import-list').innerHTML = html;
 }
+$('#import-list').addEventListener('click', async e => {
+  if (e.target.id !== 'import-reset') return;
+  if (!confirm('Cancellare tutti i pianeti e i dati dell\'account e importare il nuovo server?')) return;
+  e.target.disabled = true;
+  const d = await sb.from('planets').delete().eq('user_id', state.user.id);
+  const r = d.error ? d : await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id).select().single();
+  if (r.error) { e.target.disabled = false; return message($('#import-msg'), 'Errore: ' + r.error.message); }
+  state.profile = r.data; state.planets = [];
+  openImport();
+});
 $('#import-list').addEventListener('change', e => {
   const sel = e.target.closest('[data-implink]'); if (!sel) return;
   const i = +sel.dataset.implink, id = sel.value || null;
