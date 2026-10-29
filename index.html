@@ -948,6 +948,8 @@ LIFEFORMS.techDuration = {"humans":[[1000,1.2],[2000,1.3],[2500,1.3],[3500,1.3],
 // Ricavata dai tempi di livello 1 e 2 di tutti i 48 edifici (calcolatore proxyforgame, velocità 1, senza robot) e
 // verificata sul gioco con la Fusione magmatica (livelli 15, 16, 17 su Gonnia).
 LIFEFORMS.buildingDuration = {"rocktal": [[40, 1.21], [40, 1.21], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [16000, 1.25], [40000, 1.4], [40000, 1.2], [52000, 1.2], [90000, 1.3], [95000, 1.3]], "humans": [[40, 1.21], [40, 1.25], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [12000, 1.17], [28000, 1.2], [40000, 1.2], [52000, 1.2], [90000, 1.3], [95000, 1.2]], "mechas": [[40, 1.22], [48, 1.2], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [16000, 1.4], [12000, 1.17], [40000, 1.3], [52000, 1.2], [50000, 1.3], [95000, 1.4]], "kaelesh": [[40, 1.22], [40, 1.22], [16000, 1.25], [16000, 1.7], [64000, 1.8], [2000, 1.35], [12000, 1.2], [16000, 1.18], [40000, 1.2], [52000, 1.8], [90000, 1.3], [95000, 1.3]]};
+// Correzioni dal calcolatore proxyforgame (livelli 1 e 2 di tutte le ricerche Umani): Nascondiglio Orbitale ha base 4140, non 4500
+LIFEFORMS.techDuration.humans[4] = [4140, 1.2];
 // completa i dati: costo (ed energia) dai fogli dove manca il valore verificato sul gioco
 for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
   const R = LIFEFORMS.races[race];

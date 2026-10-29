@@ -62,4 +62,11 @@ assert.strictEqual(E.applyRecommendation(profile, a, one).planet.lf_techs[7].lev
 const gonnia = { lf_race: 'rocktal', lf_buildings: { tecnologicus_runarum: 10 } };
 assert.ok(Math.abs(E.researchTimeDisc(gonnia) - 0.2) < 1e-12);
 assert.strictEqual(E.lfTechTime(E.LF.races.humans.techs[1], 10, E.researchTimeDisc(gonnia), 5), 12 * 3600 + 15 * 60 + 14);
+// Durate di livello 1 e 2 di tutte le 18 ricerche Umani (calcolatore proxyforgame, velocità 1, senza sconti)
+const H1 = [1200, 2600, 3250, 4550, 4968, 6500, 10400, 7800, 9100, 9800, 9750, 13000, 11050, 12600, 13300, 14000, 14300, 16900];
+const H2 = [2880, 6760, 8450, 11830, 11923, 16900, 27040, 20280, 25479, 27439, 25350, 33800, 28730, 35279, 37239, 39199, 37180, 43940];
+E.LF.races.humans.techs.forEach((t, i) => {
+  assert.ok(Math.abs(E.lfTechTime(t, 1, 0, 1) - H1[i]) <= 1, t.it + ' livello 1');
+  assert.ok(Math.abs(E.lfTechTime(t, 2, 0, 1) - H2[i]) <= 1, t.it + ' livello 2');
+});
 console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
