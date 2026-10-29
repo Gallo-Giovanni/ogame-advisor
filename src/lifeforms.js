@@ -293,6 +293,10 @@ LIFEFORMS.sheet = {
 // Durata delle ricerche forme di vita (secondi): livello x base x fattore^livello, dal foglio CasualSAB;
 // verificata sul gioco: Estrattori ad alto rendimento 9 -> 10 su Gonnia (Tecnologicus Runarum 10, velocità 5) = 12o 15m 14s.
 LIFEFORMS.techDuration = {"humans":[[1000,1.2],[2000,1.3],[2500,1.3],[3500,1.3],[4500,1.2],[5000,1.3],[8000,1.3],[6000,1.3],[6500,1.4],[7000,1.4],[7500,1.3],[10000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[11000,1.3],[13000,1.3]],"rocktal":[[1000,1.3],[2000,1.3],[2500,1.3],[3500,1.4],[4500,1.3],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.3],[7000,1.3],[7500,1.3],[8000,1.3],[8500,1.3],[9000,1.3],[9500,1.3],[10000,1.4],[13000,1.3],[11000,1.4]],"mechas":[[1000,1.3],[2000,1.3],[2500,1.4],[3500,1.3],[4500,1.4],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.4],[7000,1.3],[7500,1.3],[8000,1.4],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]],"kaelesh":[[1000,1.4],[2000,1.3],[2500,1.4],[3500,1.4],[4500,1.4],[5000,1.4],[5500,1.3],[6000,1.2],[6500,1.4],[7000,1.2],[7500,1.4],[8000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]]};
+// Durata degli edifici forme di vita (secondi): livello x base x fattore^livello, nello stesso ordine di buildingOrder.
+// Ricavata dai tempi di livello 1 e 2 di tutti i 48 edifici (calcolatore proxyforgame, velocità 1, senza robot) e
+// verificata sul gioco con la Fusione magmatica (livelli 15, 16, 17 su Gonnia).
+LIFEFORMS.buildingDuration = {"rocktal": [[40, 1.21], [40, 1.21], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [16000, 1.25], [40000, 1.4], [40000, 1.2], [52000, 1.2], [90000, 1.3], [95000, 1.3]], "humans": [[40, 1.21], [40, 1.25], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [12000, 1.17], [28000, 1.2], [40000, 1.2], [52000, 1.2], [90000, 1.3], [95000, 1.2]], "mechas": [[40, 1.22], [48, 1.2], [16000, 1.25], [16000, 1.6], [64000, 1.7], [2000, 1.3], [16000, 1.4], [12000, 1.17], [40000, 1.3], [52000, 1.2], [50000, 1.3], [95000, 1.4]], "kaelesh": [[40, 1.22], [40, 1.22], [16000, 1.25], [16000, 1.7], [64000, 1.8], [2000, 1.35], [12000, 1.2], [16000, 1.18], [40000, 1.2], [52000, 1.8], [90000, 1.3], [95000, 1.3]]};
 // completa i dati: costo (ed energia) dai fogli dove manca il valore verificato sul gioco
 for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
   const R = LIFEFORMS.races[race];
@@ -301,6 +305,8 @@ for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
     if (b && !b.cost && sh.buildings[i]) b.cost = { base: sh.buildings[i][0], factor: sh.buildings[i][1], source: 'sheet' };
     const e = (sh.energy || {})[key];
     if (b && e && !b.energyCons) b.energyCons = { base: e[0], factor: e[1], source: 'game' };
+    const du = LIFEFORMS.buildingDuration[race][i];
+    if (b && du && !b.duration) b.duration = { base: du[0], factor: du[1] };
   });
   R.techs.forEach((t, i) => {
     if (!t.cost && sh.techs[i]) t.cost = { base: sh.techs[i][0], factor: sh.techs[i][1], source: 'sheet' };

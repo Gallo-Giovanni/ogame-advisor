@@ -55,4 +55,14 @@ assert.ok(rec && rec.nextLevel === 6 && rec.race === 'humans');
 assert.deepStrictEqual(rec.buildCost, E2.lfBuildingCost(LF.races.humans.buildings.high_energy_smelting, 6, 0));
 // Durata della Fusione magmatica su Gonnia (Robot 10, Naniti 7, Monolite 5, velocità 5): 15 = 3m 27s, 16 = 4m 47s, 17 = 6m 36s
 assert.deepStrictEqual([15, 16, 17].map(L => E2.lfBuildingTime(mf, L, 0.05, 10, 7, 5)), [207, 287, 396]);
-console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durata della Fusione magmatica uguale al gioco');
+// Durate di livello 1 e 2 di tutti gli edifici (velocità 1, senza robot): la formula le riproduce
+// (al secondo; al minuto quando il calcolatore non mostra i secondi)
+const DU = { rocktal: [[48,117],[48,117],[20000,50000],[25600,81920],[108780,369900],[2600,6760],[20000,50000],[56000,156780],[48000,115200],[62400,149760],[117000,304200],[123480,321060]],
+  humans: [[48,117],[50,125],[20000,50000],[25600,81920],[108780,369900],[2600,6760],[14040,32853],[33600,80640],[48000,115200],[62400,149760],[117000,304200],[114000,273600]],
+  mechas: [[48,119],[57,138],[20000,50000],[25600,81920],[108780,369900],[2600,6760],[22400,62719],[14040,32853],[52000,135180],[62400,149760],[65000,168960],[132960,372360]],
+  kaelesh: [[48,119],[48,119],[20000,50000],[27200,92460],[115200,414720],[2700,7290],[14400,34560],[18880,44556],[48000,115200],[93600,336960],[117000,304200],[123480,321060]] };
+for (const [race, arr] of Object.entries(DU)) arr.forEach(([t1, t2], i) => {
+  const b = LF.races[race].buildings[LF.races[race].buildingOrder[i]];
+  [[1, t1], [2, t2]].forEach(([L, t]) => { const got = E2.lfBuildingTime(b, L, 0, 0, 0, 1); assert.ok(got - t >= 0 && got - t < (t > 3600 ? 60 : 1), race + ' ' + b.it + ' livello ' + L + ': ' + got + ' invece di ' + t); });
+});
+console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durate di tutti gli edifici forme di vita coerenti');

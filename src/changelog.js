@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 52, date: '2026-10-29', title: 'Tempi di tutti gli edifici forme di vita',
+    text: 'Nella scheda Costi ora c\'è il tempo di costruzione di tutti i 48 edifici forme di vita delle quattro razze, con Fabbrica di robot, Naniti e Monolite del pianeta.',
+  },
+  {
     id: 51, date: '2026-10-29', title: 'Server e nuovo sfondo',
     text: 'L\'importazione riconosce il server (per esempio West, s278-it) e lo mostra in alto. Se importi da un server diverso da quello del tuo account, l\'app te lo dice e ti propone di azzerare e ripartire. Nuovo sfondo spaziale con stelle e nebulose.',
     bookmarklet: true,
