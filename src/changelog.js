@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 47, date: '2026-10-29', title: 'Costi di tutte le forme di vita',
+    text: 'Ora l\'app conosce i costi di tutti gli edifici e di tutte le ricerche delle quattro razze, presi da due fogli di calcolo della community e controllati con i valori già verificati sul gioco (coincidono tutti). Nei consigli entrano anche gli edifici di produzione di Umani e Mecha e le ricerche che mancavano, come Sondaggio acustico e Tecniche estrattive magmatiche.',
+  },
+  {
     id: 46, date: '2026-10-28', title: 'Via il menu "Mostra"',
     text: 'In Consigli il menu "Mostra" non c\'è più: si sceglie tutto dalla riga dei pianeti. Con un solo pianeta spuntato la barra in alto mostra la sua produzione, la sua energia e il pulsante per aprirne la scheda; con più pianeti mostra il totale di quelli scelti.',
   },

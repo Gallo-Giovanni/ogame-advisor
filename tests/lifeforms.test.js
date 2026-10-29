@@ -40,4 +40,17 @@ for (const [key, table] of [['magma_forge', 'energy'], ['crystal_refinery', 'ene
   const entries = Array.isArray(t) ? t.map((v, i) => [i + 1, v]) : Object.entries(t).map(([l, v]) => [+l, v]);
   for (const [L, v] of entries) if (L >= 2) assert.ok(Math.abs(E.lfBuildingEnergy(b, L) - v) <= 1, `${key} energy L${L}: ${E.lfBuildingEnergy(b, L)} vs ${v}`);
 }
-console.log('Energia e Monolite uguali al gioco');
+// Costi dai fogli della community: coincidono con quelli verificati sul gioco, e completano le altre razze
+for (const [race, R] of Object.entries(LF.races)) R.buildingOrder.forEach((k, i) => {
+  const b = R.buildings[k], sh = LF.sheet[race].buildings[i];
+  assert.ok(b.cost, race + ' ' + k + ' ha un costo');
+  if (b.cost.source !== 'sheet') assert.deepStrictEqual([b.cost.base, b.cost.factor], sh, race + ' ' + k + ': foglio uguale al gioco');
+});
+// Fusione ad alta energia (Umani) entra nei consigli come la Fusione magmatica
+const E2 = require('../src/engine.js');
+const hum = { id: 'h', name: 'H', position: 8, temp_max: 40, metal_mine: 30, crystal_mine: 25, deut_synth: 25, solar_plant: 25, fusion_reactor: 0,
+  solar_satellites: 0, energy_balance: 3000, lf_race: 'humans', lf_buildings: { high_energy_smelting: 5 }, lf_techs: {} };
+const rec = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [hum]).find(r => r.key === 'high_energy_smelting');
+assert.ok(rec && rec.nextLevel === 6 && rec.race === 'humans');
+assert.deepStrictEqual(rec.buildCost, E2.lfBuildingCost(LF.races.humans.buildings.high_energy_smelting, 6, 0));
+console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti');

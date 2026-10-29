@@ -460,7 +460,7 @@ const Engine = (() => {
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
           out.push({
-            type: 'lfbuilding', key, planetId: planet.id, planet: planet.name,
+            type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
             title: `${b.it} ${L} → ${next}`,
             detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)`,
             cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
