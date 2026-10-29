@@ -17,8 +17,20 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
+  /* Sfondo spaziale disegnato dall'app (nessuna immagine del gioco): nebulose sfumate e stelle generate */
+  #sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+    background:
+      radial-gradient(900px 500px at 12% 18%, #233a7a55 0%, transparent 70%),
+      radial-gradient(700px 600px at 88% 72%, #1b4f8a44 0%, transparent 70%),
+      radial-gradient(600px 400px at 60% 10%, #3a2a6a33 0%, transparent 70%),
+      linear-gradient(180deg, #06102a 0%, #0a1838 45%, #071027 100%); }
+  #sky i { position: absolute; border-radius: 50%; background: #fff; }
+  #sky .sp { position: absolute; width: 2px; height: 2px; }
+  #sky .sp::before, #sky .sp::after { content: ''; position: absolute; left: 50%; top: 50%; background: linear-gradient(90deg, transparent, #cfe6ff, transparent); transform: translate(-50%, -50%); }
+  #sky .sp::before { width: 90px; height: 1.5px; }
+  #sky .sp::after { width: 1.5px; height: 90px; background: linear-gradient(180deg, transparent, #cfe6ff, transparent); }
   body {
-    background: radial-gradient(1200px 600px at 80% -10%, #1c2a5a 0%, transparent 60%), var(--bg);
+    background: #06102a;
     color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; min-height: 100vh;
   }
   h1, h2, h3 { font-family: Rajdhani, sans-serif; letter-spacing: .02em; margin: 0 0 .5rem; }
@@ -213,6 +225,7 @@
 </style>
 </head>
 <body>
+<div id="sky" aria-hidden="true"></div>
 <div class="wrap">
 
   <!-- ============ CARICAMENTO ============ -->
@@ -649,6 +662,17 @@ const SUPABASE_KEY = 'sb_publishable_F8NSwlv4obc_fxRVpLP_zw_bLeF3Xrk';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = s => document.querySelector(s);
+// stelle dello sfondo: posizioni casuali, alcune più luminose, poche con i raggi a croce
+(function drawSky() {
+  const sky = document.getElementById('sky'); if (!sky) return;
+  let h = '';
+  for (let i = 0; i < 220; i++) {
+    const big = Math.random() < 0.08, size = big ? 2 + Math.random() * 1.5 : 0.6 + Math.random() * 1.2;
+    h += `<i style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;opacity:${(0.35 + Math.random() * 0.6).toFixed(2)}${big ? ';box-shadow:0 0 6px #9fc8ff' : ''}"></i>`;
+  }
+  for (const [x, y, r] of [[22, 30, 0], [33, 82, 20], [72, 62, 10]]) h += `<span class="sp" style="left:${x}%;top:${y}%;transform:rotate(${r}deg)"><i style="width:4px;height:4px;left:-1px;top:-1px;box-shadow:0 0 12px 4px #a9d4ff"></i></span>`;
+  sky.innerHTML = h;
+})();
 const $$ = s => [...document.querySelectorAll(s)];
 const fmt = Engine.fmt;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
