@@ -969,6 +969,14 @@ const Engine = (() => {
     return b.base.map(x => Math.floor(x * m));
   }
 
+  // Tempo di costruzione di un edificio classico, in secondi (guida ufficiale, verificato sul gioco: Miniera di metallo
+  // 37 e 38 con Robot 12, Naniti 6, velocità 5 = 15o 45m 4s e 23o 37m 36s, al secondo). Si usa il costo SENZA lo
+  // sconto del Centro di Mineralogia. Naniti, Avamposto lunare, Falange e Portale non hanno il termine max(4 - livello/2, 1).
+  function buildTime(cost, level, robot, nanite, speed, noMax = false) {
+    const k = noMax ? 1 : Math.max(4 - level / 2, 1);
+    return Math.max(1, Math.round((cost[0] + cost[1]) / (2500 * k * (1 + (robot || 0)) * Math.pow(2, nanite || 0) * (speed || 1)) * 3600));
+  }
+
   // ---- Produzione base all'ora (prima dei bonus e della velocità) ----
   const g = L => L * Math.pow(1.1, L);
   const baseProd = {
@@ -1558,7 +1566,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 
@@ -1730,6 +1738,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
+    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. I tempi di ricerche ed edifici forme di vita arriveranno dopo la verifica.',
+  },
   {
     id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',
     text: 'L\'importazione dalla Vista impero salva ora i livelli di tutti gli edifici dei pianeti (anche depositi, cantiere, laboratorio, terraformer) e di tutte le ricerche: nella scheda Costi la colonna "Da" si compila da sola. Salva anche le risorse di ogni pianeta: nella scheda Costi vedi quelle del pianeta scelto e il totale dell\'impero, con quanto manca, e puoi usarle come risorse disponibili.',
@@ -3229,7 +3241,11 @@ const CC_RESEARCH = [
 ];
 state.cc = { cat: 'build', to: {} };
 // risorse disponibili scritte con i puntini delle migliaia (1.000.000): si leggono solo le cifre
+// durata come nel gioco: 2g 3o 18m 5s
+const durText = sec => { const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60), x = Math.round(sec % 60);
+  return [d && d + 'g', (d || h) && h + 'o', (d || h || m) && m + 'm', x + 's'].filter(Boolean).join(' '); };
 const ccNum = v => Math.max(0, parseInt(String(v).replace(/\D/g, ''), 10) || 0);
+const bl0 = (pl, k) => (pl[k] != null && pl[k] !== '' ? +pl[k] : +((pl.buildings || {})[CC_ID[k]]) || 0);
 const ccGeo = (base, f, L) => base.map(x => Math.floor(x * Math.pow(f, L - 1)));
 function ccRows() {
   const prof = numericProfile(state.profile);
@@ -3239,7 +3255,9 @@ function ccRows() {
   const bl = k => (pl ? (pl[k] != null && pl[k] !== '' ? +pl[k] : +((pl.buildings || {})[CC_ID[k]]) || 0) : 0);
   const rl = k => (state.profile[k] != null && state.profile[k] !== '' ? +state.profile[k] : +((state.profile.research || {})[CC_ID[k]]) || 0);
   if (cat === 'build') return CC_BUILD.map(([k, name, base, f]) => ({ k, name, from: bl(k),
-    cost: L => { const c = ccGeo(base, f, L); return ['metal_mine', 'crystal_mine', 'deut_synth'].includes(k) ? Engine.mineCost(k, L, pl ? pl.mrc_level : 0) : c; } }));
+    cost: L => { const c = ccGeo(base, f, L); return ['metal_mine', 'crystal_mine', 'deut_synth'].includes(k) ? Engine.mineCost(k, L, pl ? pl.mrc_level : 0) : c; },
+    // il tempo usa il costo senza lo sconto del Centro di Mineralogia
+    time: L => Engine.buildTime(ccGeo(base, f, L), L, bl('robotics_factory'), bl('nanite_factory'), prof.economy_speed, k === 'nanite_factory') }));
   if (cat === 'research') {
     const disc = prof._lf ? Math.max(-0.99, prof._lf.tech.plasma_tech_cost || 0) : 0;
     return CC_RESEARCH.map(([k, name, base, f]) => ({ k, name, from: rl(k),
@@ -3275,25 +3293,27 @@ function renderCostTable() {
   const rows = ccRows(), to = state.cc.to;
   const pl = state.planets.find(p => p.id === $('#cc-planet').value);
   const imported = pl && pl.buildings && Object.keys(pl.buildings).length;
-  const notes = { build: 'Miniere già scontate dal Centro di Mineralogia del pianeta.' + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
+  const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco); i tempi di ricerche e forme di vita arriveranno dopo la verifica.` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
     research: 'Il Plasma è già scontato dal Concentratore astrale.', lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
     lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%).` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
-  const tot = [0, 0, 0];
+  const tot = [0, 0, 0]; let totSec = 0;
+  const hasTime = state.cc.cat === 'build';
   const body = rows.map(r => {
     const key = state.cc.cat + ':' + r.k, t = to[key] || {};
     const from = t.from != null ? t.from : r.from, target = t.to != null ? t.to : '';
-    const c = [0, 0, 0];
-    if (target !== '' && +target > from) for (let L = from + 1; L <= +target; L++) r.cost(L).forEach((x, i) => (c[i] += x));
+    const c = [0, 0, 0]; let sec = 0;
+    if (target !== '' && +target > from) for (let L = from + 1; L <= +target; L++) { r.cost(L).forEach((x, i) => (c[i] += x)); if (r.time) sec += r.time(L); }
+    totSec += sec;
     c.forEach((x, i) => (tot[i] += x));
     const eq = Engine.toMetalEq(c, prof);
     return `<tr><td>${esc(r.name)}</td><td><input class="ccin" data-ccfrom="${key}" type="number" min="0" value="${from}"></td>
       <td><input class="ccin" data-ccto="${key}" type="number" min="0" value="${target}" placeholder="—"></td>
-      <td>${c[0] ? fmt(c[0]) : ''}</td><td>${c[1] ? fmt(c[1]) : ''}</td><td>${c[2] ? fmt(c[2]) : ''}</td><td>${eq ? fmt(eq) : ''}</td><td>${eq ? fmt((c[0] + c[1] + c[2]) / 1000) : ''}</td></tr>`;
+      <td>${c[0] ? fmt(c[0]) : ''}</td><td>${c[1] ? fmt(c[1]) : ''}</td><td>${c[2] ? fmt(c[2]) : ''}</td><td>${eq ? fmt(eq) : ''}</td><td>${eq ? fmt((c[0] + c[1] + c[2]) / 1000) : ''}</td>${hasTime ? `<td>${sec ? durText(sec) : ''}</td>` : ''}</tr>`;
   }).join('');
   const eqT = Engine.toMetalEq(tot, prof);
-  $('#cc-table').innerHTML = `<tr><th>${state.cc.cat === 'research' || state.cc.cat === 'lft' ? 'Ricerca' : 'Edificio'}</th><th>Da</th><th>A livello</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th title="metallo equivalente con i tuoi tassi">Metallo eq.</th><th>Punti</th></tr>${body || '<tr><td colspan="8" class="muted">Niente da mostrare.</td></tr>'}
-    <tr class="tot"><td>Totale</td><td></td><td></td><td>${fmt(tot[0])}</td><td>${fmt(tot[1])}</td><td>${fmt(tot[2])}</td><td>${fmt(eqT)}</td><td>${fmt((tot[0] + tot[1] + tot[2]) / 1000)}</td></tr>`;
+  $('#cc-table').innerHTML = `<tr><th>${state.cc.cat === 'research' || state.cc.cat === 'lft' ? 'Ricerca' : 'Edificio'}</th><th>Da</th><th>A livello</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th title="metallo equivalente con i tuoi tassi">Metallo eq.</th><th>Punti</th>${hasTime ? '<th>Tempo</th>' : ''}</tr>${body || '<tr><td colspan="9" class="muted">Niente da mostrare.</td></tr>'}
+    <tr class="tot"><td>Totale</td><td></td><td></td><td>${fmt(tot[0])}</td><td>${fmt(tot[1])}</td><td>${fmt(tot[2])}</td><td>${fmt(eqT)}</td><td>${fmt((tot[0] + tot[1] + tot[2]) / 1000)}</td>${hasTime ? `<td>${totSec ? durText(totSec) : ''}</td>` : ''}</tr>`;
   // risorse dalla Vista impero: sul pianeta scelto e su tutti i pianeti
   const R3 = p => (p && p.resources ? [+p.resources.m || 0, +p.resources.c || 0, +p.resources.d || 0] : null);
   const plR = R3(pl), allR = state.planets.reduce((t, p) => { const r = R3(p); return r ? t.map((x, i) => x + r[i]) : t; }, [0, 0, 0]);

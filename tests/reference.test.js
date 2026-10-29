@@ -63,5 +63,8 @@ assert.strictEqual(E.maxCrawlers(planet2), 800);
 const M = x => Math.round(x / 1e4) / 100;
 assert.deepStrictEqual(E.mineCost('metal_mine', 38, 1).slice(0, 2).map(M), [195.59, 48.9]);
 assert.deepStrictEqual(E.mineCost('crystal_mine', 32, 1).slice(0, 2).map(M), [101.57, 50.79]);
+// Tempi di costruzione (Astro, Robot 12, Naniti 6, velocità 5): Miniera di metallo 37 = 15o 45m 4s, 38 = 23o 37m 36s
+assert.strictEqual(E.buildTime(E.levelCost('metal_mine', 37), 37, 12, 6, 5), 15 * 3600 + 45 * 60 + 4);
+assert.strictEqual(E.buildTime(E.levelCost('metal_mine', 38), 38, 12, 6, 5), 23 * 3600 + 37 * 60 + 36);
 assert.deepStrictEqual(E.mineCost('deut_synth', 33, 1).slice(0, 2).map(M), [96.59, 32.2]);
 assert.deepStrictEqual(E.mineCost('metal_mine', 38, 1), [195591922, 48897981, 0]);

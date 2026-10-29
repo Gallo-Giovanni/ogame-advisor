@@ -30,6 +30,14 @@ const Engine = (() => {
     return b.base.map(x => Math.floor(x * m));
   }
 
+  // Tempo di costruzione di un edificio classico, in secondi (guida ufficiale, verificato sul gioco: Miniera di metallo
+  // 37 e 38 con Robot 12, Naniti 6, velocità 5 = 15o 45m 4s e 23o 37m 36s, al secondo). Si usa il costo SENZA lo
+  // sconto del Centro di Mineralogia. Naniti, Avamposto lunare, Falange e Portale non hanno il termine max(4 - livello/2, 1).
+  function buildTime(cost, level, robot, nanite, speed, noMax = false) {
+    const k = noMax ? 1 : Math.max(4 - level / 2, 1);
+    return Math.max(1, Math.round((cost[0] + cost[1]) / (2500 * k * (1 + (robot || 0)) * Math.pow(2, nanite || 0) * (speed || 1)) * 3600));
+  }
+
   // ---- Produzione base all'ora (prima dei bonus e della velocità) ----
   const g = L => L * Math.pow(1.1, L);
   const baseProd = {
@@ -619,7 +627,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

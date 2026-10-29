@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
+    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. I tempi di ricerche ed edifici forme di vita arriveranno dopo la verifica.',
+  },
+  {
     id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',
     text: 'L\'importazione dalla Vista impero salva ora i livelli di tutti gli edifici dei pianeti (anche depositi, cantiere, laboratorio, terraformer) e di tutte le ricerche: nella scheda Costi la colonna "Da" si compila da sola. Salva anche le risorse di ogni pianeta: nella scheda Costi vedi quelle del pianeta scelto e il totale dell\'impero, con quanto manca, e puoi usarle come risorse disponibili.',
     bookmarklet: true,
