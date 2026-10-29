@@ -501,7 +501,6 @@
         <p class="muted small" style="margin:0">Scegli il pianeta: i livelli attuali e gli sconti (Centro di Mineralogia, Monolite, edificio di ricerca, Concentratore astrale) si prendono da lì. Scrivi in "A livello" fino a dove vuoi arrivare: l'app somma il costo di tutti i livelli in mezzo.</p>
         <div class="row" style="gap:10px;flex-wrap:wrap">
           <div><label>Pianeta</label><select id="cc-planet" style="min-width:180px"></select></div>
-          <div id="cc-race-box"><label>Razza delle ricerche</label><select id="cc-race"></select></div>
         </div>
         <div class="chips" id="cc-cat" role="group" aria-label="Categoria">
           <button type="button" class="chip" data-cc="build" aria-pressed="true">Edifici</button>
@@ -1806,6 +1805,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 53, date: '2026-10-29', title: 'Costi: solo le ricerche del pianeta',
+    text: 'Nella scheda Costi, alla voce Ricerche forme di vita, ora compaiono solo le ricerche scelte negli slot del pianeta, ognuna con la sua razza. Non serve più scegliere la razza.',
+  },
   {
     id: 52, date: '2026-10-29', title: 'Tempi di tutti gli edifici forme di vita',
     text: 'Nella scheda Costi ora c\'è il tempo di costruzione di tutti i 48 edifici forme di vita delle quattro razze, con Fabbrica di robot, Naniti e Monolite del pianeta.',
@@ -3353,7 +3356,7 @@ function ccRows() {
   const prof = numericProfile(state.profile);
   const pl = state.planets.find(p => p.id === $('#cc-planet').value) || null;
   const cat = state.cc.cat, LF = Engine.LF;
-  const race = cat === 'lfb' ? (pl && pl.lf_race) : $('#cc-race').value;
+  const race = pl && pl.lf_race;
   const bl = k => (pl ? (pl[k] != null && pl[k] !== '' ? +pl[k] : +((pl.buildings || {})[CC_ID[k]]) || 0) : 0);
   const rl = k => (state.profile[k] != null && state.profile[k] !== '' ? +state.profile[k] : +((state.profile.research || {})[CC_ID[k]]) || 0);
   if (cat === 'build') return CC_BUILD.map(([k, name, base, f]) => ({ k, name, from: bl(k),
@@ -3370,6 +3373,15 @@ function ccRows() {
       cost: L => k === 'astro_tech' ? Engine.levelCost('astro', L) : k === 'plasma_tech' ? ccGeo(base, f, L).map(x => Math.round(x * (1 + disc))) : ccGeo(base, f, L),
       time: rSpeed && pl ? L => Engine.researchTime(k === 'astro_tech' ? Engine.levelCost('astro', L) : ccGeo(base, f, L), labs, rSpeed, prof.player_class === 'explorer', lfRes, !!(state.profile.technocrat || state.profile.commanding_staff)) : null }));
   }
+  if (cat === 'lft') {
+    // solo le ricerche scelte negli slot di questo pianeta, ognuna con la sua razza
+    const disc = Engine.researchDisc(pl), tdisc = Engine.researchTimeDisc(pl);
+    return Object.entries((pl && pl.lf_techs) || {}).map(([slot, e]) => [+slot, e])
+      .filter(([slot, e]) => e && LF.races[e.race] && LF.races[e.race].techs[slot - 1]).sort((a, b) => a[0] - b[0])
+      .map(([slot, e]) => { const t = LF.races[e.race].techs[slot - 1];
+        return { k: 't' + slot, name: `${techTag(slot)} ${t.it} (${RACE_NAMES[e.race]})`, from: +e.level || 0, cost: L => Engine.lfTechCost(t, L, disc),
+          time: L => Engine.lfTechTime(t, L, tdisc, prof.economy_speed, lfResLf) }; });
+  }
   if (!race || !LF.races[race]) return [];
   const R = LF.races[race];
   if (cat === 'lfb') {
@@ -3378,22 +3390,11 @@ function ccRows() {
       cost: L => Engine.lfBuildingCost(R.buildings[k], L, disc),
       time: R.buildings[k].duration ? L => Engine.lfBuildingTime(R.buildings[k], L, disc, bl('robotics_factory'), bl('nanite_factory'), prof.economy_speed) : null }));
   }
-  const disc = Engine.researchDisc(pl);
-  return R.techs.map((t, i) => {
-    const e = ((pl && pl.lf_techs) || {})[i + 1];
-    return { k: 't' + (i + 1), name: `${techTag(i + 1)} ${t.it}`, from: e && e.race === race ? +e.level || 0 : 0, cost: L => Engine.lfTechCost(t, L, disc),
-      time: L => Engine.lfTechTime(t, L, Engine.researchTimeDisc(pl), prof.economy_speed, lfResLf) };
-  });
 }
 function renderCosts() {
   const sel = $('#cc-planet'), cur = sel.value;
   sel.innerHTML = state.planets.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') || '<option value="">Nessun pianeta</option>';
   if (state.planets.some(p => p.id === cur)) sel.value = cur;
-  const rs = $('#cc-race'), rc = rs.value;
-  rs.innerHTML = LF_RACES.map(r => `<option value="${r}">${RACE_NAMES[r]}</option>`).join('');
-  const pl = state.planets.find(p => p.id === sel.value);
-  rs.value = rc || (pl && pl.lf_race) || 'rocktal';
-  $('#cc-race-box').classList.toggle('hidden', state.cc.cat !== 'lft');
   $$('#cc-cat [data-cc]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cc === state.cc.cat));
   renderCostTable();
 }
@@ -3423,7 +3424,7 @@ function renderCostTable() {
       <td>${c[0] ? fmt(c[0]) : ''}</td><td>${c[1] ? fmt(c[1]) : ''}</td><td>${c[2] ? fmt(c[2]) : ''}</td><td>${eq ? fmt(eq) : ''}</td><td>${eq ? fmt((c[0] + c[1] + c[2]) / 1000) : ''}</td>${hasTime ? `<td>${sec ? durText(sec) : ''}</td>` : ''}</tr>`;
   }).join('');
   const eqT = Engine.toMetalEq(tot, prof);
-  $('#cc-table').innerHTML = `<tr><th>${state.cc.cat === 'research' || state.cc.cat === 'lft' ? 'Ricerca' : 'Edificio'}</th><th>Da</th><th>A livello</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th title="metallo equivalente con i tuoi tassi">Metallo eq.</th><th>Punti</th>${hasTime ? '<th>Tempo</th>' : ''}</tr>${body || '<tr><td colspan="9" class="muted">Niente da mostrare.</td></tr>'}
+  $('#cc-table').innerHTML = `<tr><th>${state.cc.cat === 'research' || state.cc.cat === 'lft' ? 'Ricerca' : 'Edificio'}</th><th>Da</th><th>A livello</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th title="metallo equivalente con i tuoi tassi">Metallo eq.</th><th>Punti</th>${hasTime ? '<th>Tempo</th>' : ''}</tr>${body || '<tr><td colspan="9" class="muted">' + (state.cc.cat === 'lft' ? 'Nessuna ricerca scelta negli slot di questo pianeta: importa dalla Vista impero o sceglile nella scheda del pianeta.' : 'Niente da mostrare.') + '</td></tr>'}
     <tr class="tot"><td>Totale</td><td></td><td></td><td>${fmt(tot[0])}</td><td>${fmt(tot[1])}</td><td>${fmt(tot[2])}</td><td>${fmt(eqT)}</td><td>${fmt((tot[0] + tot[1] + tot[2]) / 1000)}</td>${hasTime ? `<td>${totSec ? durText(totSec) : ''}</td>` : ''}</tr>`;
   // risorse dalla Vista impero: sul pianeta scelto e su tutti i pianeti
   const R3 = p => (p && p.resources ? [+p.resources.m || 0, +p.resources.c || 0, +p.resources.d || 0] : null);
@@ -3447,7 +3448,6 @@ function renderCostTable() {
 }
 $('#cc-cat').addEventListener('click', e => { const b = e.target.closest('[data-cc]'); if (!b) return; state.cc.cat = b.dataset.cc; renderCosts(); });
 $('#cc-planet').addEventListener('change', () => { state.cc.to = {}; state.cc.haveEdited = false; renderCosts(); });
-$('#cc-race').addEventListener('change', renderCostTable);
 $('[data-panel=costs]').addEventListener('change', e => {
   const k1 = e.target.dataset.ccfrom, k2 = e.target.dataset.ccto;
   if (!k1 && !k2) { if (/^cc-have/.test(e.target.id)) { state.cc.haveEdited = true; e.target.value = fmt(ccNum(e.target.value)); renderCostTable(); } return; }

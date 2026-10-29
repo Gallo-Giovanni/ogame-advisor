@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 53, date: '2026-10-29', title: 'Costi: solo le ricerche del pianeta',
+    text: 'Nella scheda Costi, alla voce Ricerche forme di vita, ora compaiono solo le ricerche scelte negli slot del pianeta, ognuna con la sua razza. Non serve più scegliere la razza.',
+  },
+  {
     id: 52, date: '2026-10-29', title: 'Tempi di tutti gli edifici forme di vita',
     text: 'Nella scheda Costi ora c\'è il tempo di costruzione di tutti i 48 edifici forme di vita delle quattro razze, con Fabbrica di robot, Naniti e Monolite del pianeta.',
   },
