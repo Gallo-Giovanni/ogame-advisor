@@ -38,6 +38,20 @@ const Engine = (() => {
     return Math.max(1, Math.round((cost[0] + cost[1]) / (2500 * k * (1 + (robot || 0)) * Math.pow(2, nanite || 0) * (speed || 1)) * 3600));
   }
 
+  // Tempo di una ricerca classica, in secondi: (metallo + cristallo) / (1000 x (1 + laboratori)) ore, diviso per la
+  // velocità delle ricerche; Esploratore -25%, ricerche forme di vita sul tempo delle ricerche (valore negativo).
+  // labs = livello effettivo dei laboratori (quello del pianeta più i migliori collegati dalla Rete interplanetaria).
+  // Verificato sul gioco: Rete interplanetaria 10 su Gonnia, laboratori 150, Esploratore, velocità ricerche 20 = 3g 9o 22m.
+  function researchTime(cost, labs, speed, explorer, lfTime = 0) {
+    return Math.max(1, Math.round((cost[0] + cost[1]) / (1000 * (1 + (labs || 0))) * (explorer ? 0.75 : 1) * (1 + Math.min(0, lfTime)) / (speed || 1) * 3600));
+  }
+  // Livello effettivo dei laboratori per una ricerca fatta su `planet`: il suo laboratorio più i migliori `irn` degli altri pianeti
+  function labLevel(planet, planets, irn) {
+    const lab = p => +((p.buildings || {})[31]) || 0;
+    const others = planets.filter(p => p !== planet && p.id !== planet.id).map(lab).sort((a, b) => b - a).slice(0, irn || 0);
+    return lab(planet) + others.reduce((t, x) => t + x, 0);
+  }
+
   // ---- Produzione base all'ora (prima dei bonus e della velocità) ----
   const g = L => L * Math.pow(1.1, L);
   const baseProd = {
@@ -627,7 +641,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

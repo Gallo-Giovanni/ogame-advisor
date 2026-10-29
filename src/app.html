@@ -547,6 +547,7 @@
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
+          <div><label>Velocità delle ricerche</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 20"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
         <h3 style="margin-top:8px">Livello forme di vita</h3>
@@ -1955,10 +1956,14 @@ function ccRows() {
     cost: L => { const c = ccGeo(base, f, L); return ['metal_mine', 'crystal_mine', 'deut_synth'].includes(k) ? Engine.mineCost(k, L, pl ? pl.mrc_level : 0) : c; },
     // il tempo usa il costo senza lo sconto del Centro di Mineralogia
     time: L => Engine.buildTime(ccGeo(base, f, L), L, bl('robotics_factory'), bl('nanite_factory'), prof.economy_speed, k === 'nanite_factory') }));
+  const rSpeed = +state.profile.research_speed || 0;
+  const labs = pl ? Engine.labLevel(pl, state.planets, rl('irn')) : 0;
+  const lfRes = (Engine.allTechTotals(prof, state.planets).research_time || 0);
   if (cat === 'research') {
     const disc = prof._lf ? Math.max(-0.99, prof._lf.tech.plasma_tech_cost || 0) : 0;
     return CC_RESEARCH.map(([k, name, base, f]) => ({ k, name, from: rl(k),
-      cost: L => k === 'astro_tech' ? Engine.levelCost('astro', L) : k === 'plasma_tech' ? ccGeo(base, f, L).map(x => Math.round(x * (1 + disc))) : ccGeo(base, f, L) }));
+      cost: L => k === 'astro_tech' ? Engine.levelCost('astro', L) : k === 'plasma_tech' ? ccGeo(base, f, L).map(x => Math.round(x * (1 + disc))) : ccGeo(base, f, L),
+      time: rSpeed && pl ? L => Engine.researchTime(k === 'astro_tech' ? Engine.levelCost('astro', L) : ccGeo(base, f, L), labs, rSpeed, prof.player_class === 'explorer', lfRes) : null }));
   }
   if (!race || !LF.races[race]) return [];
   const R = LF.races[race];
@@ -1991,11 +1996,13 @@ function renderCostTable() {
   const pl = state.planets.find(p => p.id === $('#cc-planet').value);
   const imported = pl && pl.buildings && Object.keys(pl.buildings).length;
   const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco); i tempi di ricerche e forme di vita arriveranno dopo la verifica.` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
-    research: 'Il Plasma è già scontato dal Concentratore astrale.', lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
+    research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
+      ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}.`
+      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (West: 20).'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
     lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%).` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
-  const hasTime = state.cc.cat === 'build';
+  const hasTime = state.cc.cat === 'build' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
   const body = rows.map(r => {
     const key = state.cc.cat + ':' + r.k, t = to[key] || {};
     const from = t.from != null ? t.from : r.from, target = t.to != null ? t.to : '';
@@ -2062,6 +2069,7 @@ $('#save-settings').addEventListener('click', async () => {
   NUM_FIELDS.forEach(k => { if (k in patch) patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]; });
   CAP_FIELDS.forEach(k => (patch[k] = patch[k] === '' ? null : Math.max(0, parseInt(patch[k], 10))));
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
+  patch.research_speed = patch.research_speed === '' ? null : Math.max(0.1, Number(patch.research_speed) || 0) || null;
   const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
   state.profile = r.data;
