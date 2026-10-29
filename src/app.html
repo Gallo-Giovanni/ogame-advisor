@@ -499,9 +499,9 @@
         <div class="ccres" id="cc-res"></div>
         <b class="small">Risorse disponibili</b>
         <div class="row" style="gap:10px;flex-wrap:wrap">
-          <div><label>Metallo</label><input id="cc-have-0" type="number" min="0" value="0"></div>
-          <div><label>Cristallo</label><input id="cc-have-1" type="number" min="0" value="0"></div>
-          <div><label>Deuterio</label><input id="cc-have-2" type="number" min="0" value="0"></div>
+          <div><label>Metallo</label><input id="cc-have-0" class="ccnum" type="text" inputmode="numeric" value="0"></div>
+          <div><label>Cristallo</label><input id="cc-have-1" class="ccnum" type="text" inputmode="numeric" value="0"></div>
+          <div><label>Deuterio</label><input id="cc-have-2" class="ccnum" type="text" inputmode="numeric" value="0"></div>
         </div>
         <div id="cc-missing"></div>
         <div class="row"><button class="secondary" id="cc-reset">Azzera i livelli scelti</button><button class="secondary" id="cc-have-planet">Risorse del pianeta</button><button class="secondary" id="cc-have-all">Risorse di tutto l'impero</button></div>
@@ -1937,6 +1937,8 @@ const CC_RESEARCH = [
   ['astro_tech', 'Astrofisica', null, 1.75],
 ];
 state.cc = { cat: 'build', to: {} };
+// risorse disponibili scritte con i puntini delle migliaia (1.000.000): si leggono solo le cifre
+const ccNum = v => Math.max(0, parseInt(String(v).replace(/\D/g, ''), 10) || 0);
 const ccGeo = (base, f, L) => base.map(x => Math.floor(x * Math.pow(f, L - 1)));
 function ccRows() {
   const prof = numericProfile(state.profile);
@@ -2010,8 +2012,8 @@ function renderCostTable() {
     <div class="small muted">${tot.some(Boolean) ? (tot.every((x, i) => r[i] >= x) ? 'Bastano per tutto il costo.' : `Mancano: ${tot.map((x, i) => fmt(Math.max(0, x - r[i]))).join(' / ')}`) : ''} ${sub}</div>` : '<div class="small muted">Arrivano con l\'importazione dalla Vista impero.</div>'}</div>`;
   $('#cc-res').innerHTML = resBox(`Risorse sul pianeta${pl ? ' ' + esc(pl.name) : ''}`, plR, when ? `(al ${when})` : '')
     + resBox('Risorse totali dell\'impero', anyR ? allR : null, anyR ? `(${state.planets.filter(p => p.resources).length} pianeti)` : '');
-  if (plR && !state.cc.haveEdited) [0, 1, 2].forEach(i => ($('#cc-have-' + i).value = plR[i]));
-  const have = [0, 1, 2].map(i => Math.max(0, +$('#cc-have-' + i).value || 0));
+  if (plR && !state.cc.haveEdited) [0, 1, 2].forEach(i => ($('#cc-have-' + i).value = fmt(plR[i])));
+  const have = [0, 1, 2].map(i => ccNum($('#cc-have-' + i).value));
   const miss = tot.map((x, i) => Math.max(0, x - have[i]));
   const hyp = +prof.hyperspace_tech || 0, coll = prof.player_class === 'collector' ? 0.25 : 0;
   const all = Engine.allTechTotals(prof, state.planets), civ = all.civil_cargo || 0;
@@ -2026,7 +2028,7 @@ $('#cc-planet').addEventListener('change', () => { state.cc.to = {}; state.cc.ha
 $('#cc-race').addEventListener('change', renderCostTable);
 $('[data-panel=costs]').addEventListener('change', e => {
   const k1 = e.target.dataset.ccfrom, k2 = e.target.dataset.ccto;
-  if (!k1 && !k2) { if (/^cc-have/.test(e.target.id)) { state.cc.haveEdited = true; renderCostTable(); } return; }
+  if (!k1 && !k2) { if (/^cc-have/.test(e.target.id)) { state.cc.haveEdited = true; e.target.value = fmt(ccNum(e.target.value)); renderCostTable(); } return; }
   const key = k1 || k2, t = state.cc.to[key] = state.cc.to[key] || {};
   const v = e.target.value.trim();
   if (k1) t.from = v === '' ? null : Math.max(0, parseInt(v, 10) || 0); else t.to = v === '' ? null : Math.max(0, parseInt(v, 10) || 0);
@@ -2037,7 +2039,7 @@ $('#cc-reset').addEventListener('click', () => { state.cc.to = {}; renderCostTab
 $('#cc-have-planet').addEventListener('click', () => { state.cc.haveEdited = false; renderCostTable(); });
 $('#cc-have-all').addEventListener('click', () => {
   const tot = state.planets.reduce((t, p) => (p.resources ? [t[0] + (+p.resources.m || 0), t[1] + (+p.resources.c || 0), t[2] + (+p.resources.d || 0)] : t), [0, 0, 0]);
-  tot.forEach((x, i) => ($('#cc-have-' + i).value = x)); state.cc.haveEdited = true; renderCostTable();
+  tot.forEach((x, i) => ($('#cc-have-' + i).value = fmt(x))); state.cc.haveEdited = true; renderCostTable();
 });
 
 /* Impostazioni */
