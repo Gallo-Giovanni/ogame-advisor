@@ -1,6 +1,6 @@
-// Run with: node tests/lftechs.test.js
-// Lifeform research costs vs the game's research window (levels 1 and 2, planet with a -2.5% research discount).
-// The game shows thousands with one decimal (9.8k) and smaller values in full (975).
+// Avvio: node tests/lftechs.test.js
+// Costi delle ricerche forme di vita confrontati con la finestra di ricerca del gioco (livelli 1 e 2, pianeta con sconto ricerche del 2,5%).
+// Il gioco mostra le migliaia con un decimale (9.8k) e i valori più piccoli per intero (975).
 const assert = require('assert');
 const E = require('../src/engine.js');
 const shown = x => (x >= 1e6 ? Math.round(x / 1e4) * 1e4 : x >= 1000 ? Math.round(x / 100) * 100 : Math.round(x));
@@ -22,10 +22,10 @@ const cases = [
 ];
 for (const [race, slot, l1, l2] of cases) {
   const t = E.LF.races[race].techs[slot - 1];
-  assert.deepStrictEqual(E.lfTechCost(t, 1, 0.025).map(shown), l1, t.it + ' level 1');
-  assert.deepStrictEqual(E.lfTechCost(t, 2, 0.025).map(shown), l2, t.it + ' level 2');
+  assert.deepStrictEqual(E.lfTechCost(t, 1, 0.025).map(shown), l1, t.it + ' livello 1');
+  assert.deepStrictEqual(E.lfTechCost(t, 2, 0.025).map(shown), l2, t.it + ' livello 2');
 }
-// Higher levels (the game shows millions with two decimals): the formula holds up to level 10
+// Livelli alti (il gioco mostra i milioni con due decimali): la formula vale fino al livello 10
 const high = [
   ['mechas', 1, 8, [1330000, 799600, 133300]],
   ['humans', 2, 10, [2620000, 3750000, 1870000]],
@@ -42,12 +42,12 @@ const high = [
 ];
 for (const [race, slot, L, exp] of high) {
   const t = E.LF.races[race].techs[slot - 1];
-  assert.deepStrictEqual(E.lfTechCost(t, L, 0.025).map(shown), exp, t.it + ' level ' + L);
+  assert.deepStrictEqual(E.lfTechCost(t, L, 0.025).map(shown), exp, t.it + ' livello ' + L);
 }
-// Tecnologicus Runarum 10 = -2.5% research cost on its planet
+// Tecnologicus Runarum 10 = -2,5% sul costo delle ricerche del suo pianeta
 assert.ok(Math.abs(E.researchDisc({ lf_race: 'rocktal', lf_buildings: { tecnologicus_runarum: 10 } }) - 0.025) < 1e-12);
 
-// Recommendation: researched on one planet, gains on every planet; Done raises the level
+// Consiglio: si ricerca su un pianeta, guadagna su tutti; Fatto alza il livello
 const profile = { player_class: 'explorer', economy_speed: 5, plasma_tech: 0, energy_tech: 0, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
 const P = (id, techs) => ({ id, name: id, position: 8, temp_max: 40, metal_mine: 30, crystal_mine: 25, deut_synth: 25, solar_plant: 25,
   fusion_reactor: 0, solar_satellites: 0, energy_balance: 5000, lf_race: 'rocktal', lf_buildings: { tecnologicus_runarum: 10 }, lf_techs: techs });
@@ -55,7 +55,7 @@ const a = P('A', { 7: { race: 'rocktal', level: 5 } }), b = P('B', {});
 const one = E.recommendations(profile, [a]).find(r => r.type === 'lftech');
 const two = E.recommendations(profile, [a, b]).find(r => r.type === 'lftech');
 assert.ok(one && one.slot === 7 && one.nextLevel === 6);
-assert.ok(Math.abs(two.gainEq / one.gainEq - 2) < 1e-9, 'gain counts every planet');
+assert.ok(Math.abs(two.gainEq / one.gainEq - 2) < 1e-9, 'il guadagno conta tutti i pianeti');
 assert.deepStrictEqual(one.cost, E.lfTechCost(E.LF.races.rocktal.techs[6], 6, 0.025));
 assert.strictEqual(E.applyRecommendation(profile, a, one).planet.lf_techs[7].level, 6);
-console.log('Lifeform research costs match the game');
+console.log('Costi delle ricerche forme di vita uguali al gioco');

@@ -1,5 +1,5 @@
-// Builds the single-file app: inlines src/lifeforms.js, src/engine.js, src/importer.js and src/changelog.js into src/app.html -> index.html
-// Run with: node build.js
+// Crea l'app in un solo file: inserisce src/lifeforms.js, src/engine.js, src/importer.js e src/changelog.js in src/app.html -> index.html
+// Avvio: node build.js
 const fs = require('fs');
 const path = require('path');
 
@@ -9,7 +9,7 @@ const changelog = fs.readFileSync(path.join(__dirname, 'src/changelog.js'), 'utf
 const lifeforms = fs.readFileSync(path.join(__dirname, 'src/lifeforms.js'), 'utf8');
 const importer = fs.readFileSync(path.join(__dirname, 'src/importer.js'), 'utf8');
 for (const ph of ['/*LIFEFORMS*/', '/*ENGINE*/', '/*IMPORTER*/', '/*CHANGELOG*/'])
-  if (!html.includes(ph)) throw new Error(`Placeholder ${ph} not found in src/app.html`);
+  if (!html.includes(ph)) throw new Error(`Segnaposto ${ph} non trovato in src/app.html`);
 
 fs.writeFileSync(path.join(__dirname, 'index.html'), html.replace('/*LIFEFORMS*/', () => lifeforms).replace('/*ENGINE*/', () => engine).replace('/*IMPORTER*/', () => importer).replace('/*CHANGELOG*/', () => changelog));
-console.log('index.html built');
+console.log('index.html creato');

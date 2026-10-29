@@ -1,12 +1,12 @@
-// Import from the game's "Vista impero" (empire view) page.
-// The bookmarklet runs grabEmpire() on the empire page the player has open: it only READS that page
-// (no requests to the game), keeps the numbers the app needs and opens the app with them in the URL hash.
-// The session id and everything else on the page are left out.
-// The app then shows what would change (mapImport) and saves only after the player confirms.
+// Importazione dalla pagina "Vista impero" del gioco.
+// Il bookmarklet esegue grabEmpire() sulla Vista impero aperta dal giocatore: LEGGE solo quella pagina
+// (nessuna richiesta al gioco), tiene i numeri che servono all'app e apre l'app con questi nell'hash dell'URL.
+// Il codice di sessione e tutto il resto della pagina vengono esclusi.
+// L'app poi mostra cosa cambierebbe (mapImport) e salva solo dopo la conferma del giocatore.
 
-// Runs inside the game page (also in Node tests): must be self-contained, no outside references,
-// and without // comments inside (the bookmarklet is one line). It finds the end of the JSON object
-// by counting braces outside strings.
+// Gira dentro la pagina del gioco (e nei test in Node): deve essere autonoma, senza riferimenti esterni,
+// e senza commenti // all'interno (il bookmarklet è una riga sola). Trova la fine dell'oggetto JSON
+// contando le parentesi graffe fuori dalle stringhe.
 function grabEmpire(html, meta) {
   const key = 'createImperiumHtml(';
   const at = html.indexOf(key);
@@ -64,7 +64,7 @@ function grabEmpire(html, meta) {
   };
 }
 
-// The bookmarklet link for this app (appUrl = where the app is published)
+// Il link del bookmarklet per questa app (appUrl = dove è pubblicata l'app)
 function bookmarkletHref(appUrl) {
   const code = `(function(){
     var meta=function(n){var m=document.querySelector('meta[name="ogame-'+n+'"]');return m?m.content:'';};
@@ -76,18 +76,18 @@ function bookmarkletHref(appUrl) {
   return 'javascript:' + encodeURIComponent(code.replace(/\n\s*/g, ' '));
 }
 
-// Turns an imported snapshot into changes for the app (planets matched by coordinates, then by name)
+// Trasforma i dati importati in modifiche per l'app (pianeti abbinati per coordinate, poi per nome)
 const RACE_IDS = { humans: 11, rocktal: 12, mechas: 13, kaelesh: 14 };
 const CLASS_IDS = { 1: 'collector', 2: 'general', 3: 'explorer' };
-const ALLY_TRADER_ID = 2; // alliance class in the page meta: 1 Warrior, 2 Trader, 3 Researcher (game, confirmed by the player)
+const ALLY_TRADER_ID = 2; // classe dell'alleanza nei meta della pagina: 1 Guerriero, 2 Mercante, 3 Ricercatore (gioco, confermato dal giocatore)
 
 function mapImport(snap, existing, LF) {
   const profile = {};
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
-  // research levels by game id (version 1 of the bookmarklet sent them by name)
+  // livelli delle ricerche per id del gioco (la versione 1 del bookmarklet li mandava per nome)
   const r0 = snap.v >= 2 ? (snap.res || {}) : { 122: (snap.res || {}).plasma, 113: (snap.res || {}).energy, 124: (snap.res || {}).astro, 114: (snap.res || {}).hyper };
-  // what is being built or researched right now counts as done: it is already paid for
+  // quello che è in costruzione o in ricerca adesso conta come fatto: è già pagato
   const r = { ...r0 };
   for (const [id, t] of Object.entries(snap.rg || {})) r[id] = Math.max(+r[id] || 0, t);
   const inProgress = Object.keys(snap.rg || {}).map(Number);
@@ -108,7 +108,7 @@ function mapImport(snap, existing, LF) {
     const q = ip.q || {};
     for (const [id, t] of Object.entries(q)) if (!/^1[1-4]\d\d\d$/.test(id)) ip.b[id] = Math.max(+ip.b[id] || 0, t);
     const lfv = id => { const v = ip.lf[id] || [0, 0]; return q[id] ? [Math.max(v[0], q[id]), v[1]] : v; };
-    // race of the planet = the one whose buildings are not greyed out
+    // razza del pianeta = quella con gli edifici non in grigio
     let race = null;
     for (const [r, base] of Object.entries(RACE_IDS))
       if (LF.races[r].buildingOrder.some((_, i) => lfv(base * 1000 + 101 + i)[1])) { race = r; break; }
@@ -128,7 +128,7 @@ function mapImport(snap, existing, LF) {
       if (key === 'mineral_centre') data.mrc_level = lvl; else if (lvl) lfb[key] = lvl;
     });
     data.lf_buildings = lfb;
-    // each slot: the race whose research is active (not greyed out) on this planet
+    // ogni slot: la razza la cui ricerca è attiva (non in grigio) su questo pianeta
     const techs = {};
     for (let slot = 1; slot <= 18; slot++)
       for (const [r, base] of Object.entries(RACE_IDS)) {
@@ -142,7 +142,7 @@ function mapImport(snap, existing, LF) {
   return { profile, planets, unmatched, inProgress };
 }
 
-// Bookmarklets dragged before this version miss some data: the app asks to drag the new one
+// I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo
 const BOOKMARKLET_VERSION = 3;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 

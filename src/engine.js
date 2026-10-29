@@ -1,15 +1,15 @@
-// OGame Advisor - calculation engine
-// Pure functions: no DOM, no network. Works in the browser and in Node (for tests).
+// OGame Advisor - motore di calcolo
+// Funzioni pure: niente DOM, niente rete. Funziona nel browser e in Node (per i test).
 
 const Engine = (() => {
-  // Lifeform data (src/lifeforms.js): global in the browser, require() in Node
+  // Dati delle forme di vita (src/lifeforms.js): variabile globale nel browser, require() in Node
   const LF = typeof LIFEFORMS !== 'undefined' ? LIFEFORMS
     : (typeof require !== 'undefined' ? require('./lifeforms.js') : null);
   const LF_RACES = ['humans', 'rocktal', 'mechas', 'kaelesh'];
   const LF_KEYS = ['metal', 'crystal', 'deut', 'energy', 'plasma_tech_cost'];
   const RES = ['metal', 'crystal', 'deut'];
 
-  // ---- Cost of building the given level (from level-1 to level) ----
+  // ---- Costo per costruire un livello (dal livello-1 al livello) ----
   const BUILD = {
     metal_mine:     { base: [60, 15, 0],      factor: 1.5 },
     crystal_mine:   { base: [48, 24, 0],      factor: 1.6 },
@@ -23,14 +23,14 @@ const Engine = (() => {
   const COLONY_SHIP = [10000, 20000, 10000];
 
   function levelCost(key, level) {
-    // Astrophysics is rounded to hundreds: 100 x round(40 / 80 / 40 x 1.75^(level-1)) (official guide)
+    // L'Astrofisica è arrotondata alle centinaia: 100 x round(40 / 80 / 40 x 1,75^(livello-1)) (guida ufficiale)
     if (key === 'astro') return [40, 80, 40].map(x => 100 * Math.floor(0.5 + x * Math.pow(1.75, level - 1)));
     const b = key === 'plasma' ? PLASMA : BUILD[key];
     const m = Math.pow(b.factor, level - 1);
     return b.base.map(x => Math.floor(x * m));
   }
 
-  // ---- Base production per hour (before bonuses, before speed) ----
+  // ---- Produzione base all'ora (prima dei bonus e della velocità) ----
   const g = L => L * Math.pow(1.1, L);
   const baseProd = {
     metal_mine:   L => 30 * g(L),
@@ -38,27 +38,27 @@ const Engine = (() => {
     deut_synth:   (L, tMax) => 10 * g(L) * (1.44 - 0.004 * tMax),
   };
 
-  // ---- Energy ----
+  // ---- Energia ----
   const consumption = {
     metal_mine:   L => Math.ceil(10 * g(L)),
     crystal_mine: L => Math.ceil(10 * g(L)),
     deut_synth:   L => Math.ceil(20 * g(L)),
   };
-  // Lifeform technologies can lower the energy used by the mines (e.g. -5%)
-  // Lower energy use of the mines: from the planet's lifeform buildings when lifeforms are entered
-  // (Rock'tal Disruption Chamber), otherwise from the manual account value
+  // Le tecnologie delle forme di vita possono ridurre l'energia usata dalle miniere (es. -5%)
+  // Riduzione del consumo delle miniere: dagli edifici forme di vita del pianeta quando sono inseriti
+  // (Camera di Disgregazione Rock'tal), altrimenti dal valore manuale dell'account
   const consFactor = (profile, planet) => {
     if (profile && profile._lf && profile._lf.computed && planet) return Math.max(0, 1 + buildingEffects(planet).mineConsumption);
     return 1 - Math.min(100, +profile.energy_consumption_reduction || 0) / 100;
   };
-  // The fusion reactor burns deuterium: 10 x L x 1.1^L per hour, times the economy speed
+  // La centrale a fusione consuma deuterio: 10 x L x 1,1^L all'ora, per la velocità dell'economia
   const fusionDeut = L => 10 * g(L);
 
-  // Crawlers (checked against the game page): each working crawler adds 0.02% of every mine row
-  // (x1.5 for the Collector class) and uses 50 energy, both scaled by the crawler production %.
-  // At most 8 crawlers per mine level (metal + crystal + deuterium) work; a Collector with the
-  // Geologist gets 10% more. Only a Collector can overload them up to 150%, and every 10% above 100%
-  // costs 20% more energy (official guide).
+  // Crawler (verificati sulla pagina del gioco): ogni crawler attivo aggiunge lo 0,02% di ogni riga miniera
+  // (x1,5 per la classe Collezionista) e consuma 50 di energia, entrambi in proporzione alla % di produzione dei crawler.
+  // Funzionano al massimo 8 crawler per livello di miniera (metallo + cristallo + deuterio); un Collezionista con il
+  // Geologo ne ha il 10% in più. Solo il Collezionista può spingerli fino al 150%, e ogni 10% oltre il 100%
+  // costa il 20% di energia in più (guida ufficiale).
   const isCollector = profile => profile && profile.player_class === 'collector';
   const maxCrawlers = (planet, profile) => Math.floor(8 * ((+planet.metal_mine || 0) + (+planet.crystal_mine || 0) + (+planet.deut_synth || 0))
     * (isCollector(profile) && profile.geologist ? 1.1 : 1));
@@ -67,23 +67,23 @@ const Engine = (() => {
     return Math.max(0, Math.min(p, isCollector(profile) ? 1.5 : 1));
   };
   const workingCrawlers = (planet, profile) => Math.min(+planet.crawlers || 0, maxCrawlers(planet, profile));
-  // the crawlers can add at most +50% production (official guide: a Collector at 150% reaches it with 1,111 crawlers)
+  // i crawler aggiungono al massimo +50% di produzione (guida ufficiale: un Collezionista al 150% ci arriva con 1.111 crawler)
   const crawlerBonus = (profile, planet) =>
     Math.min(0.5, workingCrawlers(planet, profile) * 0.0002 * (isCollector(profile) ? 1.5 : 1) * crawlerPct(planet, profile));
   const crawlerEnergy = (profile, planet) => {
     const p = crawlerPct(planet, profile);
-    const energyShare = p <= 1 ? p : 1 + 2 * (p - 1); // overload: +20% energy per +10%
+    const energyShare = p <= 1 ? p : 1 + 2 * (p - 1); // sovraccarico: +20% di energia ogni +10%
     return Math.round(workingCrawlers(planet, profile) * 50 * energyShare * consFactor(profile, planet));
   };
 
-  // Mineral Research Centre (Rock'tal): each level makes the three mines 0.5% cheaper (checked on the game at level 1:
-  // the costs of all three mines). The game's Tech Info table
-  // shows it rounded up (1, 1, 2, 2, 3 ... and 8 at level 14, where 14 x 0.5 = 7.000000001 in floating point).
-  // Level 1 costs 250,000 metal, 150,000 crystal and 100,000 deuterium (before Megalith discounts).
+  // Centro di Mineralogia (Rock'tal): ogni livello rende le tre miniere più economiche dello 0,5% (verificato sul gioco al livello 1:
+  // i costi di tutte e tre le miniere). La tabella Tech Info del gioco
+  // lo mostra arrotondato per eccesso (1, 1, 2, 2, 3 ... e 8 al livello 14, dove 14 x 0,5 = 7,000000001 con i decimali del computer).
+  // Il livello 1 costa 250.000 metallo, 150.000 cristallo e 100.000 deuterio (prima degli sconti del Monolite).
   const MRC_LEVEL1 = [250000, 150000, 100000];
 
-  // Lifeform building cost and energy (formulas in src/lifeforms.js). The Monolith (Rock'tal) lowers both
-  // for Rock'tal buildings; its table is used as shown in the game.
+  // Costo ed energia degli edifici forme di vita (formule in src/lifeforms.js). Il Monolite (Rock'tal) riduce entrambi
+  // per gli edifici Rock'tal; la sua tabella è usata così come la mostra il gioco.
   const monolithDisc = planet => {
     if (!LF || !planet || planet.lf_race !== 'rocktal') return 0;
     const lvl = +((planet.lf_buildings || {}).monolith) || 0;
@@ -98,21 +98,21 @@ const Engine = (() => {
   const fusionEnergy = (L, energyTech) => Math.floor(30 * L * Math.pow(1.05 + 0.01 * energyTech, L));
   const satelliteEnergy = tMax => Math.max(1, Math.floor((tMax + 140) / 6));
 
-  // ---- Lifeforms ----
-  // Effects of the lifeform buildings of a planet (race of the planet, levels in planet.lf_buildings)
+  // ---- Forme di vita ----
+  // Effetti degli edifici forme di vita di un pianeta (razza del pianeta, livelli in planet.lf_buildings)
   function buildingEffects(planet) {
     const e = { metal: 0, crystal: 0, deut: 0, energy: 0, mineConsumption: 0, techBoost: 0, techBoostOwnRace: 0 };
     const race = planet && planet.lf_race;
     if (!LF || !race || !LF.races[race]) return e;
     const levels = planet.lf_buildings || {};
     for (const [key, b] of Object.entries(LF.races[race].buildings)) {
-      if (!b || !b.effect || key === 'mineral_centre') continue; // the Centre works on costs (mrc_level)
+      if (!b || !b.effect || key === 'mineral_centre') continue; // il Centro agisce sui costi (mrc_level)
       const lvl = +levels[key] || 0;
       for (const k of Object.keys(e)) if (b.effect[k]) e[k] += b.effect[k] * lvl;
     }
     return e;
   }
-  // Research cost discount of a planet: its research building (Research Centre, Tecnologicus Runarum, ...)
+  // Sconto sul costo delle ricerche di un pianeta: il suo edificio di ricerca (Centro di Ricerca, Tecnologicus Runarum, ...)
   function researchDisc(planet) {
     const race = planet && planet.lf_race;
     if (!LF || !race || !LF.races[race]) return 0;
@@ -126,9 +126,9 @@ const Engine = (() => {
     return -d;
   }
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
-  // Base effect of one researched tech, boosted by the buildings of its planet and by the level of its race
-  // (game: effective = base x (1 + building boost) x (1 + 0.1% x race level))
-  // keys: which effects to return (default: those used by production); 'all' = every numeric effect of the tech
+  // Effetto base di una ricerca, potenziato dagli edifici del suo pianeta e dal livello della sua razza
+  // (gioco: effettivo = base x (1 + potenziamento edifici) x (1 + 0,1% x livello razza))
+  // keys: quali effetti restituire (di base: quelli usati dalla produzione); 'all' = tutti gli effetti numerici della ricerca
   function techEffect(profile, planet, slot, entry, keys = LF_KEYS) {
     const out = {};
     if (!LF || !entry || !LF.races[entry.race] || !(+entry.level > 0)) return out;
@@ -141,7 +141,7 @@ const Engine = (() => {
     for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
     return out;
   }
-  // Lifeform techs act on every planet: sum them over the whole account (all planets, also excluded ones)
+  // Le ricerche forme di vita agiscono su tutti i pianeti: somma su tutto l'account (tutti i pianeti, anche quelli esclusi)
   function techTotals(profile, planets) {
     const t = Object.fromEntries(LF_KEYS.map(k => [k, 0]));
     for (const p of planets) {
@@ -153,7 +153,7 @@ const Engine = (() => {
     }
     return t;
   }
-  // Every numeric effect of all lifeform techs of the account (expeditions, research time, ...), summed over planets
+  // Tutti gli effetti numerici delle ricerche forme di vita dell'account (spedizioni, tempi di ricerca, ...), sommati sui pianeti
   function allTechTotals(profile, planets) {
     const t = {};
     for (const p of planets) for (const [slot, e] of Object.entries(p.lf_techs || {})) {
@@ -163,30 +163,30 @@ const Engine = (() => {
     return t;
   }
   const hasLifeforms = p => !!p.lf_race || Object.values(p.lf_techs || {}).some(e => e && e.race && +e.level > 0);
-  // Profile with the lifeform totals attached. When no planet has a race or techs, the manual
-  // percentages of each planet (lf_metal...) are used instead, as before.
+  // Profilo con i totali delle forme di vita. Se nessun pianeta ha razza o ricerche, si usano
+  // le percentuali manuali di ogni pianeta (lf_metal...), come prima.
   function withLifeforms(profile, planets) {
     const computed = planets.some(hasLifeforms);
     return { ...profile, _lf: { computed, tech: techTotals(profile, planets) } };
   }
 
-  // ---- Bonuses ----
+  // ---- Bonus ----
   function positionBonus(pos) {
     const metal = { 8: 0.35, 7: 0.23, 9: 0.23, 6: 0.17, 10: 0.17 }[pos] || 0;
     const crystal = { 1: 0.40, 2: 0.30, 3: 0.20 }[pos] || 0;
     return { metal, crystal, deut: 0 };
   }
 
-  // How OGame stacks bonuses (checked against the in-game "Impostazioni risorse" page):
-  // mine row = base x (1 + position bonus); plasma, geologist, staff, class, alliance, lifeforms and
-  // items are each a percentage of that mine row, added together.
-  // withItems: include temporary item boosters set on the planet (percent values)
+  // Come OGame somma i bonus (verificato sulla pagina "Impostazioni risorse" del gioco):
+  // riga miniera = base x (1 + bonus di posizione); Plasma, Geologo, Staff, classe, alleanza, forme di vita e
+  // item sono ciascuno una percentuale di quella riga, sommate tra loro.
+  // withItems: include i booster (item) temporanei del pianeta (valori in percentuale)
   function multipliers(profile, planet, withItems = true) {
     const pos = positionBonus(planet.position);
-    // per-resource booster plus the booster on all three resources (energy has its own)
+    // booster per singola risorsa più il booster su tutte e tre le risorse (l'energia ha il suo)
     const it = k => (withItems ? ((+planet[k] || 0) + (k === 'item_energy' ? 0 : +planet.item_all || 0)) / 100 : 0);
-    // Lifeform bonus: from race, buildings and techs when entered; otherwise the manual % of the planet
-    // (older data falls back to the account value)
+    // Bonus forme di vita: da razza, edifici e ricerche quando inseriti; altrimenti la % manuale del pianeta
+    // (i dati vecchi usano il valore dell'account)
     const LFX = profile._lf && profile._lf.computed;
     const be = LFX ? buildingEffects(planet) : null;
     const lfMap = { lf_metal: 'metal', lf_crystal: 'crystal', lf_deut: 'deut', lf_energy: 'energy' };
@@ -209,13 +209,13 @@ const Engine = (() => {
     };
   }
 
-  // Value of a resource bundle [m, c, d] in metal-equivalent
+  // Valore di un gruppo di risorse [m, c, d] in metallo equivalente
   const value = (bundle, profile) =>
     bundle[0] * profile.ratio_metal + bundle[1] * profile.ratio_crystal + bundle[2] * profile.ratio_deut;
   const toMetalEq = (bundle, profile) => value(bundle, profile) / profile.ratio_metal;
 
-  // Energy the planet produces (solar plant, fusion reactor, solar satellites, with bonuses) and the
-  // energy its mines and crawlers use, from the building levels
+  // Energia prodotta dal pianeta (centrale solare, centrale a fusione, satelliti solari, con i bonus) ed
+  // energia usata da miniere e crawler, dai livelli degli edifici
   function energyModel(profile, planet, mult = multipliers(profile, planet), needOwn) {
     if (needOwn === undefined) needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine) + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet))
@@ -226,13 +226,13 @@ const Engine = (() => {
     return { produced, need: needOwn, balance: produced - needOwn };
   }
 
-  // ---- Planet state ----
+  // ---- Stato del pianeta ----
   function planetState(profile, planet) {
     const speed = profile.economy_speed;
     const mult = multipliers(profile, planet);
-    // Upgrades last forever, items expire: the player decides whether rankings count them
+    // Gli upgrade durano per sempre, gli item scadono: il giocatore decide se contarli nella classifica
     const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
-    // Energy used by mines and crawlers (lifeform buildings use energy too, but only the game knows how much)
+    // Energia usata da miniere e crawler (anche gli edifici forme di vita consumano, ma quanto lo sa solo il gioco)
     const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
       + consumption.deut_synth(planet.deut_synth)) * consFactor(profile, planet)) + crawlerEnergy(profile, planet);
@@ -240,8 +240,8 @@ const Engine = (() => {
 
     let balance, produced, need;
     if (planet.energy_balance !== null && planet.energy_balance !== undefined && planet.energy_balance !== '') {
-      // Balance from the game: always preferred. The game's factor is produced / total need, and the
-      // total need also counts lifeform buildings, so it is recovered from the produced energy.
+      // Bilancio del gioco: sempre preferito. Il fattore del gioco è prodotta / fabbisogno totale, e il
+      // fabbisogno totale conta anche gli edifici forme di vita, quindi si ricava dall'energia prodotta.
       balance = +planet.energy_balance;
       produced = producedModel > 0 ? producedModel : needOwn + balance;
       need = Math.max(produced - balance, 0);
@@ -252,20 +252,20 @@ const Engine = (() => {
     }
     const factor = need > 0 ? Math.max(0, Math.min(1, produced / need)) : 1;
 
-    // Hourly mine output at 100% (without base income)
+    // Produzione oraria delle miniere al 100% (senza reddito base)
     const full = [
       baseProd.metal_mine(planet.metal_mine) * mult.metal * speed,
       baseProd.crystal_mine(planet.crystal_mine) * mult.crystal * speed,
       Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * mult.deut * speed,
     ];
-    // What the planet really yields per hour: mines at the energy factor, plus base income, minus fusion fuel
+    // Quanto rende davvero il pianeta all'ora: miniere al fattore di energia, più il reddito base, meno il deuterio della fusione
     const income = [30 * speed * mult.posMetal, 15 * speed * mult.posCrystal, 0];
     const fuel = fusionDeut(planet.fusion_reactor || 0) * speed;
     const actual = full.map((x, i) => x * factor + income[i] - (i === 2 ? fuel : 0));
     return { mult, multRank, need, produced, balance, factor, full, income, fuel, actual };
   }
 
-  // Cheapest way to add `energy` units on a planet: satellites or solar plant levels
+  // Modo più economico per aggiungere `energy` unità su un pianeta: satelliti o livelli di centrale solare
   function energyFix(profile, planet, energy) {
     if (energy <= 0) return null;
     const mult = multipliers(profile, planet, profile.items_in_ranking !== false);
@@ -292,19 +292,19 @@ const Engine = (() => {
     { key: 'deut_synth',   label: 'Sintetizzatore di deuterio', res: 2, cap: 'cap_deut' },
   ];
 
-  // A cap is "stop at level N": levels above N are never suggested. Empty = no limit.
+  // Un limite è "ferma al livello N": i livelli oltre N non vengono mai suggeriti. Vuoto = nessun limite.
   const overCap = (cap, level) => cap !== null && cap !== undefined && cap !== '' && level > +cap;
 
-  // ---- Astrophysics: planets allowed = 1 + ceil(level / 2) ----
+  // ---- Astrofisica: pianeti consentiti = 1 + ceil(livello / 2) ----
   const maxPlanets = astro => 1 + Math.ceil(astro / 2);
-  // Astrophysics levels to research before one more planet can be colonized
+  // Livelli di Astrofisica da ricercare prima di poter colonizzare un altro pianeta
   function astroLevelsForNextPlanet(astro, planetCount) {
     let lvl = astro;
     while (maxPlanets(lvl) <= planetCount) lvl++;
     return lvl - astro;
   }
 
-  // Cost of building a mine from level 0 up to `level`
+  // Costo per costruire una miniera dal livello 0 fino a `level`
   const buildUpCost = (key, level) => {
     let t = [0, 0, 0];
     for (let n = 1; n <= level; n++) t = t.map((x, i) => x + levelCost(key, n)[i]);
@@ -317,8 +317,8 @@ const Engine = (() => {
     const steps = astroLevelsForNextPlanet(astro, planets.length);
     if (steps > 0 && overCap(profile.cap_astro, astro + steps)) return null;
 
-    // Typical new colony: average levels of the empire (capped), average temperature, position 8
-    // Median level of the empire: robust to one planet far behind or ahead
+    // Colonia nuova tipica: livelli medi dell'impero (con limite), temperatura media, posizione 8
+    // Livello mediano dell'impero: non risente di un pianeta molto indietro o molto avanti
     const avg = k => {
       const v = planets.map(p => +p[k] || 0).sort((a, b) => a - b);
       const m = v.length >> 1;
@@ -333,7 +333,7 @@ const Engine = (() => {
     const colony = {
       name: 'Nuova colonia', position: 8, temp_max: Math.round(planets.reduce((s, p) => s + (+p.temp_max || 0), 0) / planets.length),
       ...target, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0,
-      lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, // a new colony has no lifeform buildings yet
+      lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, // una colonia nuova non ha ancora edifici forme di vita
     };
 
     let cost = [0, 0, 0];
@@ -346,7 +346,7 @@ const Engine = (() => {
     const fix = energyFix(profile, colony, needEnergy);
     if (fix) add(fix.cost);
 
-    // Output of the new planet at 100% (no items: a new planet has none active)
+    // Produzione del nuovo pianeta al 100% (senza item: un pianeta nuovo non ne ha attivi)
     const mult = multipliers(profile, colony, false);
     const s = profile.economy_speed;
     const prod = [
@@ -365,8 +365,8 @@ const Engine = (() => {
     };
   }
 
-  // ---- All candidate actions, ranked by payback time ----
-  // Planets the player excluded from calculations are ignored everywhere
+  // ---- Tutte le azioni possibili, in ordine di tempo di ammortamento ----
+  // I pianeti che il giocatore ha escluso dai calcoli vengono ignorati ovunque
   const active = planets => planets.filter(p => p.included !== false);
 
   function recommendations(profile, allPlanets) {
@@ -379,7 +379,7 @@ const Engine = (() => {
     planets.forEach(planet => {
       const st = planetState(profile, planet);
 
-      // 1) Energy deficit right now: production is being lost
+      // 1) Deficit di energia adesso: si sta perdendo produzione
       if (st.balance < 0) {
         const fix = energyFix(profile, planet, -st.balance);
         const lost = st.full.map(x => x * (1 - st.factor));
@@ -393,11 +393,11 @@ const Engine = (() => {
         });
       }
 
-      // 2) Each mine +1, including the energy it will need
+      // 2) Ogni miniera +1, compresa l'energia che le servirà
       MINES.forEach(m => {
         const L = planet[m.key];
         const next = L + 1;
-        if (overCap(profile[m.cap], next)) return; // player's "stop at level"
+        if (overCap(profile[m.cap], next)) return; // "ferma al livello" del giocatore
         const cost = mineCost(m.key, next, mrcLevel(planet));
         const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile, planet));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
@@ -422,7 +422,7 @@ const Engine = (() => {
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
-          // the Centre itself uses 120 energy at level 1 (game table): include it
+          // il Centro stesso consuma 120 di energia al livello 1 (tabella del gioco): va contato
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2) : null;
           const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
@@ -437,7 +437,7 @@ const Engine = (() => {
         out.push(rec);
       });
 
-      // Lifeform production buildings of the planet's race (only those with known costs and energy)
+      // Edifici di produzione forme di vita della razza del pianeta (solo quelli con costi ed energia noti)
       if (LF && planet.lf_race && LF.races[planet.lf_race] && profile._lf && profile._lf.computed) {
         const disc = monolithDisc(planet);
         const levels = planet.lf_buildings || {};
@@ -470,7 +470,7 @@ const Engine = (() => {
       }
     });
 
-    // Lifeform techs with known costs: researched on one planet, they raise production on every planet
+    // Ricerche forme di vita con costi noti: si fanno su un pianeta e aumentano la produzione di tutti i pianeti
     if (LF && profile._lf && profile._lf.computed) {
       const s = profile.economy_speed;
       const rows = planets.map(pl => {
@@ -485,7 +485,7 @@ const Engine = (() => {
           if (!entry || !entry.race || !LF.races[entry.race]) continue;
           const tech = LF.races[entry.race].techs[+slot - 1];
           if (!tech || !tech.cost || !tech.used) continue;
-          if (!['metal', 'crystal', 'deut'].some(r => tech.perLevel[r])) continue; // energy or Plasma-cost techs: not ranked yet
+          if (!['metal', 'crystal', 'deut'].some(r => tech.perLevel[r])) continue; // ricerche sull'energia o sul costo del Plasma: per ora fuori dalla classifica
           const L = +entry.level || 0, next = L + 1;
           const now = techEffect(profile, planet, +slot, { race: entry.race, level: L });
           const after = techEffect(profile, planet, +slot, { race: entry.race, level: next });
@@ -503,10 +503,10 @@ const Engine = (() => {
       });
     }
 
-    // 3) Plasma technology (global)
+    // 3) Tecnologia Plasma (globale)
     const nextPlasma = (profile.plasma_tech || 0) + 1;
     const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
-    const plasmaDisc = profile._lf ? Math.max(-0.99, profile._lf.tech.plasma_tech_cost) : 0; // e.g. Rock'tal Stellarator
+    const plasmaDisc = profile._lf ? Math.max(-0.99, profile._lf.tech.plasma_tech_cost) : 0; // es. Concentratore astrale Rock'tal
     const plasmaCost = levelCost('plasma', nextPlasma).map(x => Math.round(x * (1 + plasmaDisc)));
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
@@ -524,15 +524,15 @@ const Engine = (() => {
       payback: pGain > 0 ? pEq / pGain : Infinity, nextLevel: nextPlasma,
     });
 
-    // 4) New colony: Astrophysics (if needed) + colony ship + mines up to the empire average + energy
+    // 4) Nuova colonia: Astrofisica (se serve) + nave colonizzatrice + miniere fino alla media dell'impero + energia
     const colony = colonyRecommendation(profile, planets, gainEq);
     if (colony) out.push(colony);
 
     return out.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || a.payback - b.payback);
   }
 
-  // Changes to save after the player completes a recommendation.
-  // Returns { planet: {...patch}, profile: {...patch} }
+  // Modifiche da salvare dopo che il giocatore completa un consiglio.
+  // Restituisce { planet: {...modifiche}, profile: {...modifiche} }
   function applyRecommendation(profile, planet, rec) {
     if (rec.type === 'plasma') return { profile: { plasma_tech: rec.nextLevel } };
     if (rec.type === 'lftech') {
@@ -562,17 +562,17 @@ const Engine = (() => {
     return { planet: patch };
   }
 
-  // Plan of the next upgrades: take the best recommendation, apply it, rank again, and so on.
-  // A building or research that stays the best choice for several levels in a row shows up several times.
+  // Piano dei prossimi upgrade: prende il consiglio migliore, lo applica, ricalcola la classifica, e così via.
+  // Un edificio o una ricerca che resta la scelta migliore per più livelli compare più volte.
   const recKey = r => r.type === 'lftech' ? `lftech:${r.planetId}:${r.slot}`
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
-  // skip: ids of planets the player does not want suggestions for (busy building); they still count for account-wide gains
-  // allow: optional test on a recommendation (the type filter): the plan only takes upgrades it accepts
+  // skip: id dei pianeti per cui il giocatore non vuole consigli (già in costruzione); contano comunque per i guadagni di tutto l'account
+  // allow: controllo facoltativo su un consiglio (il filtro per tipo): il piano prende solo gli upgrade che accetta
   function plan(profile, planets, steps = 100, skip = [], allow = null) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
     const out = [];
-    let colonyDone = false; // a new colony is planned once: the player fills in its data after colonising
+    let colonyDone = false; // una nuova colonia si pianifica una volta sola: i suoi dati li inserisce il giocatore dopo la colonizzazione
     for (let i = 0; i < steps; i++) {
       const recs = recommendations(withLifeforms(prof, pls), pls);
       const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
@@ -586,7 +586,7 @@ const Engine = (() => {
     }
     return out;
   }
-  // Groups the plan: one row per building or research, with every level the plan does for it
+  // Raggruppa il piano: una riga per edificio o ricerca, con tutti i livelli che il piano fa
   function planGroups(steps) {
     const by = new Map();
     for (const s of steps) {

@@ -1,7 +1,7 @@
-// App updates shown to users ("Novità").
-// To publish an update: add an entry at the TOP with the next id. Never change the id of an existing entry:
-// each user stores the last id they have seen, and sees every entry with a higher id.
-// bookmarklet: true = the update changes the "OGame Advisor" bookmark: users who have it must drag it again.
+// Aggiornamenti dell'app mostrati agli utenti ("Novità").
+// Per pubblicare un aggiornamento: aggiungi una voce IN CIMA con l'id successivo. Non cambiare mai l'id di una voce esistente:
+// ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
+// bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
     id: 46, date: '2026-10-28', title: 'Via il menu "Mostra"',
@@ -43,7 +43,7 @@ const CHANGELOG = [
   {
     id: 37, date: '2026-10-25', title: 'Azzera tutto e nuovo pulsante di importazione',
     text: 'In Impostazioni c\'è "Azzera tutto": cancella pianeti e dati dell\'account e riparte dalla configurazione iniziale, utile se cambi server. Il pulsante "OGame Advisor" da mettere nei preferiti ora legge anche Tecnologia iperspaziale, Fabbrica di robot e Naniti.',
-    bookmarklet: true, // the bookmark must be dragged again
+    bookmarklet: true, // il pulsante dei preferiti va trascinato di nuovo
   },
   {
     id: 36, date: '2026-10-25', title: 'Importa anche dopo l\'inserimento a mano',

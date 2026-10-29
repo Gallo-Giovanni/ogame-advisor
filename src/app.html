@@ -52,7 +52,7 @@
   .msg.err { background: #3a1621; color: #ffc2cc; }
   .msg.ok { background: #12352a; color: #b5f5d9; }
 
-  /* Auth */
+  /* Accesso */
   .auth { max-width: 420px; margin: 8vh auto 0; }
   .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
   .logo {
@@ -67,10 +67,10 @@
   }
   .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
-  /* Header */
+  /* Intestazione */
   header.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
 
-  /* Wizard */
+  /* Configurazione guidata */
   .steps { display: flex; gap: 8px; margin-bottom: 16px; }
   .choice { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
   .choice .opt { background: var(--bg2); }
@@ -80,7 +80,7 @@
   .step.on { background: var(--accent); }
   .planet-card { border: 1px dashed var(--line); border-radius: 10px; padding: 12px; }
 
-  /* Dashboard */
+  /* Pannello */
   .stat { padding: 14px; }
   .stat .v { font: 700 1.5rem Rajdhani, sans-serif; }
   .res-m { color: var(--metal); } .res-c { color: var(--crystal); } .res-d { color: var(--deut); }
@@ -211,10 +211,10 @@
 <body>
 <div class="wrap">
 
-  <!-- ============ LOADING ============ -->
+  <!-- ============ CARICAMENTO ============ -->
   <div id="view-loading" class="auth muted">Caricamento…</div>
 
-  <!-- ============ AUTH ============ -->
+  <!-- ============ ACCESSO ============ -->
   <div id="view-auth" class="auth hidden">
     <div class="brand"><div class="logo"></div><div><h1>OGame Advisor</h1><div class="muted small">Cosa uppare adesso, calcolato sul tuo impero</div></div></div>
     <div class="card">
@@ -232,7 +232,7 @@
     </div>
   </div>
 
-  <!-- ============ ONBOARDING ============ -->
+  <!-- ============ PRIMO ACCESSO ============ -->
   <div id="view-onboarding" class="hidden">
     <header class="top"><h1>Configura il tuo impero</h1><button class="ghost" data-action="logout">Esci</button></header>
     <div class="steps"><div class="step" data-step="1"></div><div class="step" data-step="2"></div><div class="step" data-step="3"></div></div>
@@ -334,7 +334,7 @@
     </div>
   </div>
 
-  <!-- ============ MAIN APP ============ -->
+  <!-- ============ APP ============ -->
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
@@ -631,11 +631,11 @@ const PROFILE_DEFAULTS = {
   lf_level_humans: 0, lf_level_rocktal: 0, lf_level_mechas: 0, lf_level_kaelesh: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
-const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // empty = no limit
+const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // vuoto = nessun limite
 const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'hyperspace_tech', 'energy_consumption_reduction', 'lf_level_humans', 'lf_level_rocktal', 'lf_level_mechas', 'lf_level_kaelesh', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
 const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'lf_race', 'energy_balance', 'included'];
 
-// Allowed range of each planet field. Temperature and energy can be negative in OGame.
+// Valori consentiti per ogni campo del pianeta. In OGame temperatura ed energia possono essere negative.
 const FIELD_LIMITS = {
   galaxy: 'min="1"', system: 'min="1"', position: 'min="1" max="15"',
   metal_mine: 'min="0"', crystal_mine: 'min="0"', deut_synth: 'min="0"',
@@ -644,7 +644,7 @@ const FIELD_LIMITS = {
   item_deut: 'min="0" max="1000"', item_energy: 'min="0" max="1000"',
 };
 
-// Number fields with a minimum >= 0 refuse the minus sign, and out-of-range values are corrected.
+// I campi numerici con minimo >= 0 non accettano il segno meno, e i valori fuori intervallo vengono corretti.
 document.addEventListener('keydown', e => {
   const el = e.target;
   if (el.tagName === 'INPUT' && el.type === 'number' && el.min !== '' && +el.min >= 0 && ['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault();
@@ -666,7 +666,7 @@ function message(el, text, kind = 'err') {
   el.textContent = text; el.className = 'msg ' + kind; el.classList.toggle('hidden', !text);
 }
 
-/* ---------------- AUTH ---------------- */
+/* ---------------- ACCESSO ---------------- */
 $$('[data-auth]').forEach(b => b.addEventListener('click', () => {
   state.authMode = b.dataset.auth;
   $$('[data-auth]').forEach(x => x.classList.toggle('active', x === b));
@@ -719,10 +719,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if (uid === state.user?.id && event !== 'INITIAL_SESSION') return;
   state.user = session?.user || null;
   if (!state.user) { show('auth'); return; }
-  setTimeout(loadUserData, 0); // avoid running queries inside the auth callback
+  setTimeout(loadUserData, 0); // evita di fare query dentro la callback dell'accesso
 });
 
-/* ---------------- DATA ---------------- */
+/* ---------------- DATI ---------------- */
 async function loadUserData() {
   show('loading');
   const [{ data: profile, error: e1 }, { data: planets, error: e2 }] = await Promise.all([
@@ -753,7 +753,7 @@ const numericProfile = (p, planets) => {
   NUM_FIELDS.forEach(k => (out[k] = Number(out[k]) || 0));
   if (!out.economy_speed) out.economy_speed = 1;
   ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => { if (out[k] <= 0) out[k] = PROFILE_DEFAULTS[k]; });
-  return Engine.withLifeforms(out, planets || state.planets); // lifeform techs act on the whole account
+  return Engine.withLifeforms(out, planets || state.planets); // le ricerche forme di vita agiscono su tutto l'account
 };
 
 function readPlanetInputs(container) {
@@ -782,7 +782,7 @@ function validatePlanet(p) {
   return null;
 }
 
-/* ---------------- ONBOARDING ---------------- */
+/* ---------------- PRIMO ACCESSO ---------------- */
 function startOnboarding() {
   const p = { ...PROFILE_DEFAULTS, ...(state.profile || {}) };
   $$('[data-p]').forEach(el => {
@@ -813,7 +813,7 @@ $('#wiz-finish').addEventListener('click', async () => {
   await loadUserData();
 });
 
-/* ---------------- MAIN APP ---------------- */
+/* ---------------- APP ---------------- */
 function goToTab(tab) {
   $$('[data-tab]').forEach(x => x.classList.toggle('active', x.dataset.tab === tab));
   $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
@@ -838,8 +838,8 @@ function costHTML(c) {
   if (c[2]) parts.push(`<span class="res-d" title="deuterio">${ri('deut')}${fmt(c[2])}</span>`);
   return parts.join(' &nbsp; ') || '—';
 }
-// One short line per recommendation; the full text is in the expandable part
-// T1-3 = tier 1, third research of the tier (slot 3); T2-1 = slot 7
+// Una riga breve per consiglio; il testo completo è nella parte che si apre
+// T1-3 = livello T1, terza ricerca del gruppo (slot 3); T2-1 = slot 7
 const techTag = slot => `T${Math.ceil(slot / 6)}-${(slot - 1) % 6 + 1}`;
 function shortTitle(r) {
   const res = { metal_mine: 'Metallo', crystal_mine: 'Cristallo', deut_synth: 'Deuterio' };
@@ -861,7 +861,7 @@ function renderAdvice() {
   paintTypeChips();
   const profile = numericProfile(state.profile);
   const planets = state.planets;
-  // the planets ticked in the row under the filters: one planet = its own numbers, several = their totals
+  // i pianeti spuntati nella riga sotto i filtri: un pianeta = i suoi numeri, più pianeti = i loro totali
   const filter = '';
   const chosen = planets.filter(pl => !state.hiddenPlanets.has(pl.id));
   const sel = chosen.length === 1 ? chosen[0] : null;
@@ -870,7 +870,7 @@ function renderAdvice() {
     `<div class="it" title="${label}: ${fmt(v * 24)} al giorno">${ri(RK[label])}<span class="v ${cls}">${fmt(v)}</span><span class="muted small">/h</span></div>`;
 
   if (sel) {
-    // Single planet: its own production and energy
+    // Un solo pianeta: la sua produzione e la sua energia
     const st = Engine.planetState(profile, sel);
     const pct = Math.round(st.factor * 100);
     $('#stats').innerHTML = resStat('Metallo', 'res-m', st.actual[0]) + resStat('Cristallo', 'res-c', st.actual[1]) + resStat('Deuterio', 'res-d', st.actual[2]) + `
@@ -888,30 +888,29 @@ function renderAdvice() {
   }
 
   const limit = +$('#filter-count').value;
-  // Plan: best upgrade, then the best one after it, and so on; levels of the same item are grouped in one row
-  // planets the player switched off (for example already building): no suggestions there
-  // one planet shown: plan only its upgrades; otherwise skip the planets the player switched off
+  // pianeti che il giocatore ha tolto (per esempio già in costruzione): lì niente consigli
+  // pianeti tolti dalla riga dei pianeti: il piano li salta
   const skip = planets.filter(pl => (filter ? pl.id !== filter : state.hiddenPlanets.has(pl.id))).map(pl => pl.id);
   paintPlanetChips(planets);
-  // the type filter goes into the plan itself: with "Miniere" the plan is made of mines only, so it reaches as far as the others
+  // il filtro per tipo entra nel piano: con "Miniere" il piano è fatto solo di miniere, così arriva lontano come gli altri
   const types = state.ftypes;
   const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
   const allow = types.size ? r => types.has(TYPE_OF[r.type]) : null;
-  // Plan: best upgrade, then the best one after it, and so on, one level per row.
-  // The next levels of the same building come later in the list, where they belong in the plan.
+  // Piano: l'upgrade migliore, poi il migliore dopo quello, e così via, un livello per riga.
+  // I livelli successivi della stessa costruzione compaiono più in basso, dove si trovano nel piano.
   const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow); // always 100: the next level is looked up there
+    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow); // sempre 100: il livello successivo si cerca lì
   }
   const noneChosen = !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id));
   const steps = noneChosen ? [] : state.planSteps.slice(0, limit);
   const ftype = types.size === 1 ? [...types][0] : '';
-  // only the first row of each building can be marked done: the later ones need the earlier levels first
+  // solo la prima riga di ogni costruzione si può segnare fatta: le successive richiedono prima i livelli precedenti
   const seen = new Map();
   const rows = steps.map(r => { const prev = seen.get(r.group); seen.set(r.group, r); return { r, prev }; });
   state.recs = rows.map(x => x.r);
-  // position in the list of every step of the first 100 (urgent energy rows have no number)
+  // posizione nella lista di ogni passo dei primi 100 (le righe urgenti di energia non hanno numero)
   const all = noneChosen ? [] : state.planSteps.slice(0, 100);
   const posOf = new Map(); let k = 0;
   all.forEach(x => { if (!x.urgent) posOf.set(x, ++k); });
@@ -941,12 +940,12 @@ function renderAdvice() {
       </div>
     </details>`).join('') : `<p class="muted">${emptyText}</p>`;
   $$('[data-done]').forEach(b => b.addEventListener('click', e => {
-    e.preventDefault(); e.stopPropagation(); // don't open the row
+    e.preventDefault(); e.stopPropagation(); // non aprire la riga
     completeRec(state.recs[+b.dataset.done], b);
   }));
 }
 $('#filter-count').addEventListener('change', renderAdvice);
-// Planets in the advice: all ticked by default; untick a planet to get suggestions only for the others
+// Pianeti nei consigli: tutti spuntati all'inizio; togli la spunta a un pianeta per avere consigli solo sugli altri
 state.hiddenPlanets = new Set();
 try { (localStorage.getItem('ogadv-hidden') || '').split(',').filter(Boolean).forEach(id => state.hiddenPlanets.add(id)); } catch (e) {}
 function paintPlanetChips(planets) {
@@ -960,7 +959,7 @@ function paintPlanetChips(planets) {
 $('#filter-planets').addEventListener('click', e => {
   const b = e.target.closest('[data-fpl]'); if (!b) return;
   const id = b.dataset.fpl;
-  // "Tutti": selects every planet, or clears them all when they are all selected (then pick one or two)
+  // "Tutti": spunta tutti i pianeti, oppure li toglie tutti quando sono già tutti spuntati (poi se ne sceglie uno o due)
   if (!id) { if (state.hiddenPlanets.size) state.hiddenPlanets.clear(); else state.planets.forEach(p => state.hiddenPlanets.add(p.id)); }
   else if (state.hiddenPlanets.has(id)) state.hiddenPlanets.delete(id);
   else state.hiddenPlanets.add(id);
@@ -968,7 +967,7 @@ $('#filter-planets').addEventListener('click', e => {
   renderAdvice();
 });
 
-// Type filter: tick one or more types; "Tutti" (or ticking every type) shows everything
+// Filtro per tipo: spunta uno o più tipi; "Tutti" (o tutti i tipi spuntati) mostra tutto
 const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
 state.ftypes = new Set();
 try { (localStorage.getItem('ogadv-ftype') || '').split(',').filter(t => ALL_TYPES.includes(t)).forEach(t => state.ftypes.add(t)); } catch (e) {}
@@ -1005,21 +1004,21 @@ async function completeRec(rec, btn) {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
     if (!r.error) {
       Object.assign(planet, r.data);
-      // an open page of this planet shows the new values (unsaved edits there are kept)
+      // se la scheda di questo pianeta è aperta mostra i nuovi valori (le modifiche non salvate restano)
       if (state.editing?.id === planet.id && !state.editing.dirty) fillPlanetForm(planet);
     }
   }
   if (r.error) { alert('Errore: ' + r.error.message); btn.disabled = false; return; }
   renderApp();
   if (patch.newPlanet && confirmLeavePlanet()) {
-    // the colony itself is added by the player: open a new planet page
+    // la colonia la aggiunge il giocatore: apri la scheda di un nuovo pianeta
     goToTab('planets');
     openPlanet(null, { ...NEW_PLANET, position: patch.newPlanet.position, temp_max: patch.newPlanet.temp_max });
     message($('#pe-msg'), 'Astrofisica aggiornata. Inserisci i dati della nuova colonia e premi Salva.', 'ok');
   }
 }
 
-/* Building icons: simple original drawings (no game artwork) */
+/* Icone degli edifici: semplici disegni originali (nessuna grafica del gioco) */
 const ICONS = {
   metal: '<svg viewBox="0 0 48 48"><path d="M6 34l7-15 9 3-3 17z" fill="#7d879c"/><path d="M13 19l9 3 6-9-10-4z" fill="#c3cbdb"/><path d="M22 22l6-9 11 6-2 13-12 6z" fill="#9aa5bb"/><path d="M28 13l11 6-3-8z" fill="#e3e8f2"/><path d="M19 39l6-1 12-6 5 7-11 4z" fill="#5d6679"/><path d="M25 38l12-6-2-13-10 3z" fill="#aeb8cc" opacity=".55"/></svg>',
   crystal: '<svg viewBox="0 0 48 48"><path d="M10 40l4-19 6 6-2 13z" fill="#4fb8e8"/><path d="M14 21l6 6 2-8z" fill="#bdeeff"/><path d="M18 40l3-31 9 12-3 19z" fill="#6fd3ff"/><path d="M21 9l9 12-6 1z" fill="#e2f8ff"/><path d="M27 40l7-22 6 8-3 14z" fill="#3aa8d8"/><path d="M34 18l6 8-5 1z" fill="#a9e7ff"/></svg>',
@@ -1034,7 +1033,7 @@ const ICONS = {
   item: '<svg viewBox="0 0 32 32"><path d="M18 3L7 18h7l-2 11 11-15h-7z" fill="#f5a524"/></svg>',
   lf: '<svg viewBox="0 0 32 32" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 4c0 8 12 8 12 16s-12 0-12 8" stroke="#7cf0b2"/><path d="M22 4c0 8-12 8-12 16s12 0 12 8" stroke="#c98bff"/><path d="M12 9h8M12 23h8" stroke="#e6ebff"/></svg>',
 };
-// Kind of each recommendation, shown as a small badge before its title
+// Tipo di ogni consiglio, mostrato come piccolo simbolo prima del titolo
 const KIND_ICONS = {
   mine: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9c4-5 12-5 16 0" stroke="#c3cbdb" stroke-width="2.4"/><path d="M12 6v15" stroke="#d9a35b" stroke-width="2.6"/></svg>',
   lfb: '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M4 20V11l8-6 8 6v9z" stroke="#7cf0b2" fill="#1b4a3a"/><path d="M10 20v-5h4v5" stroke="#7cf0b2"/></svg>',
@@ -1058,7 +1057,7 @@ function tile(key, label, level, opts = {}) {
     <div class="art" style="background:${TILE_BG[key]}">${ICONS[key]}</div>
     <div class="lbl">${esc(label)}</div><div class="lvl">${opts.text ?? fmt(+level || 0)}</div></div>`;
 }
-// Summary of everything entered for a planet: mines, energy, crawlers, Mineral Centre, items, lifeforms
+// Riepilogo di tutto quello che è inserito per un pianeta: miniere, energia, crawler, item
 function planetTiles(p, prof = numericProfile(state.profile)) {
   const items = [p.item_metal, p.item_crystal, p.item_deut].map(v => (+v || 0) + (+p.item_all || 0));
   let t = tile('metal', 'Metallo', p.metal_mine) + tile('crystal', 'Cristallo', p.crystal_mine) + tile('deut', 'Deuterio', p.deut_synth)
@@ -1068,7 +1067,7 @@ function planetTiles(p, prof = numericProfile(state.profile)) {
   return t;
 }
 
-/* Planets: a list of cards, and one page per planet */
+/* Pianeti: un elenco a schede, e una pagina per pianeta */
 const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
   solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
@@ -1107,7 +1106,7 @@ $('#planet-cards').addEventListener('keydown', e => {
   if (card && (e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); openPlanet(card.dataset.open); }
 });
 
-// Reorder: swap with the neighbour and save both positions
+// Riordina: scambia con il vicino e salva entrambe le posizioni
 async function movePlanet(id, dir) {
   const i = state.planets.findIndex(p => p.id === id), j = i + dir;
   if (j < 0 || j >= state.planets.length) return;
@@ -1121,13 +1120,13 @@ async function movePlanet(id, dir) {
 
 $('#add-planet').addEventListener('click', () => openPlanet(null));
 
-/* Planet page */
+/* Scheda del pianeta */
 function fillPlanetForm(p) {
   $$('#pe-form [data-f]').forEach(el => {
     const k = el.dataset.f, v = p[k];
     if (el.type === 'checkbox') { el.checked = v !== false; return; }
     if (el.tagName === 'SELECT' && v && ![...el.options].some(o => +o.value === +v))
-      el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // unusual value kept
+      el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // valore insolito mantenuto
     el.value = v ?? (el.tagName === 'SELECT' || el.type === 'hidden' ? '0' : '');
   });
   $('#pe-form [data-f="lf_race"]').value = p.lf_race || '';
@@ -1138,7 +1137,7 @@ function fillPlanetForm(p) {
   setEnergyBase();
 }
 
-/* Boosters: one per resource, one for all three resources, one for energy (per planet) */
+/* Booster: uno per risorsa, uno per tutte e tre le risorse, uno per l'energia (per pianeta) */
 const BOOSTERS = [
   ['item_metal', 'metal', 'Metallo', [10, 20, 30, 40]],
   ['item_crystal', 'crystal', 'Cristallo', [10, 20, 30, 40]],
@@ -1150,7 +1149,7 @@ function renderBoosters() {
   const val = k => +$(`#pe-form [data-f="${k}"]`).value || 0;
   $('#boosters').innerHTML = BOOSTERS.map(([k, icon, label, vals]) => {
     const cur = val(k);
-    // a saved value that is not a booster size (older data) stays visible until it is changed
+    // un valore salvato che non corrisponde a un booster (dati vecchi) resta visibile finché non viene cambiato
     const list = cur && !vals.includes(cur) ? [...vals, cur] : vals;
     return `<div class="brow"><div class="lbl">${ri(icon)}<span>${label}</span></div><div class="chips">${list.map(v =>
       `<button type="button" class="chip ${vals.includes(v) ? '' : 'odd'}" data-bk="${k}" data-bv="${v}" aria-pressed="${v === cur}"${vals.includes(v) ? '' : ' title="valore salvato in precedenza: scegli il booster giusto"'}><span class="box">${v === cur ? '✓' : ''}</span>+${v}%</button>`).join('')}</div></div>`;
@@ -1161,7 +1160,7 @@ function renderBoosters() {
 $('#boosters').addEventListener('click', e => {
   const b = e.target.closest('[data-bk]'); if (!b) return;
   const input = $(`#pe-form [data-f="${b.dataset.bk}"]`);
-  input.value = b.getAttribute('aria-pressed') === 'true' ? 0 : b.dataset.bv; // tap again to remove
+  input.value = b.getAttribute('aria-pressed') === 'true' ? 0 : b.dataset.bv; // tocca di nuovo per togliere
   renderBoosters(); setPlanetDirty(true); renderPlanetPreview();
 });
 function setPlanetDirty(d) {
@@ -1209,8 +1208,8 @@ const stepPlanet = d => {
 };
 $('#pe-prev').addEventListener('click', () => stepPlanet(-1));
 $('#pe-next').addEventListener('click', () => stepPlanet(1));
-// The in-game energy is a snapshot: when buildings change, it moves by the difference our model computes,
-// so satellites, plants, mines and crawlers count even after the game value was entered.
+// L'energia del gioco è una fotografia: quando cambiano gli edifici si sposta della differenza calcolata dal modello,
+// così satelliti, centrali, miniere e crawler contano anche dopo aver inserito il valore del gioco.
 function setEnergyBase() {
   const el = $('#pe-form [data-f="energy_balance"]');
   if (!state.editing) return;
@@ -1227,14 +1226,14 @@ function syncGameEnergy(p, prof) {
 }
 const onFormEdit = e => {
   setPlanetDirty(true);
-  if (e.target.dataset?.f === 'energy_balance') setEnergyBase(); // the player typed the game value: new baseline
+  if (e.target.dataset?.f === 'energy_balance') setEnergyBase(); // il giocatore ha scritto il valore del gioco: nuovo punto di partenza
   renderPlanetPreview();
 };
 $('#pe-form').addEventListener('input', onFormEdit);
 $('#pe-form').addEventListener('change', onFormEdit);
 window.addEventListener('beforeunload', e => { if (state.editing?.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
-// Live production of the planet being edited, to compare with the game while typing
+// Produzione del pianeta in modifica, aggiornata mentre scrivi, da confrontare con il gioco
 function renderPlanetPreview() {
   const p = { ...NEW_PLANET, ...editorPlanet() };
   const prof = numericProfile(state.profile, planetsWithEdit(p));
@@ -1290,7 +1289,7 @@ $('#pe-delete').addEventListener('click', async () => {
   message($('#planets-msg'), `${pl.name} eliminato.`, 'ok');
 });
 
-/* Lifeforms on the planet page: race, buildings of that race, 18 tech slots */
+/* Forme di vita nella scheda del pianeta: razza, edifici di quella razza, 18 slot di ricerca */
 const RACE_NAMES = { humans: 'Umani', rocktal: "Rock'tal", mechas: 'Mecha', kaelesh: 'Kaelesh' };
 const RACE_SHORT = { humans: 'U', rocktal: 'R', mechas: 'M', kaelesh: 'K' };
 const LF_RACES = ['humans', 'rocktal', 'mechas', 'kaelesh'];
@@ -1302,16 +1301,16 @@ const EFFECT_NAMES = {
 };
 const techDot = t => (['metal', 'crystal', 'deut'].some(k => t.perLevel[k]) ? 'g' : t.perLevel.energy ? 'y' : t.perLevel.plasma_tech_cost ? 'p' : '');
 
-// the planet as currently typed in the page (lifeform objects live in state.editing.lf)
+// il pianeta come è scritto ora nella pagina (i dati delle forme di vita stanno in state.editing.lf)
 function editorPlanet() {
   const p = readPlanetInputs($('#pe-form'));
   const lf = state.editing?.lf || { buildings: {}, techs: {} };
   p.lf_buildings = { ...lf.buildings };
   p.lf_techs = JSON.parse(JSON.stringify(lf.techs));
-  if (p.lf_race !== 'rocktal') p.mrc_level = null; // the Mineral Research Centre is a Rock'tal building
+  if (p.lf_race !== 'rocktal') p.mrc_level = null; // il Centro di Mineralogia è un edificio Rock'tal
   return p;
 }
-// all planets with the one being edited replaced (or added): lifeform techs are summed over the account
+// tutti i pianeti con quello in modifica sostituito (o aggiunto): le ricerche forme di vita si sommano sull'account
 function planetsWithEdit(p) {
   const id = state.editing?.id;
   return id ? state.planets.map(x => (x.id === id ? { ...x, ...p } : x)) : [...state.planets, { ...p, id: '_new' }];
@@ -1405,7 +1404,7 @@ $('#lf-buildings').addEventListener('input', e => {
 $('#lf-techs').addEventListener('click', e => {
   const b = e.target.closest('[data-tslot]'); if (!b) return;
   const slot = b.dataset.tslot, race = b.dataset.trace, techs = state.editing.lf.techs;
-  if (techs[slot]?.race === race) delete techs[slot];               // tap again to clear the slot
+  if (techs[slot]?.race === race) delete techs[slot];               // tocca di nuovo per svuotare lo slot
   else techs[slot] = { race, level: techs[slot]?.level ?? 1 };
   renderLfTechs(); renderLfSummary(); setPlanetDirty(true); renderPlanetPreview();
   const input = $(`[data-tlvl="${slot}"]`); if (input && !input.disabled) input.focus();
@@ -1416,7 +1415,7 @@ $('#lf-techs').addEventListener('input', e => {
   renderTechEffect(slot); renderLfSummary();
 });
 
-/* Copy: from the open planet to the planets the player picks */
+/* Copia: dal pianeta aperto ai pianeti scelti dal giocatore */
 const COPY_GROUPS = {
   mines: ['metal_mine', 'crystal_mine', 'deut_synth', 'crawlers', 'crawler_pct'],
   energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
@@ -1441,8 +1440,8 @@ $('#pe-copy').addEventListener('click', () => {
     if (!fields.length) return alert('Scegli cosa copiare.');
     if (!ids.length) return alert('Scegli almeno un pianeta.');
     const patch = Object.fromEntries(fields.map(f => [f, src[f]]));
-    // the game energy of the targets changes with their buildings: recompute it instead of keeping an old value
-    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null; // crawlers included
+    // l'energia del gioco dei pianeti di destinazione cambia con i loro edifici: si ricalcola invece di tenere un valore vecchio
+    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null; // crawler compresi
     $('#copy-ok').disabled = true;
     const r = await sb.from('planets').update(patch).in('id', ids).select();
     $('#copy-ok').disabled = false;
@@ -1458,7 +1457,7 @@ $('#pe-copy').addEventListener('click', () => {
 $('#copy-cancel').addEventListener('click', () => $('#copy-modal').classList.add('hidden'));
 $('#copy-modal').addEventListener('click', e => { if (e.target.id === 'copy-modal') $('#copy-modal').classList.add('hidden'); });
 
-/* Lifeform calculator: from the game's "Impostazioni risorse" numbers to the planet percentages */
+/* Calcolatore forme di vita: dai numeri di "Impostazioni risorse" del gioco alle percentuali del pianeta */
 $('#lf-calc').innerHTML = [['metal', 'Metallo', 'Miniera di Metallo'], ['crystal', 'Cristallo', 'Miniera di Cristalli'], ['deut', 'Deuterio', 'Sintetizzatore di deuterio']]
   .map(([k, l, row]) => `<div><label>Riga "${row}"</label><input type="number" min="0" data-lfrow="${k}"></div>
     <div><label>Forme di vita ${l.toLowerCase()} (somma)</label><input type="number" min="0" data-lfsum="${k}"></div>`).join('');
@@ -1472,7 +1471,7 @@ $('#lf-calc').addEventListener('input', e => {
   }
 });
 
-/* Updates ("Novità"): each user sees the entries with an id above the last one they confirmed */
+/* Novità: ogni utente vede le voci con id più alto dell'ultima che ha confermato */
 const LATEST_UPDATE = Math.max(0, ...CHANGELOG.map(u => u.id));
 const lastSeen = () => +(state.profile?.last_seen_update || 0);
 function renderUpdatesBadge() {
@@ -1517,8 +1516,8 @@ $('#updates-modal').addEventListener('click', e => { if (e.target.id === 'update
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#updates-modal').classList.contains('hidden')) closeUpdates(); });
 $('#open-updates').addEventListener('click', () => openUpdates(false));
 
-/* Import from the game's empire view (bookmarklet) */
-// The bookmarklet opens the app with #import=<data>: keep it until the user is logged in, then remove it from the URL
+/* Importazione dalla Vista impero del gioco (bookmarklet) */
+// Il bookmarklet apre l'app con #import=<dati>: si tengono finché l'utente ha fatto l'accesso, poi si tolgono dall'URL
 function captureImport() {
   const h = location.hash;
   if (!h.startsWith('#import=')) return false;
@@ -1527,7 +1526,7 @@ function captureImport() {
   return true;
 }
 captureImport();
-// app already open in this tab: import right away if logged in
+// app già aperta in questa scheda: importa subito se l'accesso è fatto
 window.addEventListener('hashchange', () => { if (captureImport() && state.user) openImport(); });
 function pendingImport() {
   let raw = state.importRaw;
@@ -1568,7 +1567,7 @@ function importChanges(oldObj, data) {
   }
   return out;
 }
-// Names of game ids (buildings, lifeform buildings and research) for the import preview
+// Nomi degli id del gioco (edifici, edifici forme di vita e ricerche) per l'anteprima dell'importazione
 const GAME_NAMES = { 1: 'Miniera di metallo', 2: 'Miniera di cristallo', 3: 'Sintetizzatore di deuterio', 4: 'Centrale solare', 12: 'Centrale a fusione',
   14: 'Fabbrica di robot', 15: 'Fabbrica di naniti', 21: 'Cantiere spaziale', 22: 'Deposito di metallo', 23: 'Deposito di cristallo', 24: 'Cisterna di deuterio',
   31: 'Laboratorio di ricerca', 33: 'Terraformer', 34: 'Deposito dell\'alleanza', 36: 'Porto spaziale', 44: 'Silo missilistico' };
@@ -1588,12 +1587,12 @@ function openImport() {
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
   state.importSnap = snap;
   state.importBase = m;
-  state.importLinks = m.planets.map(x => (x.match ? x.match.id : null)); // which saved planet each imported one updates (null = new)
+  state.importLinks = m.planets.map(x => (x.match ? x.match.id : null)); // quale pianeta salvato aggiorna ogni pianeta importato (null = nuovo)
   renderImportPlan();
   message($('#import-msg'), '');
   $('#import-modal').classList.remove('hidden');
 }
-// The player can link each imported planet to a saved one (for example a planet entered by hand with another name)
+// Il giocatore può collegare ogni pianeta importato a uno salvato (per esempio un pianeta inserito a mano con un altro nome)
 function renderImportPlan() {
   const snap = state.importSnap, base = state.importBase, links = state.importLinks;
   const byId = Object.fromEntries(state.planets.map(p => [p.id, p]));
@@ -1625,7 +1624,7 @@ function renderImportPlan() {
 $('#import-list').addEventListener('change', e => {
   const sel = e.target.closest('[data-implink]'); if (!sel) return;
   const i = +sel.dataset.implink, id = sel.value || null;
-  if (id) state.importLinks = state.importLinks.map((x, j) => (j !== i && x === id ? null : x)); // one saved planet per imported planet
+  if (id) state.importLinks = state.importLinks.map((x, j) => (j !== i && x === id ? null : x)); // un pianeta salvato per ogni pianeta importato
   state.importLinks[i] = id;
   renderImportPlan();
 });
@@ -1679,7 +1678,7 @@ function setBookmarkletLinks() {
   });
 }
 setBookmarkletLinks();
-// phones and tablets: the bookmarklet cannot be used, say so
+// telefoni e tablet: il bookmarklet non si può usare, lo diciamo
 $('#wiz-mobile-note').classList.toggle('hidden', !matchMedia('(pointer: coarse)').matches);
 $('#wiz4-finish').addEventListener('click', async () => {
   const patch = {};
@@ -1691,7 +1690,7 @@ $('#wiz4-finish').addEventListener('click', async () => {
   await loadUserData();
 });
 
-/* Bonus: every active bonus, grouped (mines, energy, times, expeditions) */
+/* Bonus: tutti i bonus attivi, a gruppi (classe, spedizioni, miniere, energia, tempi) */
 function renderBonus() {
   const prof = numericProfile(state.profile);
   const planets = Engine.active(state.planets);
@@ -1705,7 +1704,7 @@ function renderBonus() {
   const resHead = ['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`];
   let h = '';
 
-  // Mines: bonuses equal on every planet
+  // Miniere: bonus uguali su tutti i pianeti
   const p = prof.plasma_tech || 0;
   const common = [
     [`Tecnologia Plasma ${p}`, [p * 0.01, p * 0.0066, p * 0.0033]],
@@ -1733,7 +1732,7 @@ function renderBonus() {
       perPlanet.map(x => `<tr><td>${esc(x.pl.name)}</td><td>${P(x.pos.metal)} / ${P(x.pos.crystal)}</td><td>${[x.be.metal, x.be.crystal, x.be.deut].map(P).join(' / ')}</td><td>${P(x.cr)}</td><td>${x.it.map(P).join(' / ')}</td><td><b>${x.tot.map(P).join(' / ')}</b></td></tr>`))}
   </div>`;
 
-  // Energy
+  // Energia
   const eCommon = [
     prof.engineer && ['Ingegnere', 0.10], prof.commanding_staff && ['Staff di comando', 0.02],
     cls === 'collector' && ['Classe Collezionista', 0.10], prof.alliance_trader && ['Alleanza Mercante', 0.05],
@@ -1750,7 +1749,7 @@ function renderBonus() {
     }))}
   </div>`;
 
-  // Times
+  // Tempi
   const tRows = [];
   if (cls === 'explorer') tRows.push(row('Classe Esploratore: durata ricerche', [-0.25]));
   if (all.research_time) tRows.push(row('Ricerche forme di vita: tempo delle ricerche', [-Math.abs(all.research_time)]));
@@ -1774,7 +1773,7 @@ function renderBonus() {
     ${hasFactories ? '' : '<p class="muted small" style="margin:0">Fabbrica di robot e Naniti arrivano con l\'importazione dalla Vista impero.</p>'}
   </div>`;
 
-  // Expeditions
+  // Spedizioni
   const xRows = [];
   if (cls === 'explorer') {
     xRows.push(row('Classe Esploratore: spedizioni in più', ['+2']));
@@ -1785,10 +1784,10 @@ function renderBonus() {
   const X = { expedition_resources: 'risorse trovate', expedition_ships_found: 'navi trovate', expedition_fleet_speed: 'velocità della flotta in spedizione',
     expedition_ship_loss: 'perdita di navi', expedition_dark_matter: 'Materia Oscura trovata', explorer_class_bonus: 'bonus della classe Esploratore' };
   for (const [k, l] of Object.entries(X)) if (all[k] && k !== 'explorer_class_bonus') xRows.push(row(`Ricerche forme di vita: ${l}`, [all[k]]));
-  // Maximum finds: base from the top-1 points x economy speed x class x Pathfinder,
-  // then the lifeform bonus; crystal = metal / 2, deuterium = metal / 3, ships = metal before the bonus / 2 x ship bonus
+  // Massimale di un ritrovamento: base dai punti del primo x velocità economia x classe x Pathfinder,
+  // poi il bonus delle forme di vita; cristallo = metallo / 2, deuterio = metallo / 3, navi = metallo prima del bonus / 2 x bonus navi
   const top1 = prof.top1_points === null || prof.top1_points === undefined || prof.top1_points === '' ? null : +prof.top1_points;
-  const EXP_BASE = [[50e6, 75e6, 4200000]]; // checked on a real universe (top 1 at 56M points); other ranges still to check
+  const EXP_BASE = [[50e6, 75e6, 4200000]]; // verificato su un universo reale (primo a 56 M di punti); le altre fasce sono da verificare
   const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
   let maxHtml;
   if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Inserisci in Impostazioni i punti del primo giocatore in classifica del tuo universo per vedere il massimale delle spedizioni.</p>';
@@ -1810,7 +1809,7 @@ function renderBonus() {
     ${maxHtml}
     <p class="muted small" style="margin:0">Le ricerche forme di vita valgono per tutto l'account: qui c'è la somma di tutti i pianeti, con i potenziamenti degli edifici e del livello della razza.</p>
   </div>`;
-  // Class: every bonus of the player's class, as the game's "Bonus classe personaggio" page shows it
+  // Classe: tutti i bonus della classe del giocatore, come li mostra la pagina "Bonus classe personaggio" del gioco
   const CLASS = {
     collector: ['Collezionista', 'collector_class_bonus', [['Produzione miniere', 0.25], ['Produzione di energia', 0.10], ['Bonus dei crawler', 0.50], ['Cargo più veloci', 1.00], ['Stiva dei cargo', 0.25], ['Crawler utilizzabili (con il Geologo)', 0.10], ['Sovraccarico dei crawler fino al 150%', 'sì'], ['Sconto sull\'accelerazione degli edifici (MO)', -0.10]]],
     general: ['Generale', 'general_class_bonus', [['Navi da guerra più veloci', 1.00], ['Riciclatrici più veloci', 1.00], ['Stiva di Riciclatrici e Pathfinder', 0.20], ['Consumo di deuterio delle navi', -0.42], ['Livelli delle ricerche militari', '+2'], ['Slot flotte', '+2'], ['Campi lunari', '+5'], ['Sconto sull\'accelerazione dei cantieri navali (MO)', -0.10]]],
@@ -1827,11 +1826,11 @@ function renderBonus() {
   $('#bonus-panel').innerHTML = h;
 }
 
-/* Trades: the official rate 2.5 : 1.5 : 1 (metal : crystal : deuterium), rules 4.2 */
+/* Scambi: il tasso ufficiale 2,5 : 1,5 : 1 (metallo : cristallo : deuterio), regolamento 4.2 */
 const TRADE_RATE = [2.5, 1.5, 1];
 const RES_NAMES = ['Metallo', 'Cristallo', 'Deuterio'];
 const RES_KEYS = ['metal', 'crystal', 'deut'];
-const tradeRate = (give, get) => TRADE_RATE[get] / TRADE_RATE[give]; // units of `get` for one unit of `give`
+const tradeRate = (give, get) => TRADE_RATE[get] / TRADE_RATE[give]; // unità di `get` per un'unità di `give`
 function renderTrade() {
   const give = +$('#tr-give').value, get = +$('#tr-get').value, amt = Math.max(0, Number($('#tr-amount').value) || 0);
   const nf = x => x.toLocaleString('it-IT', { maximumFractionDigits: 3 });
@@ -1845,7 +1844,7 @@ function renderTrade() {
 ['#tr-amount', '#tr-give', '#tr-get'].forEach(id => $(id).addEventListener('input', renderTrade));
 renderTrade();
 
-/* Points of the top player: chosen as a range (the expedition maximum depends only on the range) */
+/* Punti del primo in classifica: si sceglie la fascia (il massimale delle spedizioni dipende solo dalla fascia) */
 const TOP1_RANGES = [
   [0, 'meno di 1 M'], [1e6, '1–5 M'], [5e6, '5–25 M'], [25e6, '25–50 M'], [50e6, '50–75 M'], [75e6, '75–100 M'], [100e6, 'oltre 100 M'],
 ];
@@ -1864,7 +1863,7 @@ document.addEventListener('click', e => {
   paintTop1();
 });
 
-/* Reset: delete every planet and bring the profile back to the defaults, then start the first-run setup again */
+/* Azzera: cancella tutti i pianeti, riporta il profilo ai valori iniziali e riparte dal primo accesso */
 $('#reset-confirm').addEventListener('input', e => { $('#reset-all').disabled = e.target.value.trim().toUpperCase() !== 'AZZERA'; });
 $('#reset-all').addEventListener('click', async () => {
   const btn = $('#reset-all'); btn.disabled = true;
@@ -1879,7 +1878,7 @@ $('#reset-all').addEventListener('click', async () => {
   await loadUserData();
 });
 
-/* Settings */
+/* Impostazioni */
 function renderSettings() {
   const p = state.profile;
   $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
