@@ -38,7 +38,7 @@ function grabEmpire(html, meta) {
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 3,
+    v: 3, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     spd: +meta('universe-speed') || 0, cls: +meta('player-characterclass-id') || 0, ally: +meta('allianceclass-id') || 0,
@@ -59,6 +59,7 @@ function grabEmpire(html, meta) {
         b,
         lf,
         q,
+        r: [+p.metal || 0, +p.crystal || 0, +p.deuterium || 0],
       };
     }),
   };
@@ -95,6 +96,8 @@ function mapImport(snap, existing, LF) {
   if (r[113] != null) profile.energy_tech = +r[113];
   if (r[124] != null) profile.astro_tech = +r[124];
   if (r[114] != null) profile.hyperspace_tech = +r[114];
+  // tutti i livelli delle ricerche classiche, per id del gioco (calcolatore dei costi)
+  if (snap.v >= 2) profile.research = Object.fromEntries(Object.entries(r).filter(([, v]) => v != null).map(([k, v]) => [k, +v || 0]));
   if (snap.ally) profile.alliance_trader = snap.ally === ALLY_TRADER_ID;
   if (snap.uni) profile.universe = snap.uni;
   if (snap.nick) profile.nickname = snap.nick;
@@ -119,6 +122,9 @@ function mapImport(snap, existing, LF) {
       lf_race: race,
     };
     if (snap.v >= 2 || ip.b[14] != null) { data.robotics_factory = +ip.b[14] || 0; data.nanite_factory = +ip.b[15] || 0; }
+    // tutti i livelli degli edifici classici del pianeta (id del gioco sotto 100), per il calcolatore dei costi
+    if (ip.r) data.resources = { m: ip.r[0], c: ip.r[1], d: ip.r[2], at: snap.at || null };
+    if (snap.v >= 2) data.buildings = Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0]));
     if (ip.t != null) data.temp_max = ip.t;
     if (ip.e != null) data.energy_balance = ip.e;
     const lfb = {};

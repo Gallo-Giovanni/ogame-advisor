@@ -7,7 +7,7 @@ const LF = require('../src/lifeforms.js');
 const planet = {
   name: 'Alfa', galaxy: 2, system: 100, position: 8, temperature: 'da -10°C a 30°C',
   energy: "<div title='x'><span class='overmark'>-1.250</span></div>",
-  1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 14: 10, 15: 5, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11, 114: 8,
+  metal: 1000, crystal: 2000, deuterium: 3000, 1: 30, 2: 25, 3: 26, 4: 24, 12: 9, 14: 10, 15: 5, 212: 400, 217: 50, 122: 12, 113: 14, 124: 11, 114: 8,
 };
 const set = (id, lvl, active) => { planet[id] = lvl; planet[id + '_html'] = active ? `<a title="Sviluppa">${lvl}</a>` : `<span class='disabled darkgrey'>(${lvl})</span>`; };
 for (let i = 1; i <= 12; i++) { set(11100 + i, i === 1 ? 7 : 0, false); set(12100 + i, 0, true); }
@@ -31,13 +31,17 @@ const p = snap.pl[0];
 assert.strictEqual(p.t, 30);
 assert.strictEqual(p.e, -1250);
 const m = mapImport(snap, [], LF);
-assert.deepStrictEqual(m.profile, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
+const { research, ...profRest } = m.profile;
+assert.deepStrictEqual(profRest, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', nickname: 'Someone' });
+assert.deepStrictEqual(research, { 113: 14, 114: 8, 122: 13, 124: 11 });
 const d = m.planets[0].data;
 assert.strictEqual(d.lf_race, 'rocktal');
 assert.deepStrictEqual(d.lf_buildings, { magma_forge: 13, monolith: 3 }); // quello in corso conta come fatto
 assert.strictEqual(d.mrc_level, 2);
 assert.deepStrictEqual(d.lf_techs, { 1: { race: 'mechas', level: 4 }, 7: { race: 'rocktal', level: 0 } });
 assert.deepStrictEqual([d.robotics_factory, d.nanite_factory], [10, 5]);
+assert.deepStrictEqual([d.resources.m, d.resources.c, d.resources.d], [1000, 2000, 3000]);
+assert.strictEqual(d.buildings[1], 30); assert.strictEqual(d.buildings[15], 5); assert.ok(!('217' in d.buildings), 'solo edifici, niente navi');
 assert.deepStrictEqual([d.metal_mine, d.crystal_mine, d.deut_synth, d.solar_plant, d.fusion_reactor, d.solar_satellites, d.crawlers], [30, 25, 26, 24, 9, 400, 50]);
 
 // Un bookmarklet vecchio (versione 1) funziona ancora, e l'app chiede di sostituirlo

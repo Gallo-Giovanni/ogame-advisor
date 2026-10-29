@@ -4,6 +4,11 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',
+    text: 'L\'importazione dalla Vista impero salva ora i livelli di tutti gli edifici dei pianeti (anche depositi, cantiere, laboratorio, terraformer) e di tutte le ricerche: nella scheda Costi la colonna "Da" si compila da sola. Salva anche le risorse di ogni pianeta: nella scheda Costi vedi quelle del pianeta scelto e il totale dell\'impero, con quanto manca, e puoi usarle come risorse disponibili.',
+    bookmarklet: true,
+  },
+  {
     id: 48, date: '2026-10-29', title: 'Calcolatore dei costi',
     text: 'Nuova scheda Costi: scegli un pianeta e una categoria (edifici, ricerche, edifici o ricerche forme di vita), scrivi fino a che livello vuoi arrivare e vedi quanto costa in metallo, cristallo, deuterio, metallo equivalente e punti, con il totale, le risorse che ti mancano e quanti cargo servono per trasportarle. Livelli attuali e sconti vengono dal pianeta scelto.',
   },
