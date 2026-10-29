@@ -1,63 +1,67 @@
 # OGame Advisor
 
-Web app that tells an OGame player **what to upgrade next**, ranking every option by **payback time**: how many hours the extra production needs to repay the cost.
+Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Ogni possibile upgrade viene messo in classifica in base al **tempo di ammortamento**: quante ore servono perché la produzione in più ripaghi il costo.
 
-## Features
-- Email login (Supabase Auth); every user only sees their own data (Row Level Security)
-- First-run wizard for the account (class, speed, technologies, officers, resource values), then one page per planet with sections for general data, mines, energy, items and lifeform bonuses, and a live production preview
-- Recommendations ranked by payback time, with energy included: if an upgrade needs more energy, the cheapest fix (solar satellites or solar plant levels) is added to its cost
-- Per-planet item boosters (metal, crystal, deuterium, energy %); the player chooses whether rankings count them, since items expire and upgrades don't
-- Lifeforms: race per planet, building levels and the 18 tech slots (T1/T2/T3, one race per slot); buildings act on their planet, techs on the whole account, boosted by planet buildings and race level. Data for all four races in `src/lifeforms.js`, each value with its source
-- Rock'tal production buildings (Magma Forge, Crystal Refinery, Deuterium Tuner) ranked with the mines; costs and energy from formulas checked on the game, with the Monolith discount
-- Lifeform research (T1/T2 with known costs) ranked with the rest, tagged by slot (T2-1 …): the gain counts every planet, the cost includes the research building discount of the planet
-- In-game energy stays current: changing satellites, plants, mines or crawlers moves the entered value by the modelled difference
-- Import from the game's empire view: a bookmarklet reads the page the player has open (no requests to the game, no session), opens the app with the numbers and shows every change before saving (`src/importer.js`)
-- Per-planet Copy (choose what to copy and onto which planets) and per-planet "include in calculations"
-- New colony option: Astrophysics levels actually needed for one more planet, colony ship, mines up to the empire median and the energy to run them, compared with the output of an average planet
-- "Stop at level" caps for each mine, Plasma and Astrophysics: capped upgrades are never suggested
-- Energy deficits are flagged first, because they cut production on the whole planet
-- "Done" button: updates the planet and re-ranks instantly
-- "What's new" popup: each user sees the updates released since their last visit; the full list is always available
-- Single HTML file, works on desktop and mobile
+## Funzioni
+- Accesso con email (Supabase Auth): ogni utente vede solo i propri dati (Row Level Security)
+- Primo accesso a scelta: **importazione dalla Vista impero** del gioco oppure inserimento a mano (account, bonus, poi un pianeta alla volta)
+- **Importazione dalla Vista impero** con un pulsante da mettere nei preferiti del browser (bookmarklet): legge solo la pagina aperta, senza fare richieste al gioco e senza leggere la sessione, apre l'app con i numeri e mostra ogni modifica prima di salvare. Edifici e ricerche in corso contano come già fatti. Si può importare anche dopo l'inserimento a mano, collegando ogni pianeta del gioco a uno già salvato (`src/importer.js`)
+- **Piano dei consigli**: l'app sceglie l'upgrade migliore, lo considera fatto, ricalcola e sceglie il successivo. Un livello per riga; i livelli successivi della stessa costruzione compaiono più in basso, già calcolati, e il dettaglio dice a che numero della lista si trova il prossimo livello
+- Energia inclusa: se un upgrade richiede più energia, al costo si aggiunge la soluzione più economica (satelliti solari o livelli di centrale solare). I deficit di energia vengono segnalati per primi
+- Filtri: tipi di consiglio a scelta multipla (miniere, edifici forme di vita, ricerche forme di vita, Plasma e colonia) e pianeti da includere; il piano viene calcolato solo con quello che hai scelto
+- Simboli per tipo di consiglio e sigle degli slot delle ricerche (T1-1 … T3-6)
+- Forme di vita: razza per pianeta, tutti i 12 edifici di ogni razza nell'ordine del gioco (con * quelli usati nei calcoli) e i 18 slot di ricerca (T1/T2/T3, una razza per slot). Gli edifici agiscono sul loro pianeta, le ricerche su tutto l'account, potenziate dagli edifici del pianeta e dal livello della razza. Dati di tutte e quattro le razze in `src/lifeforms.js`, ognuno con la sua fonte
+- Edifici di produzione Rock'tal e ricerche forme di vita T1/T2 nella stessa classifica delle miniere, con costi verificati sul gioco, sconto del Monolite e dell'edificio di ricerca
+- Booster (item) per pianeta; il giocatore sceglie se contarli nella classifica, perché gli item scadono e gli upgrade no
+- Energia del gioco sempre aggiornata: cambiando satelliti, centrali, miniere o crawler il valore inserito si sposta della differenza calcolata
+- Scheda **Bonus**: classe, spedizioni (con il massimale di un ritrovamento e i Cargo pesanti necessari), produzione delle miniere, energia, tempi di costruzione e ricerca
+- Scheda **Scambi**: quanto ricevere in uno scambio tra giocatori con il tasso del regolamento (2,5 : 1,5 : 1) e la regola delle 72 ore
+- Nuova colonia: livelli di Astrofisica davvero necessari, nave colonizzatrice, miniere fino alla mediana dell'impero e l'energia per farle funzionare, confrontati con la produzione di un pianeta medio
+- "Ferma al livello" per ogni miniera, Plasma e Astrofisica: oltre quel livello non arrivano consigli
+- Copia da un pianeta agli altri (scegli cosa e dove) e "includi nei calcoli" per pianeta
+- "Fatto" aggiorna il pianeta e ricalcola subito
+- "Azzera tutto" in Impostazioni per ripartire da zero, per esempio cambiando server
+- Finestra "Novità": ogni utente vede gli aggiornamenti usciti dopo la sua ultima visita, con le istruzioni per aggiornare il pulsante dei preferiti quando serve
+- Un solo file HTML, funziona da PC e da telefono
 
-## How it works
-| Part | File |
+## Come è fatto
+| Parte | File |
 |---|---|
-| Calculation engine (costs, production, energy, bonuses, ranking) | `src/engine.js` |
-| User interface and Supabase calls | `src/app.html` |
-| Lifeform buildings and techs of all races, with sources | `src/lifeforms.js` |
-| Empire view import (bookmarklet and mapping) | `src/importer.js` |
-| App updates shown to users | `src/changelog.js` |
-| Build: inlines lifeform data, engine, importer and changelog into the page | `build.js` → `index.html` |
-| Engine tests, incl. a check against numbers shown by the game | `tests/engine.test.js`, `tests/reference.test.js` |
+| Motore di calcolo (costi, produzione, energia, bonus, classifica, piano) | `src/engine.js` |
+| Interfaccia e chiamate a Supabase | `src/app.html` |
+| Edifici e ricerche forme di vita di tutte le razze, con le fonti | `src/lifeforms.js` |
+| Importazione dalla Vista impero (bookmarklet e conversione) | `src/importer.js` |
+| Aggiornamenti mostrati agli utenti | `src/changelog.js` |
+| Build: inserisce dati forme di vita, motore, importazione e novità nella pagina | `build.js` → `index.html` |
+| Test, compresi i confronti con i numeri mostrati dal gioco | `tests/` |
 
-Resources are converted to metal-equivalent with the player's ratio (default 1 : 1.5 : 2.5), then:
+Le risorse vengono convertite in metallo equivalente con il rapporto del giocatore (di base 1 : 1,5 : 2,5), poi:
 
 ```
-payback (hours) = cost in metal-eq / extra production per hour in metal-eq
+ammortamento (ore) = costo in metallo eq. / produzione in più all'ora in metallo eq.
 ```
 
-## Run
+## Avvio
 ```
-node tests/engine.test.js      # engine tests
-node tests/reference.test.js   # engine vs numbers shown by the game
-node tests/lifeforms.test.js   # lifeform building costs and energy vs the game
-node tests/lftechs.test.js     # lifeform research costs vs the game, research recommendations
-node tests/importer.test.js    # empire view import
-node tests/changelog.test.js   # changelog checks
-node build.js               # build index.html
+node tests/engine.test.js      # test del motore
+node tests/reference.test.js   # motore confrontato con i numeri del gioco
+node tests/lifeforms.test.js   # costi ed energia degli edifici forme di vita confrontati con il gioco
+node tests/lftechs.test.js     # costi delle ricerche forme di vita confrontati con il gioco, consigli sulle ricerche
+node tests/importer.test.js    # importazione dalla Vista impero
+node tests/changelog.test.js   # controlli sulle novità
+node build.js                  # crea index.html
 ```
-Deploy `index.html` on any static host (e.g. Netlify).
+Pubblica `index.html` su un qualsiasi hosting statico (per esempio Netlify).
 
-## Publishing an update
-Add an entry at the top of `src/changelog.js` with the next `id`, a date, a title and a short description, then rebuild. Each user stores the last id they have seen (`profiles.last_seen_update`) and is shown every entry with a higher id at their next login. Never renumber existing entries.
+## Pubblicare un aggiornamento
+Aggiungi in cima a `src/changelog.js` una voce con l'`id` successivo, la data, un titolo e una breve descrizione, poi rifai la build. Se l'aggiornamento cambia il pulsante dei preferiti, aggiungi `bookmarklet: true`: nelle Novità comparirà il menu con le istruzioni per sostituirlo. Ogni utente salva l'ultimo id che ha visto (`profiles.last_seen_update`) e al prossimo accesso vede tutte le voci con id più alto. Non rinumerare mai le voci esistenti.
 
 ## Database (Supabase)
-- `profiles`: one row per user (class, speed, technologies, officers, bonuses, resource values)
-- `planets`: one row per planet (coordinates, temperature, building levels, satellites, crawlers, items, lifeform race, buildings and techs as JSON, manual lifeform %, in-game energy balance, included flag)
+- `profiles`: una riga per utente (classe, velocità, tecnologie, ufficiali, bonus, livelli delle razze, fascia del primo in classifica, valore delle risorse, limiti "ferma al livello")
+- `planets`: una riga per pianeta (coordinate, temperatura, livelli degli edifici, Fabbrica di robot e Naniti, satelliti, crawler, item, razza, edifici e ricerche forme di vita in JSON, bilancio energetico del gioco, inclusione nei calcoli)
 
-## Accuracy
-`tests/reference.test.js` reproduces an in-game "Impostazioni risorse" page (metal, crystal, deuterium and energy per hour) within a few units. Bonus stacking follows the game: the position bonus multiplies the mine's base output, and every other bonus (plasma, officers, class, Trader alliance, lifeforms, items) is a percentage of that value.
+## Precisione
+`tests/reference.test.js` riproduce una pagina "Impostazioni risorse" del gioco (metallo, cristallo, deuterio ed energia all'ora) con uno scarto di pochi punti. I bonus si sommano come nel gioco: il bonus di posizione moltiplica la produzione base della miniera e tutti gli altri bonus (Plasma, ufficiali, classe, alleanza Mercante, forme di vita, item) sono una percentuale di quel valore. Costi di miniere con Centro di Mineralogia, edifici Rock'tal e ricerche forme di vita T1/T2 sono confrontati con le schermate del gioco.
 
-## Limits
-Energy used by lifeform buildings is only known from the in-game energy balance. Some lifeform effects are recorded but not applied until checked on the game: crawler boost and Collector enhancement (Rock'tal), T3 lifeform research costs; T1 and T2 research costs are checked on the game up to level 10.
+## Limiti
+L'energia consumata dagli edifici forme di vita si conosce solo dal bilancio energetico del gioco. Alcuni effetti delle forme di vita sono salvati ma non applicati finché non vengono verificati sul gioco: potenziamento dei crawler e del Collezionista (Rock'tal) e costi delle ricerche T3. Il massimale delle spedizioni è verificato solo per un primo in classifica tra 50 e 75 milioni di punti.
