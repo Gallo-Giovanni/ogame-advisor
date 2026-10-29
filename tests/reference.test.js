@@ -66,7 +66,7 @@ assert.deepStrictEqual(E.mineCost('crystal_mine', 32, 1).slice(0, 2).map(M), [10
 // Tempi di costruzione (Astro, Robot 12, Naniti 6, velocità 5): Miniera di metallo 37 = 15o 45m 4s, 38 = 23o 37m 36s
 assert.strictEqual(E.buildTime(E.levelCost('metal_mine', 37), 37, 12, 6, 5), 15 * 3600 + 45 * 60 + 4);
 assert.strictEqual(E.buildTime(E.levelCost('metal_mine', 38), 38, 12, 6, 5), 23 * 3600 + 37 * 60 + 36);
-// Tempo di ricerca (Gonnia): Rete interplanetaria di ricerca 9 -> 10, laboratori 150, Esploratore, Tecnocrate, velocità ricerca x15 = 3g 9o 22m (il gioco non mostra i secondi)
+// Tempo di ricerca (Gonnia): Rete interplanetaria di ricerca 9 -> 10, laboratori 150, Esploratore, Tecnico, velocità ricerca x15 = 3g 9o 22m (il gioco non mostra i secondi)
 const irn = E.researchTime([122880000, 204800000, 81920000], 150, 15, true, 0, true);
 assert.ok(Math.abs(irn - (3 * 86400 + 9 * 3600 + 22 * 60)) < 60, 'tempo della Rete interplanetaria: ' + irn);
 const pl10 = Array.from({ length: 11 }, (_, i) => ({ id: 'p' + i, buildings: { 31: i === 10 ? 5 : 15 } }));

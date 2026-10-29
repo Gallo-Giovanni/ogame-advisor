@@ -39,9 +39,9 @@ const Engine = (() => {
   }
 
   // Tempo di una ricerca classica, in secondi: (metallo + cristallo) / (1000 x (1 + laboratori)) ore, diviso per la
-  // velocità delle ricerche; Esploratore -25%, Tecnocrate -25%, ricerche forme di vita sul tempo delle ricerche (valore negativo).
+  // velocità delle ricerche; Esploratore -25%, Tecnico (ufficiale) -25%, ricerche forme di vita sul tempo delle ricerche (valore negativo).
   // labs = livello effettivo dei laboratori (quello del pianeta più i migliori collegati dalla Rete interplanetaria).
-  // Verificato sul gioco: Rete interplanetaria 10 su Gonnia, laboratori 150, Esploratore, Tecnocrate, velocità ricerca x15 = 3g 9o 22m.
+  // Verificato sul gioco: Rete interplanetaria 10 su Gonnia, laboratori 150, Esploratore, Tecnico, velocità ricerca x15 = 3g 9o 22m.
   function researchTime(cost, labs, speed, explorer, lfTime = 0, technocrat = false) {
     return Math.max(1, Math.round((cost[0] + cost[1]) / (1000 * (1 + (labs || 0))) * (explorer ? 0.75 : 1) * (technocrat ? 0.75 : 1) * (1 + Math.min(0, lfTime)) / (speed || 1) * 3600));
   }
