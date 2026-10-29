@@ -1962,6 +1962,7 @@ function ccRows() {
   const rSpeed = +state.profile.research_speed || 0;
   const labs = pl ? Engine.labLevel(pl, state.planets, rl('irn')) : 0;
   const lfRes = (Engine.allTechTotals(prof, state.planets).research_time || 0);
+  const lfResLf = (Engine.allTechTotals(prof, state.planets).lf_research_time || 0);
   if (cat === 'research') {
     const disc = prof._lf ? Math.max(-0.99, prof._lf.tech.plasma_tech_cost || 0) : 0;
     return CC_RESEARCH.map(([k, name, base, f]) => ({ k, name, from: rl(k),
@@ -1978,7 +1979,8 @@ function ccRows() {
   const disc = Engine.researchDisc(pl);
   return R.techs.map((t, i) => {
     const e = ((pl && pl.lf_techs) || {})[i + 1];
-    return { k: 't' + (i + 1), name: `${techTag(i + 1)} ${t.it}`, from: e && e.race === race ? +e.level || 0 : 0, cost: L => Engine.lfTechCost(t, L, disc) };
+    return { k: 't' + (i + 1), name: `${techTag(i + 1)} ${t.it}`, from: e && e.race === race ? +e.level || 0 : 0, cost: L => Engine.lfTechCost(t, L, disc),
+      time: L => Engine.lfTechTime(t, L, Engine.researchTimeDisc(pl), prof.economy_speed, lfResLf) };
   });
 }
 function renderCosts() {
@@ -2002,10 +2004,10 @@ function renderCostTable() {
     research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
       ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}${state.profile.technocrat || state.profile.commanding_staff ? ', Tecnico -25%' : ''}.`
       : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
-    lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%).` };
+    lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%), tempi ridotti del ${(Engine.researchTimeDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%.` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
-  const hasTime = state.cc.cat === 'build' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
+  const hasTime = state.cc.cat === 'build' || state.cc.cat === 'lft' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
   const body = rows.map(r => {
     const key = state.cc.cat + ':' + r.k, t = to[key] || {};
     const from = t.from != null ? t.from : r.from, target = t.to != null ? t.to : '';

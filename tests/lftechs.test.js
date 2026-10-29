@@ -58,4 +58,8 @@ assert.ok(one && one.slot === 7 && one.nextLevel === 6);
 assert.ok(Math.abs(two.gainEq / one.gainEq - 2) < 1e-9, 'il guadagno conta tutti i pianeti');
 assert.deepStrictEqual(one.cost, E.lfTechCost(E.LF.races.rocktal.techs[6], 6, 0.025));
 assert.strictEqual(E.applyRecommendation(profile, a, one).planet.lf_techs[7].level, 6);
-console.log('Costi delle ricerche forme di vita uguali al gioco');
+// Durata: Estrattori ad alto rendimento 9 -> 10 su Gonnia (Tecnologicus Runarum 10 = -20%, velocità 5) = 12o 15m 14s
+const gonnia = { lf_race: 'rocktal', lf_buildings: { tecnologicus_runarum: 10 } };
+assert.ok(Math.abs(E.researchTimeDisc(gonnia) - 0.2) < 1e-12);
+assert.strictEqual(E.lfTechTime(E.LF.races.humans.techs[1], 10, E.researchTimeDisc(gonnia), 5), 12 * 3600 + 15 * 60 + 14);
+console.log('Costi e durate delle ricerche forme di vita uguali al gioco');

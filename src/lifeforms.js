@@ -287,6 +287,9 @@ LIFEFORMS.sheet = {
     energy: {'vortex_chamber': [10,1.08]},
   },
 };
+// Durata delle ricerche forme di vita (secondi): livello x base x fattore^livello, dal foglio CasualSAB;
+// verificata sul gioco: Estrattori ad alto rendimento 9 -> 10 su Gonnia (Tecnologicus Runarum 10, velocità 5) = 12o 15m 14s.
+LIFEFORMS.techDuration = {"humans":[[1000,1.2],[2000,1.3],[2500,1.3],[3500,1.3],[4500,1.2],[5000,1.3],[8000,1.3],[6000,1.3],[6500,1.4],[7000,1.4],[7500,1.3],[10000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[11000,1.3],[13000,1.3]],"rocktal":[[1000,1.3],[2000,1.3],[2500,1.3],[3500,1.4],[4500,1.3],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.3],[7000,1.3],[7500,1.3],[8000,1.3],[8500,1.3],[9000,1.3],[9500,1.3],[10000,1.4],[13000,1.3],[11000,1.4]],"mechas":[[1000,1.3],[2000,1.3],[2500,1.4],[3500,1.3],[4500,1.4],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.4],[7000,1.3],[7500,1.3],[8000,1.4],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]],"kaelesh":[[1000,1.4],[2000,1.3],[2500,1.4],[3500,1.4],[4500,1.4],[5000,1.4],[5500,1.3],[6000,1.2],[6500,1.4],[7000,1.2],[7500,1.4],[8000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]]};
 // completa i dati: costo (ed energia) dai fogli dove manca il valore verificato sul gioco
 for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
   const R = LIFEFORMS.races[race];
@@ -296,7 +299,11 @@ for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
     const e = (sh.energy || {})[key];
     if (b && e && !b.energyCons) b.energyCons = { base: e[0], factor: e[1], source: 'game' };
   });
-  R.techs.forEach((t, i) => { if (!t.cost && sh.techs[i]) t.cost = { base: sh.techs[i][0], factor: sh.techs[i][1], source: 'sheet' }; });
+  R.techs.forEach((t, i) => {
+    if (!t.cost && sh.techs[i]) t.cost = { base: sh.techs[i][0], factor: sh.techs[i][1], source: 'sheet' };
+    const d = LIFEFORMS.techDuration[race][i];
+    if (d) t.duration = { base: d[0], factor: d[1] };
+  });
 }
 
 if (typeof module !== 'undefined') module.exports = LIFEFORMS;

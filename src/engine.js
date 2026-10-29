@@ -147,6 +147,19 @@ const Engine = (() => {
     }
     return -d;
   }
+  // Riduzione del tempo delle ricerche forme di vita data dall'edificio di ricerca del pianeta (-2% per livello, massimo 99%)
+  function researchTimeDisc(planet) {
+    const race = planet && planet.lf_race;
+    if (!LF || !race || !LF.races[race]) return 0;
+    let d = 0;
+    for (const [key, b] of Object.entries(LF.races[race].buildings))
+      if (b && b.effect && b.effect.techTime) d += -b.effect.techTime * (+((planet.lf_buildings || {})[key]) || 0);
+    return Math.min(0.99, d);
+  }
+  // Durata di una ricerca forme di vita in secondi: livello x base x fattore^livello, ridotta dall'edificio di ricerca e
+  // dalle ricerche sul tempo delle ricerche forme di vita, divisa per la velocità di sviluppo
+  const lfTechTime = (t, L, timeDisc, speed, lfTime = 0) => !t.duration ? null
+    : Math.max(1, Math.floor(L * t.duration.base * Math.pow(t.duration.factor, L) * (1 - timeDisc) * (1 + Math.min(0, lfTime)) / (speed || 1)));
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Effetto base di una ricerca, potenziato dagli edifici del suo pianeta e dal livello della sua razza
   // (gioco: effettivo = base x (1 + potenziamento edifici) x (1 + 0,1% x livello razza))
@@ -641,7 +654,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

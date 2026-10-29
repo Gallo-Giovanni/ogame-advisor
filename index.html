@@ -925,6 +925,9 @@ LIFEFORMS.sheet = {
     energy: {'vortex_chamber': [10,1.08]},
   },
 };
+// Durata delle ricerche forme di vita (secondi): livello x base x fattore^livello, dal foglio CasualSAB;
+// verificata sul gioco: Estrattori ad alto rendimento 9 -> 10 su Gonnia (Tecnologicus Runarum 10, velocità 5) = 12o 15m 14s.
+LIFEFORMS.techDuration = {"humans":[[1000,1.2],[2000,1.3],[2500,1.3],[3500,1.3],[4500,1.2],[5000,1.3],[8000,1.3],[6000,1.3],[6500,1.4],[7000,1.4],[7500,1.3],[10000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[11000,1.3],[13000,1.3]],"rocktal":[[1000,1.3],[2000,1.3],[2500,1.3],[3500,1.4],[4500,1.3],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.3],[7000,1.3],[7500,1.3],[8000,1.3],[8500,1.3],[9000,1.3],[9500,1.3],[10000,1.4],[13000,1.3],[11000,1.4]],"mechas":[[1000,1.3],[2000,1.3],[2500,1.4],[3500,1.3],[4500,1.4],[5000,1.3],[5500,1.3],[6000,1.4],[6500,1.4],[7000,1.3],[7500,1.3],[8000,1.4],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]],"kaelesh":[[1000,1.4],[2000,1.3],[2500,1.4],[3500,1.4],[4500,1.4],[5000,1.4],[5500,1.3],[6000,1.2],[6500,1.4],[7000,1.2],[7500,1.4],[8000,1.3],[8500,1.3],[9000,1.4],[9500,1.4],[10000,1.4],[13000,1.3],[11000,1.4]]};
 // completa i dati: costo (ed energia) dai fogli dove manca il valore verificato sul gioco
 for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
   const R = LIFEFORMS.races[race];
@@ -934,7 +937,11 @@ for (const [race, sh] of Object.entries(LIFEFORMS.sheet)) {
     const e = (sh.energy || {})[key];
     if (b && e && !b.energyCons) b.energyCons = { base: e[0], factor: e[1], source: 'game' };
   });
-  R.techs.forEach((t, i) => { if (!t.cost && sh.techs[i]) t.cost = { base: sh.techs[i][0], factor: sh.techs[i][1], source: 'sheet' }; });
+  R.techs.forEach((t, i) => {
+    if (!t.cost && sh.techs[i]) t.cost = { base: sh.techs[i][0], factor: sh.techs[i][1], source: 'sheet' };
+    const d = LIFEFORMS.techDuration[race][i];
+    if (d) t.duration = { base: d[0], factor: d[1] };
+  });
 }
 
 if (typeof module !== 'undefined') module.exports = LIFEFORMS;
@@ -1090,6 +1097,19 @@ const Engine = (() => {
     }
     return -d;
   }
+  // Riduzione del tempo delle ricerche forme di vita data dall'edificio di ricerca del pianeta (-2% per livello, massimo 99%)
+  function researchTimeDisc(planet) {
+    const race = planet && planet.lf_race;
+    if (!LF || !race || !LF.races[race]) return 0;
+    let d = 0;
+    for (const [key, b] of Object.entries(LF.races[race].buildings))
+      if (b && b.effect && b.effect.techTime) d += -b.effect.techTime * (+((planet.lf_buildings || {})[key]) || 0);
+    return Math.min(0.99, d);
+  }
+  // Durata di una ricerca forme di vita in secondi: livello x base x fattore^livello, ridotta dall'edificio di ricerca e
+  // dalle ricerche sul tempo delle ricerche forme di vita, divisa per la velocità di sviluppo
+  const lfTechTime = (t, L, timeDisc, speed, lfTime = 0) => !t.duration ? null
+    : Math.max(1, Math.floor(L * t.duration.base * Math.pow(t.duration.factor, L) * (1 - timeDisc) * (1 + Math.min(0, lfTime)) / (speed || 1)));
   const lfTechCost = (t, L, disc = 0) => t.cost.base.map(x => Math.round(x * Math.pow(t.cost.factor, L - 1) * L * (1 - disc)));
   // Effetto base di una ricerca, potenziato dagli edifici del suo pianeta e dal livello della sua razza
   // (gioco: effettivo = base x (1 + potenziamento edifici) x (1 + 0,1% x livello razza))
@@ -1584,7 +1604,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, researchDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
 
@@ -1758,7 +1778,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
-    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnico: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnico se lo hai. I tempi delle forme di vita arriveranno dopo la verifica.',
+    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnico: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnico se lo hai. Anche le ricerche forme di vita hanno il tempo, ridotto dall\'edificio di ricerca del pianeta.',
   },
   {
     id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',
@@ -3279,6 +3299,7 @@ function ccRows() {
   const rSpeed = +state.profile.research_speed || 0;
   const labs = pl ? Engine.labLevel(pl, state.planets, rl('irn')) : 0;
   const lfRes = (Engine.allTechTotals(prof, state.planets).research_time || 0);
+  const lfResLf = (Engine.allTechTotals(prof, state.planets).lf_research_time || 0);
   if (cat === 'research') {
     const disc = prof._lf ? Math.max(-0.99, prof._lf.tech.plasma_tech_cost || 0) : 0;
     return CC_RESEARCH.map(([k, name, base, f]) => ({ k, name, from: rl(k),
@@ -3295,7 +3316,8 @@ function ccRows() {
   const disc = Engine.researchDisc(pl);
   return R.techs.map((t, i) => {
     const e = ((pl && pl.lf_techs) || {})[i + 1];
-    return { k: 't' + (i + 1), name: `${techTag(i + 1)} ${t.it}`, from: e && e.race === race ? +e.level || 0 : 0, cost: L => Engine.lfTechCost(t, L, disc) };
+    return { k: 't' + (i + 1), name: `${techTag(i + 1)} ${t.it}`, from: e && e.race === race ? +e.level || 0 : 0, cost: L => Engine.lfTechCost(t, L, disc),
+      time: L => Engine.lfTechTime(t, L, Engine.researchTimeDisc(pl), prof.economy_speed, lfResLf) };
   });
 }
 function renderCosts() {
@@ -3319,10 +3341,10 @@ function renderCostTable() {
     research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
       ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}${state.profile.technocrat || state.profile.commanding_staff ? ', Tecnico -25%' : ''}.`
       : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
-    lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%).` };
+    lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%), tempi ridotti del ${(Engine.researchTimeDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%.` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
-  const hasTime = state.cc.cat === 'build' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
+  const hasTime = state.cc.cat === 'build' || state.cc.cat === 'lft' || (state.cc.cat === 'research' && +state.profile.research_speed > 0);
   const body = rows.map(r => {
     const key = state.cc.cat + ':' + r.k, t = to[key] || {};
     const from = t.from != null ? t.from : r.from, target = t.to != null ? t.to : '';
