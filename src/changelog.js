@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
-    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e il bonus dell\'Esploratore: inserisci in Impostazioni la velocità delle ricerche del tuo universo. I tempi delle forme di vita arriveranno dopo la verifica.',
+    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnocrate: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnocrate se lo hai. I tempi delle forme di vita arriveranno dopo la verifica.',
   },
   {
     id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',

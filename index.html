@@ -269,6 +269,7 @@
       <div class="row">
         <label class="check"><input type="checkbox" data-q="geologist"> Geologo attivo</label>
         <label class="check"><input type="checkbox" data-q="engineer"> Ingegnere attivo</label>
+        <label class="check"><input type="checkbox" data-q="technocrat"> Tecnocrate attivo</label>
         <label class="check"><input type="checkbox" data-q="commanding_staff"> Staff di comando completo</label>
       </div>
       <p class="muted small" style="margin:0">Livello di ogni forma di vita (0 se non la usi): lo trovi nella pagina Forme di vita del gioco.</p>
@@ -303,6 +304,7 @@
       <div class="row">
         <label class="check"><input type="checkbox" data-p="geologist"> Geologo attivo</label>
         <label class="check"><input type="checkbox" data-p="engineer"> Ingegnere attivo</label>
+        <label class="check"><input type="checkbox" data-p="technocrat"> Tecnocrate attivo</label>
         <label class="check"><input type="checkbox" data-p="commanding_staff"> Staff di comando completo</label>
         <label class="check"><input type="checkbox" data-p="alliance_trader"> Alleanza di classe Mercante (+5%)</label>
       </div>
@@ -547,7 +549,7 @@
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
-          <div><label>Velocità delle ricerche</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 20"></div>
+          <div><label>Velocità di ricerca (impostazioni del server)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
         <h3 style="margin-top:8px">Livello forme di vita</h3>
@@ -576,6 +578,7 @@
         <div class="row">
           <label class="check"><input type="checkbox" data-s="geologist"> Geologo</label>
           <label class="check"><input type="checkbox" data-s="engineer"> Ingegnere</label>
+          <label class="check"><input type="checkbox" data-s="technocrat"> Tecnocrate</label>
           <label class="check"><input type="checkbox" data-s="commanding_staff"> Staff di comando</label>
           <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
@@ -979,11 +982,11 @@ const Engine = (() => {
   }
 
   // Tempo di una ricerca classica, in secondi: (metallo + cristallo) / (1000 x (1 + laboratori)) ore, diviso per la
-  // velocità delle ricerche; Esploratore -25%, ricerche forme di vita sul tempo delle ricerche (valore negativo).
+  // velocità delle ricerche; Esploratore -25%, Tecnocrate -25%, ricerche forme di vita sul tempo delle ricerche (valore negativo).
   // labs = livello effettivo dei laboratori (quello del pianeta più i migliori collegati dalla Rete interplanetaria).
-  // Verificato sul gioco: Rete interplanetaria 10 su Gonnia, laboratori 150, Esploratore, velocità ricerche 20 = 3g 9o 22m.
-  function researchTime(cost, labs, speed, explorer, lfTime = 0) {
-    return Math.max(1, Math.round((cost[0] + cost[1]) / (1000 * (1 + (labs || 0))) * (explorer ? 0.75 : 1) * (1 + Math.min(0, lfTime)) / (speed || 1) * 3600));
+  // Verificato sul gioco: Rete interplanetaria 10 su Gonnia, laboratori 150, Esploratore, Tecnocrate, velocità ricerca x15 = 3g 9o 22m.
+  function researchTime(cost, labs, speed, explorer, lfTime = 0, technocrat = false) {
+    return Math.max(1, Math.round((cost[0] + cost[1]) / (1000 * (1 + (labs || 0))) * (explorer ? 0.75 : 1) * (technocrat ? 0.75 : 1) * (1 + Math.min(0, lfTime)) / (speed || 1) * 3600));
   }
   // Livello effettivo dei laboratori per una ricerca fatta su `planet`: il suo laboratorio più i migliori `irn` degli altri pianeti
   function labLevel(planet, planets, irn) {
@@ -1755,7 +1758,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 50, date: '2026-10-29', title: 'Tempi di costruzione',
-    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e il bonus dell\'Esploratore: inserisci in Impostazioni la velocità delle ricerche del tuo universo. I tempi delle forme di vita arriveranno dopo la verifica.',
+    text: 'Nella scheda Costi, per gli edifici c\'è anche il tempo di costruzione di ogni voce e il totale, calcolato con la Fabbrica di robot e i Naniti del pianeta scelto. La formula è verificata sul gioco al secondo. Anche le ricerche classiche hanno il tempo, con i laboratori collegati dalla Rete interplanetaria di ricerca e i bonus di Esploratore e Tecnocrate: inserisci in Impostazioni la velocità di ricerca del tuo universo e spunta il Tecnocrate se lo hai. I tempi delle forme di vita arriveranno dopo la verifica.',
   },
   {
     id: 49, date: '2026-10-29', title: 'Livelli di tutti gli edifici e le ricerche',
@@ -1975,7 +1978,7 @@ const state = { user: null, profile: null, planets: [], authMode: 'login' };
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true,
+  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0, hyperspace_tech: 0, top1_points: null,
@@ -3280,7 +3283,7 @@ function ccRows() {
     const disc = prof._lf ? Math.max(-0.99, prof._lf.tech.plasma_tech_cost || 0) : 0;
     return CC_RESEARCH.map(([k, name, base, f]) => ({ k, name, from: rl(k),
       cost: L => k === 'astro_tech' ? Engine.levelCost('astro', L) : k === 'plasma_tech' ? ccGeo(base, f, L).map(x => Math.round(x * (1 + disc))) : ccGeo(base, f, L),
-      time: rSpeed && pl ? L => Engine.researchTime(k === 'astro_tech' ? Engine.levelCost('astro', L) : ccGeo(base, f, L), labs, rSpeed, prof.player_class === 'explorer', lfRes) : null }));
+      time: rSpeed && pl ? L => Engine.researchTime(k === 'astro_tech' ? Engine.levelCost('astro', L) : ccGeo(base, f, L), labs, rSpeed, prof.player_class === 'explorer', lfRes, !!(state.profile.technocrat || state.profile.commanding_staff)) : null }));
   }
   if (!race || !LF.races[race]) return [];
   const R = LF.races[race];
@@ -3314,8 +3317,8 @@ function renderCostTable() {
   const imported = pl && pl.buildings && Object.keys(pl.buildings).length;
   const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco); i tempi di ricerche e forme di vita arriveranno dopo la verifica.` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
     research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
-      ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}.`
-      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (West: 20).'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
+      ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}${state.profile.technocrat || state.profile.commanding_staff ? ', Tecnocrate -25%' : ''}.`
+      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
     lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%).` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
