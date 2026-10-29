@@ -83,4 +83,14 @@ E.LF.races.mechas.techs.forEach((t, i) => {
   assert.ok(Math.abs(E.lfTechTime(t, 1, 0, 1) - M1[i]) <= 1, t.it + ' livello 1');
   assert.ok(Math.abs(E.lfTechTime(t, 2, 0, 1) - M2[i]) <= 1, t.it + ' livello 2');
 });
+// Kaelesh: durate al livello 1 e 2 (proxyforgame, velocità 1, nessuno sconto) e alcuni costi al livello 2
+const K1 = [1400, 2600, 3500, 4900, 6300, 7000, 7150, 7200, 9100, 8400, 10500, 10400, 11050, 12600, 13300, 14000, 16900, 15399];
+const K2 = [3919, 6760, 9799, 13719, 17639, 19599, 18590, 17280, 25479, 20160, 29399, 27040, 28730, 35279, 37239, 39199, 43940, 43119];
+E.LF.races.kaelesh.techs.forEach((t, i) => {
+  assert.ok(Math.abs(E.lfTechTime(t, 1, 0, 1) - K1[i]) <= 1, t.it + ' livello 1');
+  assert.ok(Math.abs(E.lfTechTime(t, 2, 0, 1) - K2[i]) <= 1, t.it + ' livello 2');
+});
+const KC2 = { 4: [60000, 45000, 22500], 6: [130000, 130000, 52000], 8: [192000, 120000, 48000], 10: [204000, 96000, 84000], 15: [720000, 360000, 360000] };
+for (const [slot, c] of Object.entries(KC2))
+  assert.deepStrictEqual(E.lfTechCost(E.LF.races.kaelesh.techs[slot - 1], 2, 0), c, 'costo Kaelesh slot ' + slot);
 console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
