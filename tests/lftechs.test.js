@@ -69,4 +69,11 @@ E.LF.races.humans.techs.forEach((t, i) => {
   assert.ok(Math.abs(E.lfTechTime(t, 1, 0, 1) - H1[i]) <= 1, t.it + ' livello 1');
   assert.ok(Math.abs(E.lfTechTime(t, 2, 0, 1) - H2[i]) <= 1, t.it + ' livello 2');
 });
+// Durate di livello 1 e 2 delle 18 ricerche Rock'tal (stesso calcolatore)
+const R1 = [1300, 2600, 3250, 4900, 5850, 6500, 7150, 8400, 8450, 9100, 9750, 10400, 11050, 11700, 12350, 14000, 16900, 15399];
+const R2 = [3380, 6760, 8450, 13719, 15210, 16900, 18590, 23519, 21970, 23660, 25350, 27040, 28730, 30420, 32110, 39199, 43940, 43119];
+E.LF.races.rocktal.techs.forEach((t, i) => {
+  assert.ok(Math.abs(E.lfTechTime(t, 1, 0, 1) - R1[i]) <= 1, t.it + ' livello 1');
+  assert.ok(Math.abs(E.lfTechTime(t, 2, 0, 1) - R2[i]) <= 1, t.it + ' livello 2');
+});
 console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
