@@ -20,7 +20,7 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 - Scheda **Scambi**: quanto ricevere in uno scambio tra giocatori con il tasso del regolamento (2,5 : 1,5 : 1) e la regola delle 72 ore
 - Nuova colonia: livelli di Astrofisica davvero necessari, nave colonizzatrice, miniere fino alla mediana dell'impero e l'energia per farle funzionare, confrontati con la produzione di un pianeta medio
 - "Ferma al livello" per ogni miniera, Plasma e Astrofisica: oltre quel livello non arrivano consigli
-- Copia da un pianeta agli altri (scegli cosa e dove) e "includi nei calcoli" per pianeta
+- "Includi nei calcoli" per pianeta
 - "Fatto" aggiorna il pianeta e ricalcola subito
 - "Azzera tutto" in Impostazioni per ripartire da zero, per esempio cambiando server
 - Finestra "Novità": ogni utente vede gli aggiornamenti usciti dopo la sua ultima visita, con le istruzioni per aggiornare il pulsante dei preferiti quando serve

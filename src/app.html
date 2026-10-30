@@ -293,7 +293,7 @@
         </div>
         <div class="card stack opt">
           <h3 style="margin:0">Inserisci a mano</h3>
-          <p class="small" style="margin:0">Compili account e bonus, poi un pianeta alla volta (con Copia per riportare gli stessi livelli sugli altri). Va bene anche da telefono, e potrai importare dal gioco più avanti da Impostazioni.</p>
+          <p class="small" style="margin:0">Compili account e bonus, poi un pianeta alla volta. Va bene anche da telefono, e potrai importare dal gioco più avanti da Impostazioni.</p>
           <div class="row"><button class="secondary" data-next="1">Inserisci a mano</button></div>
         </div>
       </div>
@@ -370,7 +370,7 @@
     <div class="card stack hidden" data-wiz="3">
       <h2>3 · Pianeti</h2>
       <p>Ora aggiungi i tuoi pianeti, uno alla volta. Ogni pianeta ha la sua scheda con le sezioni Generale, Miniere, Energia, Item e Forme di vita.</p>
-      <p class="muted small">Ti basta la <b>Visuale impero</b> del gioco. Dopo il primo pianeta puoi usare <b>Copia</b> per riportare gli stessi livelli sugli altri e correggere solo quello che cambia.</p>
+      <p class="muted small">Ti basta la <b>Visuale impero</b> del gioco.</p>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e aggiungi i pianeti</button></div>
     </div>
@@ -511,7 +511,6 @@
         </form>
         <div class="card pe-actions">
           <button id="pe-save">Salva</button>
-          <button class="secondary" id="pe-copy">Copia su altri pianeti…</button>
           <button class="danger" id="pe-delete">Elimina</button>
         </div>
       </div>
@@ -641,25 +640,6 @@
         Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). I bonus delle forme di vita si inseriscono nella scheda di ogni pianeta, come percentuale. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
     </section>
-  </div>
-</div>
-
-<div id="copy-modal" class="modal-back hidden" role="dialog" aria-modal="true" aria-labelledby="copy-title">
-  <div class="card modal">
-    <h2 id="copy-title" style="margin:0"></h2>
-    <p class="muted small" style="margin:8px 0 0">Nome, coordinate, temperatura ed energia in gioco restano quelli di ogni pianeta.</p>
-    <div class="list stack">
-      <b class="small">Cosa copiare</b>
-      <div class="row" style="gap:12px">
-        <label class="check"><input type="checkbox" data-group="mines" checked> Miniere e crawler</label>
-        <label class="check"><input type="checkbox" data-group="energy" checked> Centrali e satelliti</label>
-        <label class="check"><input type="checkbox" data-group="items" checked> Item</label>
-        <label class="check"><input type="checkbox" data-group="lf"> Forme di vita (razza, edifici, ricerche)</label>
-      </div>
-      <b class="small" style="margin-top:8px">Su quali pianeti</b>
-      <div id="copy-list" class="stack"></div>
-    </div>
-    <div class="row" style="justify-content:flex-end"><button class="secondary" id="copy-cancel">Annulla</button><button id="copy-ok">Copia sui selezionati</button></div>
   </div>
 </div>
 
@@ -1406,7 +1386,7 @@ $('#pe-save').addEventListener('click', async () => {
   $('#pe-title').textContent = `${r.data.name} ${coordsText(r.data)}`;
   $('#pe-prev').disabled = i <= 0; $('#pe-next').disabled = i >= state.planets.length - 1;
   $('#pe-delete').textContent = 'Elimina';
-  message(msgEl, id ? `${r.data.name} salvato.` : `${r.data.name} aggiunto. Puoi aggiungere un altro pianeta da "Tutti i pianeti" o usare "Copia su altri pianeti".`, 'ok');
+  message(msgEl, id ? `${r.data.name} salvato.` : `${r.data.name} aggiunto. Puoi aggiungere un altro pianeta da "Tutti i pianeti".`, 'ok');
 });
 
 $('#pe-delete').addEventListener('click', async () => {
@@ -1548,48 +1528,6 @@ $('#lf-techs').addEventListener('input', e => {
   state.editing.lf.techs[slot].level = Math.max(0, parseInt(e.target.value, 10) || 0);
   renderTechEffect(slot); renderLfSummary();
 });
-
-/* Copia: dal pianeta aperto ai pianeti scelti dal giocatore */
-const COPY_GROUPS = {
-  mines: ['metal_mine', 'crystal_mine', 'deut_synth', 'crawlers', 'crawler_pct'],
-  energy: ['solar_plant', 'fusion_reactor', 'solar_satellites'],
-  items: ['item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy'],
-  lf: ['lf_race', 'lf_buildings', 'lf_techs', 'mrc_level', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy'],
-};
-$('#pe-copy').addEventListener('click', () => {
-  const id = state.editing?.id;
-  if (!id || state.editing.dirty) return message($('#pe-msg'), 'Salva prima questo pianeta, poi copia i suoi valori.');
-  const src = state.planets.find(x => x.id === id);
-  const targets = state.planets.filter(x => x.id !== id);
-  if (!targets.length) return message($('#pe-msg'), 'Aggiungi almeno un altro pianeta su cui copiare.');
-  $('#copy-title').textContent = `Copia i valori di ${src.name}`;
-  $('#copy-list').innerHTML = `<label class="check"><input type="checkbox" id="copy-all"> <b>Seleziona tutti</b></label>` +
-    targets.map(t => `<label class="check"><input type="checkbox" data-target="${t.id}"> ${esc(t.name)} <span class="muted small">${esc(coordsText(t))}</span></label>`).join('');
-  const boxes = () => $$('#copy-list [data-target]');
-  $('#copy-all').onchange = e => boxes().forEach(b => (b.checked = e.target.checked));
-  $('#copy-list').onchange = e => { if (e.target.dataset.target) $('#copy-all').checked = boxes().every(b => b.checked); };
-  $('#copy-ok').onclick = async () => {
-    const ids = boxes().filter(b => b.checked).map(b => b.dataset.target);
-    const fields = $$('[data-group]').filter(b => b.checked).flatMap(b => COPY_GROUPS[b.dataset.group]);
-    if (!fields.length) return alert('Scegli cosa copiare.');
-    if (!ids.length) return alert('Scegli almeno un pianeta.');
-    const patch = Object.fromEntries(fields.map(f => [f, src[f]]));
-    // l'energia del gioco dei pianeti di destinazione cambia con i loro edifici: si ricalcola invece di tenere un valore vecchio
-    if (fields.some(f => COPY_GROUPS.mines.includes(f) || COPY_GROUPS.energy.includes(f) || f === 'lf_energy' || f === 'item_energy')) patch.energy_balance = null; // crawler compresi
-    $('#copy-ok').disabled = true;
-    const r = await sb.from('planets').update(patch).in('id', ids).select();
-    $('#copy-ok').disabled = false;
-    if (r.error) return alert('Errore: ' + r.error.message);
-    r.data.forEach(row => Object.assign(state.planets.find(x => x.id === row.id), row));
-    $('#copy-modal').classList.add('hidden');
-    renderApp();
-    message($('#pe-msg'), `Valori di ${src.name} copiati su ${ids.length} ${ids.length === 1 ? 'pianeta' : 'pianeti'}.${'energy_balance' in patch ? ' La loro energia in gioco è stata svuotata: inseriscila di nuovo se la conosci.' : ''}`, 'ok');
-  };
-  $('#copy-modal').classList.remove('hidden');
-  $('#copy-all').focus();
-});
-$('#copy-cancel').addEventListener('click', () => $('#copy-modal').classList.add('hidden'));
-$('#copy-modal').addEventListener('click', e => { if (e.target.id === 'copy-modal') $('#copy-modal').classList.add('hidden'); });
 
 /* Calcolatore forme di vita: dai numeri di "Impostazioni risorse" del gioco alle percentuali del pianeta */
 $('#lf-calc').innerHTML = [['metal', 'Metallo', 'Miniera di Metallo'], ['crystal', 'Cristallo', 'Miniera di Cristalli'], ['deut', 'Deuterio', 'Sintetizzatore di deuterio']]
