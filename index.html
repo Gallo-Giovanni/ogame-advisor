@@ -315,9 +315,9 @@
         <div><label>Livello Mecha</label><input data-q="lf_level_mechas" type="number" min="0" value="0"></div>
         <div><label>Livello Kaelesh</label><input data-q="lf_level_kaelesh" type="number" min="0" value="0"></div>
       </div>
-      <p class="muted small" style="margin:0">Per il massimale delle spedizioni: i punti del primo giocatore della classifica generale del tuo universo.</p>
+      <p class="muted small" style="margin:0">Per il massimale delle spedizioni: i punti del primo giocatore della classifica generale del tuo universo. Arrivano con l'importazione; se non c'è nessuna fascia scelta, sceglila tu.</p>
       <div class="grid"><div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-q="top1_points" type="hidden"><div class="chips top1-chips"></div></div></div>
-      <p class="muted small" style="margin:0">Item (booster) attivi e percentuale dei crawler si impostano nella scheda di ogni pianeta, se li usi.</p>
+      <p class="muted small" style="margin:0">Se i crawler non lavorano al 100%, la percentuale si imposta nella scheda di ogni pianeta.</p>
       <div id="wiz4-msg" class="msg hidden"></div>
       <div class="row"><button id="wiz4-finish">Vai ai consigli</button></div>
     </div>
@@ -363,14 +363,14 @@
         <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
       </div>
       <label class="check"><input type="checkbox" data-p="items_in_ranking" checked> Considera gli item attivi nel calcolo degli upgrade</label>
-      <p class="muted small" style="margin-top:0">Gli item (booster) si inseriscono nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
+      <p class="muted small" style="margin-top:0">Gli item (booster) arrivano con l'importazione dalla Vista impero, oppure si spuntano nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
       <div class="row"><button class="secondary" data-next="1">Indietro</button><button data-next="3">Avanti</button></div>
     </div>
 
     <div class="card stack hidden" data-wiz="3">
       <h2>3 · Pianeti</h2>
       <p>Ora aggiungi i tuoi pianeti, uno alla volta. Ogni pianeta ha la sua scheda con le sezioni Generale, Miniere, Energia, Item e Forme di vita.</p>
-      <p class="muted small">Ti basta la <b>Visuale impero</b> del gioco.</p>
+      <p class="muted small">Ti basta la <b>Vista impero</b> del gioco.</p>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e aggiungi i pianeti</button></div>
     </div>
@@ -447,8 +447,8 @@
             <div class="grid">
               <div><label>Nome</label><input data-f="name" placeholder="Es. Colonia 1"></div>
               <div><label>Posizione (1–15)</label><input data-f="position" type="number" min="1" max="15"></div>
-              <div><label>Galassia (facoltativa)</label><input data-f="galaxy" type="number" min="1"></div>
-              <div><label>Sistema (facoltativo)</label><input data-f="system" type="number" min="1"></div>
+              <div><label>Galassia</label><input data-f="galaxy" type="number" min="1"></div>
+              <div><label>Sistema</label><input data-f="system" type="number" min="1"></div>
               <div><label>Temperatura max °C</label><input data-f="temp_max" type="number"></div>
             </div>
             <p class="muted small" style="margin:0">Delle coordinate [galassia:sistema:posizione] ai calcoli serve solo la posizione: decide il bonus di produzione. La temperatura serve per il deuterio e i satelliti.</p>
@@ -473,9 +473,9 @@
               <div><label>Centrale solare</label><input data-f="solar_plant" type="number" min="0"></div>
               <div><label>Centrale a fusione</label><input data-f="fusion_reactor" type="number" min="0"></div>
               <div><label>Satelliti solari</label><input data-f="solar_satellites" type="number" min="0"></div>
-              <div><label>Energia in gioco (facoltativa)</label><input data-f="energy_balance" type="number" placeholder="es. -500"></div>
+              <div><label>Energia in gioco</label><input data-f="energy_balance" type="number" placeholder="es. -500"></div>
             </div>
-            <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Visuale impero, anche negativo. Se la inserisci i calcoli usano quella, che è il valore più preciso: comprende anche l'energia usata dagli edifici delle forme di vita. Se poi cambi satelliti, centrali, miniere o crawler, l'app la aggiorna da sola.</p>
+            <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Vista impero, anche negativo, e arriva con l'importazione. È il valore più preciso, perché comprende anche l'energia usata dagli edifici delle forme di vita. Se cambi satelliti, centrali, miniere o crawler, l'app la aggiorna da sola.</p>
           </div>
           <div class="card stack pe-wide">
             <h3>Booster attivi</h3>
@@ -566,13 +566,13 @@
     <section data-panel="settings" class="stack hidden">
       <div class="card stack" id="import-card">
         <h2>Importa dal gioco</h2>
-        <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, Plasma, Energia e Astrofisica. Prima di salvare ti mostra cosa cambia.</p>
+        <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche, velocità del server e punti del primo in classifica. Prima di salvare ti mostra cosa cambia.</p>
         <ol class="small" style="margin:0;padding-left:20px">
           <li>Trascina questo pulsante sulla barra dei preferiti: <a id="bm-link" class="bm" href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
           <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
           <li>Premi <b>OGame Advisor</b> nei preferiti: si apre questa app con l'anteprima dell'importazione.</li>
         </ol>
-        <p class="muted small" style="margin:0">Il pulsante legge solo la pagina che hai aperto: non fa richieste al gioco, non clicca nulla e non legge la sessione. Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+        <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco, non clicca nulla e non legge la sessione. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
       </div>
       <div class="card stack" id="settings-form">
         <h2>Account e bonus</h2>
@@ -585,7 +585,7 @@
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
-          <div><label>Velocità di ricerca (impostazioni del server)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
+          <div><label>Velocità di ricerca (arriva con l'importazione)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
         <h3 style="margin-top:8px">Livello forme di vita</h3>
@@ -637,7 +637,7 @@
         <div id="reset-msg" class="msg hidden"></div>
       </div>
       <div class="card small muted">
-        Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). I bonus delle forme di vita si inseriscono nella scheda di ogni pianeta, come percentuale. Usa i risultati come guida e confrontali con i valori del gioco.
+        Le formule sono quelle standard di OGame (produzione, costi, energia, bonus di posizione, plasma, ufficiali, classe). I bonus delle forme di vita si calcolano da razza, edifici e ricerche di ogni pianeta. Usa i risultati come guida e confrontali con i valori del gioco.
       </div>
     </section>
   </div>
@@ -3199,7 +3199,7 @@ function renderImportPlan() {
   });
   if (m.unmatched.length) html += `<div class="imp muted">Restano come sono: ${m.unmatched.map(p => esc(p.name)).join(', ')}. Se uno di questi è lo stesso pianeta con un altro nome, collegalo sopra con "Aggiorna".</div>`;
   html += '<div class="imp muted">Quello che è in costruzione o in ricerca adesso conta come già fatto, perché è già pagato: i consigli partono dal livello successivo. Le code non ancora iniziate non contano.</div>';
-  html += '<div class="imp muted">Item, percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>';
+  html += `<div class="imp muted">${snap.v >= 6 ? '' : 'Item, '}${snap.v >= 6 ? 'Percentuale' : 'percentuale'} dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli inseriti.</div>`;
   $('#import-list').innerHTML = html;
 }
 $('#import-list').addEventListener('click', async e => {
@@ -3439,7 +3439,7 @@ function renderBonus() {
   const EXP_BASE = [[50e6, 75e6, 4200000]]; // verificato su un universo reale (primo a 56 M di punti); le altre fasce sono da verificare
   const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
   let maxHtml;
-  if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Inserisci in Impostazioni i punti del primo giocatore in classifica del tuo universo per vedere il massimale delle spedizioni.</p>';
+  if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Per vedere il massimale delle spedizioni servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p>';
   else if (!band) maxHtml = `<p class="muted small" style="margin:0">Massimale non ancora disponibile per questa fascia: per ora è verificata solo quella da 50 a 75 milioni di punti.</p>`;
   else {
     const k = (cls === 'explorer' ? 1.5 * (1 + (all.explorer_class_bonus || 0)) : 1) * prof.economy_speed;
@@ -3502,7 +3502,8 @@ function paintTop1() {
     const input = box.parentElement.querySelector('input[type=hidden]');
     const v = input.value === '' ? null : +input.value;
     const cur = v === null ? -1 : TOP1_RANGES.reduce((k, [min], i) => (v >= min ? i : k), 0);
-    box.innerHTML = TOP1_RANGES.map(([min, l], i) => `<button type="button" class="chip" data-top1="${min}" aria-pressed="${i === cur}"><span class="box">${i === cur ? '✓' : ''}</span>${l}</button>`).join('');
+    box.innerHTML = TOP1_RANGES.map(([min, l], i) => `<button type="button" class="chip" data-top1="${min}" aria-pressed="${i === cur}"><span class="box">${i === cur ? '✓' : ''}</span>${l}</button>`).join('')
+      + (v !== null && !TOP1_RANGES.some(([m]) => m === v) ? `<span class="muted small" style="align-self:center">dall'importazione: ${fmt(v)}</span>` : '');
   });
 }
 document.addEventListener('click', e => {
@@ -3634,10 +3635,10 @@ function renderCostTable() {
   const rows = ccRows(), to = state.cc.to;
   const pl = state.planets.find(p => p.id === $('#cc-planet').value);
   const imported = pl && pl.buildings && Object.keys(pl.buildings).length;
-  const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco); i tempi di ricerche e forme di vita arriveranno dopo la verifica.` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
+  const notes = { build: `Miniere già scontate dal Centro di Mineralogia del pianeta. Tempi con Fabbrica di robot ${pl ? bl0(pl, 'robotics_factory') : 0} e Naniti ${pl ? bl0(pl, 'nanite_factory') : 0} del pianeta e velocità ${prof.economy_speed} (formula verificata sul gioco).` + (imported ? '' : ' Depositi, cantiere, laboratorio e terraformer arrivano con l\'importazione dalla Vista impero: fino ad allora scrivi tu il livello in "Da".'),
     research: 'Il Plasma è già scontato dal Concentratore astrale.' + (+state.profile.research_speed > 0
       ? ` Tempi da ${pl ? esc(pl.name) : 'questo pianeta'}: laboratori ${pl ? Engine.labLevel(pl, state.planets, +((state.profile.research || {})[123]) || 0) : 0} (con la Rete interplanetaria di ricerca), velocità delle ricerche ${+state.profile.research_speed}${prof.player_class === 'explorer' ? ', Esploratore -25%' : ''}${state.profile.technocrat || state.profile.commanding_staff ? ', Tecnico -25%' : ''}.`
-      : ' Per vedere i tempi inserisci in Impostazioni la "Velocità delle ricerche" del tuo universo (la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca").'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}. Tempi con Fabbrica di robot e Naniti del pianeta.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
+      : ' Per vedere i tempi importa dalla Vista impero (la velocità delle ricerche arriva da sola) oppure inseriscila in Impostazioni: la trovi nelle Impostazioni del server del gioco, alla voce "Velocità di ricerca".'), lfb: pl && pl.lf_race ? `Edifici ${RACE_NAMES[pl.lf_race]} di ${esc(pl.name)}${Engine.monolithDisc(pl) ? `, già scontati dal Monolite (${(Engine.monolithDisc(pl) * 100).toLocaleString('it-IT')}%)` : ''}. Tempi con Fabbrica di robot e Naniti del pianeta.` : 'Questo pianeta non ha una razza: sceglila nella sua scheda.',
     lft: `Costi già scontati dall'edificio di ricerca di ${pl ? esc(pl.name) : 'questo pianeta'} (${(Engine.researchDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%), tempi ridotti del ${(Engine.researchTimeDisc(pl) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%.` };
   $('#cc-note').innerHTML = notes[state.cc.cat];
   const tot = [0, 0, 0]; let totSec = 0;
