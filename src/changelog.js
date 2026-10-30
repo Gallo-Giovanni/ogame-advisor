@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 57, date: '2026-10-31', title: 'Item attivi e popolazione dalla Vista impero', bookmarklet: true,
+    text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni nella scheda Bonus. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
+  },
+  {
     id: 56, date: '2026-10-30', title: 'Dati del server in automatico', bookmarklet: true,
     text: 'Importando dalla Vista impero, il pulsante dei preferiti legge anche i dati pubblici del server: velocità delle ricerche e punti del primo in classifica (per il massimale delle spedizioni) si impostano da soli. Restano da inserire a mano solo ufficiali e livelli delle razze.',
   },

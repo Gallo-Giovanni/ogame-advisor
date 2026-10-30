@@ -36,3 +36,7 @@ create policy planets_insert_own on public.planets for insert with check (
 drop policy planets_update_own on public.planets;
 create policy planets_update_own on public.planets for update using ((select auth.uid()) = user_id) with check (
   (select auth.uid()) = user_id and (account_id is null or account_id in (select id from public.profiles where user_id = (select auth.uid()))));
+
+-- Item attivi letti dalla Vista impero: scadenza per pianeta e amplificatore delle spedizioni sull'account
+alter table public.planets add column if not exists item_expiry jsonb;
+alter table public.profiles add column if not exists items jsonb;

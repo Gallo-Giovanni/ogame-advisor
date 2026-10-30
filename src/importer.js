@@ -35,10 +35,29 @@ function grabEmpire(html, meta) {
     const n = (m[1].match(/\d+/g) || []).map(Number).pop() || 0;
     return Math.max(n, (+p[k] || 0) + 1);
   };
+  const dec = t => String(t).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&');
+  const items = h => {
+    const out = [], re = /title="([^"]*)"[\s\S]*?data-total-duration="\d+">(\d+)</g;
+    let m;
+    while ((m = re.exec(String(h || '')))) {
+      const t = dec(dec(m[1])), name = t.split('|')[0], body = t.slice(name.length).replace(/<[^>]*>/g, ' ').toLowerCase();
+      const pct = (body.match(/(\d+)\s*%/) || [])[1];
+      if (!pct) continue;
+      let k = null;
+      if (/spedizion|expedition/.test(body)) k = /risorse|resources/.test(body) ? 'x' : null;
+      else if (/risorse \(metallo|resource production|metal, crystal/.test(body)) k = 'a';
+      else if (/miniere di metallo|metal mine/.test(body)) k = 'm';
+      else if (/miniere di cristallo|crystal mine/.test(body)) k = 'c';
+      else if (/deuterio|deuterium/.test(body)) k = 'd';
+      else if (/energia|energy/.test(body)) k = 'e';
+      if (k) out.push([k, +pct, +m[2], name]);
+    }
+    return out;
+  };
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 5, at: Date.now(),
+    v: 6, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     srv: String(meta('universe') || '').split('.')[0],
@@ -61,6 +80,8 @@ function grabEmpire(html, meta) {
         lf,
         q,
         r: [+p.metal || 0, +p.crystal || 0, +p.deuterium || 0],
+        it: items(p.equipment_html),
+        po: [+p.population || 0, +p.populationStorage || 0, +p.food || 0, +p.foodStorage || 0],
       };
     }),
   };
@@ -134,6 +155,7 @@ function mapImport(snap, existing, LF) {
   if (snap.nick) profile.nickname = snap.nick;
 
   const used = new Set();
+  let expItem = null; // amplificatore delle spedizioni: vale per l'account
   const planets = snap.pl.map(ip => {
     const byCoords = existing.find(x => !used.has(x.id) && x.galaxy === ip.g && x.system === ip.s && +x.position === ip.p);
     const byName = existing.find(x => !used.has(x.id) && String(x.name).trim().toLowerCase() === String(ip.n).trim().toLowerCase());
@@ -155,6 +177,19 @@ function mapImport(snap, existing, LF) {
     if (snap.v >= 2 || ip.b[14] != null) { data.robotics_factory = +ip.b[14] || 0; data.nanite_factory = +ip.b[15] || 0; }
     // tutti i livelli degli edifici classici del pianeta (id del gioco sotto 100), per il calcolatore dei costi
     if (ip.r) data.resources = { m: ip.r[0], c: ip.r[1], d: ip.r[2], at: snap.at || null };
+    // popolazione e cibo della Vista impero (dalla versione 6 del pulsante)
+    if (ip.po && data.resources) Object.assign(data.resources, { pop: ip.po[0], popMax: ip.po[1], food: ip.po[2], foodMax: ip.po[3] });
+    // item attivi sul pianeta (dalla versione 6): percentuale e scadenza; quelli non attivi tornano a 0
+    if (Array.isArray(ip.it)) {
+      const F = { m: 'item_metal', c: 'item_crystal', d: 'item_deut', a: 'item_all', e: 'item_energy' };
+      const exp = {};
+      Object.values(F).forEach(f => (data[f] = 0));
+      for (const [k, pct, secs, name] of ip.it) {
+        if (k === 'x') { if (!expItem || pct > expItem.pct) expItem = { pct, until: (snap.at || 0) + secs * 1000, name }; continue; }
+        if (F[k] && pct >= data[F[k]]) { data[F[k]] = pct; exp[F[k]] = { until: (snap.at || 0) + secs * 1000, name }; }
+      }
+      data.item_expiry = exp;
+    }
     if (snap.v >= 2) data.buildings = Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0]));
     if (ip.t != null) data.temp_max = ip.t;
     if (ip.e != null) data.energy_balance = ip.e;
@@ -175,12 +210,13 @@ function mapImport(snap, existing, LF) {
     data.lf_techs = techs;
     return { match, data, inProgress: Object.keys(q).map(Number) };
   });
+  if (snap.v >= 6) profile.items = { expedition: expItem };
   const unmatched = existing.filter(x => !used.has(x.id));
   return { profile, planets, unmatched, inProgress };
 }
 
 // I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo
-const BOOKMARKLET_VERSION = 5;
+const BOOKMARKLET_VERSION = 6;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, serverInfo, SERVERS, BOOKMARKLET_VERSION };

@@ -20,6 +20,13 @@ planet['12106_html'] = "<a title='Sviluppa'>12</a><img src='x.gif' title='In cor
 planet['122_html'] = "<a>12</a><img src='x.gif' title='In corso al livello 0!'>";
 planet['122'] = 12;
 planet.groups = null;
+// item attivi: come nella Vista impero, titolo con nome|descrizione (codificato due volte) e secondi rimanenti
+const item = (name, body, secs) => `<div class="item_img tooltipHTML" title="${name}|&lt;span&gt;Fase attuale: In uso&lt;/span&gt;&lt;br /&gt;${body}"><span class="hidden" data-total-duration="604800">${secs}</span></div>`;
+planet.equipment_html = item('Amplificatore di metallo Oro', '30% in più di produzione nelle miniere di metallo su un pianeta', 3600)
+  + item('Amplificatore di risorse (40 %) Bronzo', '&amp;#43;40% di produzione di risorse (metallo, cristallo, deuterio) in più su un pianeta', 7200)
+  + item('Amplificatore risorse per spedizioni (40 %) Bronzo', '&amp;#43;40 % risorse per le spedizioni', 86400)
+  + item('Slot flotte Oro', '&amp;#43;6 Slot flotte extra', 100);
+planet.population = 1000; planet.populationStorage = 2000; planet.food = 30; planet.foodStorage = 40;
 const html = `<meta name="ogame-session" content="SECRET"><script>var planetType = 0;
   createImperiumHtml("#mainWrapper", "#loading", ${JSON.stringify({ planets: [planet], translations: {}, groups: { research: [122, 113, 124, 114] } })}, 0 );</script>`;
 const metas = { universe: 's999-it.ogame.gameforge.com', 'universe-name': 'Test', 'player-name': 'Someone', 'universe-speed': '3', 'player-characterclass-id': '1', 'allianceclass-id': '0', session: 'SECRET' };
@@ -31,8 +38,14 @@ const p = snap.pl[0];
 assert.strictEqual(p.t, 30);
 assert.strictEqual(p.e, -1250);
 const m = mapImport(snap, [], LF);
-const { research, ...profRest } = m.profile;
+const { research, items, ...profRest } = m.profile;
 assert.deepStrictEqual(profRest, { player_class: 'collector', economy_speed: 3, plasma_tech: 13, energy_tech: 14, astro_tech: 11, hyperspace_tech: 8, universe: 'Test', server: 's999-it', nickname: 'Someone' });
+// item: metallo 30%, tutte le risorse 40%, gli altri a 0; l'amplificatore delle spedizioni va sull'account; gli slot flotte si ignorano
+const di = m.planets[0].data;
+assert.deepStrictEqual([di.item_metal, di.item_crystal, di.item_deut, di.item_all, di.item_energy], [30, 0, 0, 40, 0]);
+assert.strictEqual(di.item_expiry.item_metal.until, snap.at + 3600 * 1000);
+assert.strictEqual(items.expedition.pct, 40);
+assert.deepStrictEqual([di.resources.pop, di.resources.popMax, di.resources.food, di.resources.foodMax], [1000, 2000, 30, 40]);
 assert.deepStrictEqual(research, { 113: 14, 114: 8, 122: 13, 124: 11 });
 const d = m.planets[0].data;
 assert.strictEqual(d.lf_race, 'rocktal');
