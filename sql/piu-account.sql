@@ -40,3 +40,7 @@ create policy planets_update_own on public.planets for update using ((select aut
 -- Item attivi letti dalla Vista impero: scadenza per pianeta e amplificatore delle spedizioni sull'account
 alter table public.planets add column if not exists item_expiry jsonb;
 alter table public.profiles add column if not exists items jsonb;
+alter table public.planets add column if not exists items jsonb;
+
+-- Energia: il giocatore può chiedere di consigliare solo satelliti solari
+alter table public.profiles add column if not exists energy_satellites_only boolean not null default false;

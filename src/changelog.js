@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 58, date: '2026-10-31', title: 'Energia: satelliti, centrale solare o a fusione',
+    text: 'Quando un upgrade richiede energia, l\'app confronta satelliti solari, centrale solare e centrale a fusione (contando anche il deuterio che la fusione brucia ogni ora) e consiglia la soluzione che si ripaga prima; nel dettaglio vedi anche le alternative con il loro costo. In Impostazioni puoi spuntare "Per l\'energia consiglia solo satelliti".',
+  },
+  {
     id: 57, date: '2026-10-31', title: 'Item attivi e popolazione dalla Vista impero', bookmarklet: true,
     text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni. Nella nuova scheda Item attivi, accanto a Bonus, c\'è l\'elenco degli item attivi con la scadenza, in rosso quelli che scadono entro 24 ore. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
   },

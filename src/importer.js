@@ -37,20 +37,25 @@ function grabEmpire(html, meta) {
   };
   const dec = t => String(t).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&');
   const items = h => {
-    const out = [], re = /title="([^"]*)"[\s\S]*?data-total-duration="\d+">(\d+)</g;
-    let m;
-    while ((m = re.exec(String(h || '')))) {
-      const t = dec(dec(m[1])), name = t.split('|')[0], body = t.slice(name.length).replace(/<[^>]*>/g, ' ').toLowerCase();
-      const pct = (body.match(/(\d+)\s*%/) || [])[1];
-      if (!pct) continue;
-      let k = null;
-      if (/spedizion|expedition/.test(body)) k = /risorse|resources/.test(body) ? 'x' : null;
+    const out = [];
+    for (const blk of String(h || '').split(/class="item_img[\s"]/).slice(1)) {
+      const tm = blk.match(/title="([^"]*)"/);
+      if (!tm) continue;
+      const sm = blk.match(/data-total-duration="(-?\d+)">(\d*)</);
+      const secs = sm && sm[2] !== '' ? +sm[2] : null;
+      const t = dec(dec(tm[1])), name = t.split('|')[0], rest = t.slice(name.length + 1);
+      const desc = rest.split(/<br\s*\/?>/i).map(x => x.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+        .filter(x => x && !/^(durata|fase|prezzo|nell|duration|current|price|in inventory)/i.test(x)).join(' ');
+      const body = desc.toLowerCase(), pct = +((body.match(/(\d+)\s*%/) || [])[1] || 0);
+      let k = '';
+      if (/spedizion|expedition/.test(body)) k = pct && /risorse|resources/.test(body) ? 'x' : '';
+      else if (!pct) k = '';
       else if (/risorse \(metallo|resource production|metal, crystal/.test(body)) k = 'a';
       else if (/miniere di metallo|metal mine/.test(body)) k = 'm';
       else if (/miniere di cristallo|crystal mine/.test(body)) k = 'c';
       else if (/deuterio|deuterium/.test(body)) k = 'd';
       else if (/energia|energy/.test(body)) k = 'e';
-      if (k) out.push([k, +pct, +m[2], name]);
+      out.push([k, pct, secs, name, desc]);
     }
     return out;
   };
@@ -184,7 +189,10 @@ function mapImport(snap, existing, LF) {
       const F = { m: 'item_metal', c: 'item_crystal', d: 'item_deut', a: 'item_all', e: 'item_energy' };
       const exp = {};
       Object.values(F).forEach(f => (data[f] = 0));
+      // tutti gli item del pianeta, per la scheda Item attivi (anche quelli che non servono ai calcoli)
+      data.items = ip.it.map(([k, pct, secs, name, desc]) => ({ kind: k || null, pct, name, desc: desc || '', until: secs === null ? null : (snap.at || 0) + secs * 1000 })); // until null = permanente
       for (const [k, pct, secs, name] of ip.it) {
+        if (!k || secs === null) continue;
         if (k === 'x') { if (!expItem || pct > expItem.pct) expItem = { pct, until: (snap.at || 0) + secs * 1000, name }; continue; }
         if (F[k] && pct >= data[F[k]]) { data[F[k]] = pct; exp[F[k]] = { until: (snap.at || 0) + secs * 1000, name }; }
       }

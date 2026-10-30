@@ -304,8 +304,12 @@ const Engine = (() => {
     return { mult, multRank, need, produced, balance, factor, full, income, fuel, actual };
   }
 
-  // Modo più economico per aggiungere `energy` unità su un pianeta: satelliti o livelli di centrale solare
-  function energyFix(profile, planet, energy) {
+  // Modo più economico per aggiungere `energy` unità su un pianeta: satelliti, livelli di centrale solare o di centrale a fusione.
+  // La fusione consuma deuterio ogni ora: se si conoscono costo e guadagno dell'upgrade (ctx) vince l'opzione con
+  // l'ammortamento più breve, (costo + energia) / (guadagno - deuterio bruciato); altrimenti il deuterio conta per FUEL_HOURS ore.
+  // profile.energy_satellites_only: il giocatore vuole solo satelliti.
+  const FUEL_HOURS = 24 * 90;
+  function energyFix(profile, planet, energy, ctx) {
     if (energy <= 0) return null;
     const mult = multipliers(profile, planet, profile.items_in_ranking !== false);
     const perSat = Math.floor(satelliteEnergy(planet.temp_max) * mult.energy);
@@ -322,7 +326,28 @@ const Engine = (() => {
     const solarOpt = added >= energy
       ? { kind: 'solar', from: planet.solar_plant, to: lvl, added, cost: solarCost, eq: toMetalEq(solarCost, profile) }
       : null;
-    return solarOpt && solarOpt.eq < satOpt.eq ? solarOpt : satOpt;
+    satOpt.fuelEq = 0; if (solarOpt) solarOpt.fuelEq = 0;
+    if (profile.energy_satellites_only) return satOpt;
+    if (ctx && ctx.noFusion) return solarOpt && solarOpt.eq < satOpt.eq ? solarOpt : satOpt;
+
+    const f0 = +planet.fusion_reactor || 0, et = +profile.energy_tech || 0;
+    let fl = f0, fAdded = 0, fCost = [0, 0, 0];
+    while (fAdded < energy && fl < f0 + 30) {
+      fl++;
+      fCost = fCost.map((x, i) => x + levelCost('fusion_reactor', fl)[i]);
+      fAdded = Math.floor((fusionEnergy(fl, et) - fusionEnergy(f0, et)) * mult.energy);
+    }
+    let fusionOpt = null;
+    if (fAdded >= energy) {
+      const fuel = (fusionDeut(fl) - fusionDeut(f0)) * profile.economy_speed;
+      fusionOpt = { kind: 'fusion', from: f0, to: fl, added: fAdded, cost: fCost, eq: toMetalEq(fCost, profile), fuel, fuelEq: toMetalEq([0, 0, fuel], profile) };
+    }
+    const opts = [satOpt, solarOpt, fusionOpt].filter(Boolean);
+    const score = o => ctx && ctx.gainEq > 0
+      ? (ctx.gainEq - o.fuelEq > 0 ? (ctx.costEq + o.eq) / (ctx.gainEq - o.fuelEq) : Infinity)
+      : o.eq + o.fuelEq * FUEL_HOURS;
+    const best = opts.reduce((b, o) => (score(o) < score(b) ? o : b));
+    return { ...best, alts: opts.filter(o => o !== best) }; // le altre opzioni, per il confronto nel dettaglio
   }
 
   const MINES = [
@@ -382,7 +407,7 @@ const Engine = (() => {
     add(COLONY_SHIP);
     MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
     const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
-    const fix = energyFix(profile, colony, needEnergy);
+    const fix = energyFix(profile, colony, needEnergy, { noFusion: true }); // colonia nuova: solare o satelliti
     if (fix) add(fix.cost);
 
     // Produzione del nuovo pianeta al 100% (senza item: un pianeta nuovo non ne ha attivi)
@@ -420,8 +445,9 @@ const Engine = (() => {
 
       // 1) Deficit di energia adesso: si sta perdendo produzione
       if (st.balance < 0) {
-        const fix = energyFix(profile, planet, -st.balance);
         const lost = st.full.map(x => x * (1 - st.factor));
+        const fix = energyFix(profile, planet, -st.balance, { costEq: 0, gainEq: gainEq(lost) });
+        if (fix.fuel) lost[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(lost);
         out.push({
           type: 'energy', planetId: planet.id, planet: planet.name,
@@ -440,15 +466,15 @@ const Engine = (() => {
         const cost = mineCost(m.key, next, mrcLevel(planet));
         const extraNeed = Math.round((consumption[m.key](next) - consumption[m.key](L)) * consFactor(profile, planet));
         const marginAfter = Math.max(0, st.balance) - extraNeed;
-        const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
-        const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
-
         const prodDelta = [0, 0, 0];
         const mult = [st.multRank.metal, st.multRank.crystal, st.multRank.deut][m.res];
         const base = m.key === 'deut_synth'
           ? Math.max(0, baseProd.deut_synth(next, planet.temp_max)) - Math.max(0, baseProd.deut_synth(L, planet.temp_max))
           : baseProd[m.key](next) - baseProd[m.key](L);
         prodDelta[m.res] = base * mult * profile.economy_speed;
+        const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta) }) : null;
+        const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+        if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(prodDelta);
         const eq = toMetalEq(totalCost, profile);
 
@@ -463,7 +489,7 @@ const Engine = (() => {
           const mc = mineCost(m.key, next, 1);
           // il Centro stesso consuma 120 di energia al livello 1 (tabella del gioco): va contato
           const margin2 = marginAfter - MRC_ENERGY_L1;
-          const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2) : null;
+          const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2, { noFusion: true }) : null;
           const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
           const bCost = mc.map((x, i) => x + mrc1[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
@@ -488,8 +514,6 @@ const Engine = (() => {
           const cost = lfBuildingCost(b, next, disc);
           const extraNeed = Math.ceil((lfBuildingEnergy(b, next) - lfBuildingEnergy(b, L)) * (1 - disc));
           const marginAfter = Math.max(0, st.balance) - extraNeed;
-          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter) : null;
-          const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
           const pos = positionBonus(planet.position), s = profile.economy_speed;
           const row = [
             baseProd.metal_mine(planet.metal_mine) * (1 + pos.metal) * s,
@@ -497,6 +521,9 @@ const Engine = (() => {
             Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * s,
           ];
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
+          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta) }) : null;
+          const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+          if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
           out.push({
             type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
@@ -594,6 +621,7 @@ const Engine = (() => {
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
+      else if (rec.fix.kind === 'fusion') patch.fusion_reactor = rec.fix.to;
       else patch.solar_plant = rec.fix.to;
       balance += rec.fix.added;
     }
@@ -640,9 +668,13 @@ const Engine = (() => {
 
   function fixText(fix) {
     if (!fix) return '';
-    return fix.kind === 'satellites'
-      ? `${fmt(fix.count)} satelliti solari`
-      : `Centrale solare ${fix.from} → ${fix.to}`;
+    const one = f => f.kind === 'satellites'
+      ? `${fmt(f.count)} satelliti solari`
+      : f.kind === 'fusion'
+        ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)`
+        : `Centrale solare ${f.from} → ${f.to}`;
+    const alts = (fix.alts || []).map(a => `${one(a)}: ${fmt(a.eq)}`);
+    return one(fix) + (alts.length ? ` (${fmt(fix.eq)} in metallo eq.; costano di più ${alts.join(' · ')})` : '');
   }
 
   function fmt(n) {
