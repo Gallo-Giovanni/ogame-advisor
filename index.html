@@ -131,6 +131,8 @@
   .bm-update { margin-top: 6px; padding: 6px 8px; border: 1px dashed var(--accent); border-radius: 8px; }
   .bm-update summary { cursor: pointer; }
   .bm-top { align-self: center; margin-right: 4px; }
+  .acc-switch { width: auto; max-width: 260px; padding: 4px 8px; align-self: center; }
+  button.ghost.danger-text { color: var(--bad); }
   @media (pointer: coarse) { .bm-top { display: none; } }
   .bm { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #0b1020 !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .imp { border-top: 1px solid var(--line); padding-top: 8px; }
@@ -255,7 +257,7 @@
 
   <!-- ============ PRIMO ACCESSO ============ -->
   <div id="view-onboarding" class="hidden">
-    <header class="top"><h1>Configura il tuo impero</h1><button class="ghost" data-action="logout">Esci</button></header>
+    <header class="top"><h1>Configura il tuo impero</h1><div class="row" style="gap:4px"><button class="ghost hidden" id="onb-back">Torna ai tuoi account</button><button class="ghost" data-action="logout">Esci</button></div></header>
     <div class="steps"><div class="step" data-step="1"></div><div class="step" data-step="2"></div><div class="step" data-step="3"></div></div>
 
     <div class="card stack" data-wiz="0">
@@ -361,7 +363,7 @@
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
-      <div class="row" style="gap:4px"><a class="bm bm-top" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
+      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
     </header>
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
@@ -603,8 +605,15 @@
         <div class="row"><button id="save-settings">Salva impostazioni</button></div>
       </div>
       <div class="card stack">
+        <h2 style="margin:0">Account di gioco</h2>
+        <p class="small" style="margin:0">Se giochi in più universi, aggiungi un account per ognuno: ogni account ha i suoi pianeti e le sue impostazioni. Il pulsante dei preferiti carica i dati nell'account dello stesso server, e se non c'è ti chiede dove.</p>
+        <div id="acc-list" class="stack" style="gap:6px"></div>
+        <div class="row"><button class="ghost" id="acc-add">Aggiungi un account</button></div>
+        <div id="acc-msg" class="msg hidden"></div>
+      </div>
+      <div class="card stack">
         <h2 style="margin:0">Azzera tutto</h2>
-        <p class="small" style="margin:0">Cancella tutti i pianeti e i dati dell'account (classe, tecnologie, bonus, livelli delle razze, impostazioni) e riparte dalla configurazione iniziale, per esempio se cambi server. Non si può annullare. L'accesso con la tua email resta.</p>
+        <p class="small" style="margin:0">Cancella tutti i pianeti e i dati dell'account aperto (classe, tecnologie, bonus, livelli delle razze, impostazioni) e riparte dalla configurazione iniziale, per esempio se cambi server. Non si può annullare. L'accesso con la tua email resta.</p>
         <div class="row"><input id="reset-confirm" placeholder="Scrivi AZZERA per confermare" style="max-width:260px" autocomplete="off"><button class="danger" id="reset-all" disabled>Azzera tutto</button></div>
         <div id="reset-msg" class="msg hidden"></div>
       </div>
@@ -2055,7 +2064,7 @@ const $$ = s => [...document.querySelectorAll(s)];
 const fmt = Engine.fmt;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const state = { user: null, profile: null, planets: [], authMode: 'login' };
+const state = { user: null, profile: null, planets: [], accounts: [], allPlanets: [], activeAccount: undefined, authMode: 'login' };
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
@@ -2158,15 +2167,37 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 /* ---------------- DATI ---------------- */
+// Account attivo: profilo e pianeti di quell'account (i pianeti senza account sono del primo, dati salvati prima degli account multipli)
+const accountOf = p => p.account_id || (state.accounts[0] && state.accounts[0].id);
+function useAccount(profile) {
+  state.profile = profile;
+  state.activeAccount = profile ? profile.id : null;
+  state.planets = profile ? state.allPlanets.filter(p => accountOf(p) === profile.id) : [];
+  if (profile) { try { localStorage.setItem('ogadv-account', profile.id); } catch (e) {} }
+}
+// un nuovo account dello stesso utente eredita le Novità già lette negli altri
+const newAccountExtras = () => (state.profile || !state.accounts.length ? {} : { last_seen_update: Math.max(...state.accounts.map(a => +a.last_seen_update || 0)) });
+const accountName = a => [a.nickname, a.universe ? a.universe + (a.server ? ` (${a.server})` : '') : a.server].filter(Boolean).join(' · ') || 'Account senza nome';
+async function switchAccount(id) {
+  state.newAccount = false; state.activeAccount = id;
+  try { ['ogadv-planet', 'ogadv-hidden'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  state.hiddenPlanets = new Set();
+  await loadUserData();
+}
 async function loadUserData() {
   show('loading');
-  const [{ data: profile, error: e1 }, { data: planets, error: e2 }] = await Promise.all([
-    sb.from('profiles').select('*').eq('user_id', state.user.id).maybeSingle(),
+  const [{ data: profiles, error: e1 }, { data: planets, error: e2 }] = await Promise.all([
+    sb.from('profiles').select('*').eq('user_id', state.user.id).order('created_at'),
     sb.from('planets').select('*').order('sort_order').order('created_at'),
   ]);
   if (e1 || e2) { alert('Errore nel caricamento: ' + (e1 || e2).message); show('auth'); return; }
-  state.profile = profile;
-  state.planets = planets || [];
+  // un utente può avere più account di gioco (uno per server); i pianeti sono di un account
+  state.accounts = profiles || [];
+  state.allPlanets = planets || [];
+  let want = state.newAccount ? null : state.activeAccount;
+  if (want === undefined) { try { want = localStorage.getItem('ogadv-account'); } catch (e) {} }
+  const profile = state.newAccount ? null : (state.accounts.find(a => a.id === want) || state.accounts[0] || null);
+  useAccount(profile);
   state.editing = null;
   if (!profile || !profile.onboarded) {
     startOnboarding();
@@ -2225,8 +2256,10 @@ function startOnboarding() {
   });
   goStep(0);
   paintTop1();
+  $('#onb-back').classList.toggle('hidden', !(state.newAccount && state.accounts.length));
   show('onboarding');
 }
+$('#onb-back').addEventListener('click', () => { state.newAccount = false; loadUserData(); });
 function goStep(n) {
   $$('[data-wiz]').forEach(el => el.classList.toggle('hidden', el.dataset.wiz != n));
   $$('.step').forEach(el => el.classList.toggle('on', el.dataset.step <= n));
@@ -2238,13 +2271,15 @@ $$('[data-next]').forEach(b => b.addEventListener('click', () => goStep(+b.datas
 $('#wiz-finish').addEventListener('click', async () => {
   const msgEl = $('#wiz-msg');
   const profile = { user_id: state.user.id, onboarded: true };
+  if (state.profile) profile.id = state.profile.id; else Object.assign(profile, newAccountExtras());
   $$('[data-p]').forEach(el => { profile[el.dataset.p] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   NUM_FIELDS.forEach(k => { if (k in profile) profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]; });
   profile.top1_points = profile.top1_points === '' ? null : Math.max(0, Math.round(Number(profile.top1_points) || 0));
   const btn = $('#wiz-finish'); btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
-  const r = await sb.from('profiles').upsert(profile);
+  const r = await sb.from('profiles').upsert(profile).select().single();
   btn.disabled = false;
   if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
+  state.newAccount = false; state.activeAccount = r.data.id;
   await loadUserData();
 });
 
@@ -2262,7 +2297,10 @@ function renderApp() {
   const p = state.profile;
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[p.player_class];
   $('#who').textContent = [p.nickname, p.universe ? p.universe + (p.server ? ` (${p.server})` : '') : p.server, cls, 'velocità x' + p.economy_speed].filter(Boolean).join(' · ');
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderCosts(); renderSettings(); renderUpdatesBadge();
+  const sw = $('#acc-switch');
+  sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
+  sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -2433,7 +2471,7 @@ async function completeRec(rec, btn) {
   btn.disabled = true;
   let r;
   if (patch.profile) {
-    r = await sb.from('profiles').update(patch.profile).eq('user_id', state.user.id).select().single();
+    r = await sb.from('profiles').update(patch.profile).eq('id', state.profile.id).select().single();
     if (!r.error) state.profile = r.data;
   } else {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
@@ -2694,7 +2732,7 @@ $('#pe-save').addEventListener('click', async () => {
   btn.disabled = true;
   const r = id
     ? await sb.from('planets').update(data).eq('id', id).select().single()
-    : await sb.from('planets').insert({ ...data, sort_order: state.planets.length }).select().single();
+    : await sb.from('planets').insert({ ...data, account_id: state.profile.id, sort_order: state.planets.length }).select().single();
   btn.disabled = false;
   if (r.error) return message(msgEl, 'Errore: ' + r.error.message);
   if (id) Object.assign(state.planets.find(x => x.id === id), r.data);
@@ -2942,7 +2980,7 @@ function openUpdates(onlyNew) {
 async function closeUpdates() {
   $('#updates-modal').classList.add('hidden');
   if (lastSeen() >= LATEST_UPDATE) return;
-  const r = await sb.from('profiles').update({ last_seen_update: LATEST_UPDATE }).eq('user_id', state.user.id).select().single();
+  const r = await sb.from('profiles').update({ last_seen_update: LATEST_UPDATE }).eq('id', state.profile.id).select().single();
   if (!r.error) state.profile = r.data;
   renderUpdatesBadge();
 }
@@ -3019,6 +3057,11 @@ function gameName(id) {
 }
 function openImport() {
   const snap = pendingImport(); if (!snap) return;
+  // l'account giusto si riconosce dal server: se ne esiste uno con lo stesso server lo apriamo (loadUserData riapre l'importazione)
+  if (snap.srv && !state.newAccount && !state.importChosen) {
+    const same = state.accounts.find(a => a.server === snap.srv);
+    if (same && same.id !== state.activeAccount) { state.activeAccount = same.id; state.importChosen = true; loadUserData(); return; }
+  }
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
   state.importSnap = snap;
   state.importBase = m;
@@ -3039,10 +3082,19 @@ function renderImportPlan() {
   state.importPlan = m;
   const prof = importChanges(state.profile, m.profile);
   let html = `<div>Trovati <b>${snap.pl.length}</b> pianeti${snap.uni ? ` nell'universo <b>${esc(snap.uni)}</b>` : ''}.</div>`;
-  // importazione da un server diverso da quello dell'account: proponi di azzerare e ripartire
-  if (state.profile && state.profile.onboarded && state.profile.server && snap.srv && snap.srv !== state.profile.server)
-    html += `<div class="msg" style="display:block">Stai importando da <b>${esc(snap.uni || '')} (${esc(snap.srv)})</b>, ma il tuo account è su <b>${esc(state.profile.universe || '')} (${esc(state.profile.server)})</b>.
-      Se hai cambiato server, azzera e riparti con i dati nuovi: <button type="button" class="danger" id="import-reset">Azzera tutto e importa questo server</button></div>`;
+  // in quale account caricare: riconosciuto dal server, oppure scelto dal giocatore
+  const srvName = `${esc(snap.uni || '')}${snap.srv ? ` (${esc(snap.srv)})` : ''}`;
+  const mismatch = state.profile && state.profile.onboarded && state.profile.server && snap.srv && snap.srv !== state.profile.server;
+  if (state.accounts.length > 1 || mismatch || state.newAccount) {
+    const opts = state.accounts.map(a => `<option value="${a.id}" ${!state.newAccount && a.id === state.activeAccount ? 'selected' : ''}>${esc(accountName(a))}</option>`).join('')
+      + `<option value="new" ${state.newAccount ? 'selected' : ''}>Nuovo account${snap.srv ? ' per ' + srvName : ''}</option>`;
+    html += `<div class="imp acc-pick"><b>Carica nell'account</b> <select id="import-account">${opts}</select>
+      ${state.newAccount ? `<div class="small muted">Verrà creato un nuovo account per ${srvName || 'questo server'}: gli altri account restano come sono.</div>`
+        : state.profile && snap.srv && state.profile.server === snap.srv ? '<div class="small muted">Scelto in automatico: è l\'account dello stesso server.</div>' : ''}</div>`;
+  }
+  if (mismatch)
+    html += `<div class="msg" style="display:block">Questi dati sono di <b>${srvName}</b>, ma l'account scelto è su <b>${esc(state.profile.universe || '')} (${esc(state.profile.server)})</b>.
+      Se giochi anche lì, scegli sopra "Nuovo account". Se invece hai lasciato quel server, azzera l'account e importa questo: <button type="button" class="danger" id="import-reset">Azzera questo account e importa</button></div>`;
   if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
   if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
@@ -3064,13 +3116,20 @@ $('#import-list').addEventListener('click', async e => {
   if (e.target.id !== 'import-reset') return;
   if (!confirm('Cancellare tutti i pianeti e i dati dell\'account e importare il nuovo server?')) return;
   e.target.disabled = true;
-  const d = await sb.from('planets').delete().eq('user_id', state.user.id);
-  const r = d.error ? d : await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id).select().single();
+  const d = await sb.from('planets').delete().eq('account_id', state.profile.id);
+  const r = d.error ? d : await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('id', state.profile.id).select().single();
   if (r.error) { e.target.disabled = false; return message($('#import-msg'), 'Errore: ' + r.error.message); }
   state.profile = r.data; state.planets = [];
   openImport();
 });
 $('#import-list').addEventListener('change', e => {
+  if (e.target.id === 'import-account') {
+    const v = e.target.value;
+    state.importChosen = true;
+    if (v === 'new') state.newAccount = true; else { state.newAccount = false; state.activeAccount = v; }
+    loadUserData();
+    return;
+  }
   const sel = e.target.closest('[data-implink]'); if (!sel) return;
   const i = +sel.dataset.implink, id = sel.value || null;
   if (id) state.importLinks = state.importLinks.map((x, j) => (j !== i && x === id ? null : x)); // un pianeta salvato per ogni pianeta importato
@@ -3078,7 +3137,8 @@ $('#import-list').addEventListener('change', e => {
   renderImportPlan();
 });
 function closeImport() {
-  dropImport(); state.importPlan = null; $('#import-modal').classList.add('hidden');
+  dropImport(); state.importPlan = null; state.importChosen = false; $('#import-modal').classList.add('hidden');
+  if (state.newAccount && state.accounts.length) { state.newAccount = false; loadUserData(); return; } // annullato il nuovo account: si torna a quello di prima
   if (state.profile && state.profile.onboarded) openUpdates(true);
 }
 $('#import-cancel').addEventListener('click', closeImport);
@@ -3088,11 +3148,11 @@ $('#import-ok').addEventListener('click', async () => {
   const fail = e => { btn.disabled = false; message($('#import-msg'), 'Errore: ' + e.message); };
   const isNew = !state.profile || !state.profile.onboarded;
   if (isNew) {
-    const r = await sb.from('profiles').upsert({ user_id: state.user.id, ...m.profile, onboarded: true }).select().single();
+    const r = await sb.from('profiles').upsert({ user_id: state.user.id, ...(state.profile ? { id: state.profile.id } : newAccountExtras()), ...m.profile, onboarded: true }).select().single();
     if (r.error) return fail(r.error);
     state.profile = r.data;
   } else if (Object.keys(m.profile).length) {
-    const r = await sb.from('profiles').update(m.profile).eq('user_id', state.user.id).select().single();
+    const r = await sb.from('profiles').update(m.profile).eq('id', state.profile.id).select().single();
     if (r.error) return fail(r.error);
     state.profile = r.data;
   }
@@ -3101,16 +3161,18 @@ $('#import-ok').addEventListener('click', async () => {
     const row = { ...data, sort_order: i };
     const r = match
       ? await sb.from('planets').update(row).eq('id', match.id).select().single()
-      : await sb.from('planets').insert({ ...NEW_PLANET, ...row }).select().single();
+      : await sb.from('planets').insert({ ...NEW_PLANET, ...row, account_id: state.profile.id }).select().single();
     if (r.error) return fail(r.error);
   }
   for (let j = 0; j < m.unmatched.length; j++) await sb.from('planets').update({ sort_order: m.planets.length + j }).eq('id', m.unmatched[j].id);
   btn.disabled = false;
-  dropImport(); state.importPlan = null;
+  dropImport(); state.importPlan = null; state.importChosen = false;
   $('#import-modal').classList.add('hidden');
   if (isNew) {
-    const pl = await sb.from('planets').select('*').order('sort_order').order('created_at');
+    const pl = await sb.from('planets').select('*').eq('account_id', state.profile.id).order('sort_order').order('created_at');
     state.planets = pl.data || [];
+    state.newAccount = false; state.activeAccount = state.profile.id;
+    try { localStorage.setItem('ogadv-account', state.profile.id); } catch (e) {}
     $$('[data-q]').forEach(el => { const v = state.profile[el.dataset.q]; if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? (el.dataset.q === 'top1_points' ? '' : 0); });
     paintTop1(); goStep(4); show('onboarding');
     return;
@@ -3133,7 +3195,7 @@ $('#wiz4-finish').addEventListener('click', async () => {
   const patch = {};
   $$('[data-q]').forEach(el => { patch[el.dataset.q] = el.type === 'checkbox' ? el.checked : el.value.trim() === '' && el.dataset.q === 'top1_points' ? null : Math.max(0, Number(el.value) || 0); });
   const btn = $('#wiz4-finish'); btn.disabled = true;
-  const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
+  const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
   btn.disabled = false;
   if (r.error) return message($('#wiz4-msg'), 'Errore: ' + r.error.message);
   await loadUserData();
@@ -3312,14 +3374,37 @@ document.addEventListener('click', e => {
   paintTop1();
 });
 
+/* Account di gioco: elenco, cambio, aggiunta ed eliminazione */
+function renderAccounts() {
+  const n = id => state.allPlanets.filter(p => accountOf(p) === id).length;
+  $('#acc-list').innerHTML = state.accounts.map(a => `<div class="row acc-row" style="gap:8px;align-items:center">
+    <span>${a.id === state.profile.id ? '<b>' + esc(accountName(a)) + '</b> <span class="tag">aperto</span>' : esc(accountName(a))} <span class="muted small">· ${n(a.id)} ${n(a.id) === 1 ? 'pianeta' : 'pianeti'}</span></span>
+    ${a.id === state.profile.id ? '' : `<button class="ghost" data-acc-open="${a.id}">Apri</button>`}
+    ${state.accounts.length > 1 ? `<button class="ghost danger-text" data-acc-del="${a.id}">Elimina</button>` : ''}</div>`).join('');
+}
+$('#acc-switch').addEventListener('change', e => switchAccount(e.target.value));
+$('#acc-add').addEventListener('click', () => { state.newAccount = true; loadUserData(); });
+$('#acc-list').addEventListener('click', async e => {
+  const open = e.target.closest('[data-acc-open]'), del = e.target.closest('[data-acc-del]');
+  if (open) return switchAccount(open.dataset.accOpen);
+  if (!del) return;
+  const a = state.accounts.find(x => x.id === del.dataset.accDel);
+  if (!confirm(`Eliminare l'account ${accountName(a)} con tutti i suoi pianeti? L'operazione non si può annullare.`)) return;
+  const d = await sb.from('planets').delete().eq('account_id', a.id);
+  const r = d.error ? d : await sb.from('profiles').delete().eq('id', a.id);
+  if (r.error) return message($('#acc-msg'), 'Errore: ' + r.error.message);
+  if (a.id === state.activeAccount) state.activeAccount = null;
+  await loadUserData();
+});
+
 /* Azzera: cancella tutti i pianeti, riporta il profilo ai valori iniziali e riparte dal primo accesso */
 $('#reset-confirm').addEventListener('input', e => { $('#reset-all').disabled = e.target.value.trim().toUpperCase() !== 'AZZERA'; });
 $('#reset-all').addEventListener('click', async () => {
   const btn = $('#reset-all'); btn.disabled = true;
   message($('#reset-msg'), 'Azzeramento…', 'ok');
-  const d = await sb.from('planets').delete().eq('user_id', state.user.id);
+  const d = await sb.from('planets').delete().eq('account_id', state.profile.id);
   if (d.error) { btn.disabled = false; return message($('#reset-msg'), 'Errore: ' + d.error.message); }
-  const r = await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('user_id', state.user.id);
+  const r = await sb.from('profiles').update({ ...PROFILE_DEFAULTS, onboarded: false }).eq('id', state.profile.id);
   if (r.error) { btn.disabled = false; return message($('#reset-msg'), 'Errore: ' + r.error.message); }
   $('#reset-confirm').value = '';
   try { ['ogadv-planet', 'ogadv-ftype', 'ogadv-hidden'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
@@ -3485,7 +3570,7 @@ $('#save-settings').addEventListener('click', async () => {
   CAP_FIELDS.forEach(k => (patch[k] = patch[k] === '' ? null : Math.max(0, parseInt(patch[k], 10))));
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
   patch.research_speed = patch.research_speed === '' ? null : Math.max(0.1, Number(patch.research_speed) || 0) || null;
-  const r = await sb.from('profiles').update(patch).eq('user_id', state.user.id).select().single();
+  const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
   state.profile = r.data;
   message($('#settings-msg'), 'Impostazioni salvate.', 'ok');
