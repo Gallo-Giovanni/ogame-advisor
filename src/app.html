@@ -1644,7 +1644,7 @@ const IMPORT_LABELS = {
   solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
-  astro_tech: 'Astrofisica', research_speed: 'Velocità delle ricerche', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+  astro_tech: 'Astrofisica', research_speed: 'Velocità delle ricerche', top1_points: 'Punti del primo in classifica', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
 };
 const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
   : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
@@ -1724,7 +1724,7 @@ function renderImportPlan() {
   if (mismatch)
     html += `<div class="msg" style="display:block">Questi dati sono di <b>${srvName}</b>, ma l'account scelto è su <b>${esc(state.profile.universe || '')} (${esc(state.profile.server)})</b>.
       Se giochi anche lì, scegli sopra "Nuovo account". Se invece hai lasciato quel server, azzera l'account e importa questo: <button type="button" class="danger" id="import-reset">Azzera questo account e importa</button></div>`;
-  if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge Tecnologia iperspaziale, Fabbrica di robot e Naniti. Elimina il vecchio preferito e trascina di nuovo il pulsante da Impostazioni → Importa dal gioco.</div>`;
+  if (Importer.outdated(snap)) html += `<div class="msg" style="display:block">Il preferito "OGame Advisor" che hai nel browser è di una versione precedente: non legge alcuni dati (per esempio velocità delle ricerche e punti del primo in classifica). Elimina il vecchio preferito e trascina di nuovo il pulsante "⬇ OGame Advisor" che trovi in alto, accanto a Novità.</div>`;
   if ((base.inProgress || []).length) prof.push(`Ricerche in corso contate come già fatte: <b>${base.inProgress.length}</b>`);
   html += `<div class="imp"><b>Account</b>${prof.length ? `<ul>${prof.map(x => `<li>${x}</li>`).join('')}</ul>` : ' <span class="muted">nessuna modifica</span>'}</div>`;
   m.planets.forEach(({ match, data, inProgress }, i) => {

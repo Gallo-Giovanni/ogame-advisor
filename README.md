@@ -4,8 +4,9 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 
 ## Funzioni
 - Accesso con email (Supabase Auth): ogni utente vede solo i propri dati (Row Level Security)
+- **Più account**, uno per universo: ogni account ha i suoi pianeti e le sue impostazioni; l'importazione sceglie da sola l'account dello stesso server (`profiles.id`, `planets.account_id`, migrazione in `sql/piu-account.sql`)
 - Primo accesso a scelta: **importazione dalla Vista impero** del gioco oppure inserimento a mano (account, bonus, poi un pianeta alla volta)
-- **Importazione dalla Vista impero** con un pulsante da mettere nei preferiti del browser (bookmarklet): legge solo la pagina aperta, senza fare richieste al gioco e senza leggere la sessione, apre l'app con i numeri e mostra ogni modifica prima di salvare. Edifici e ricerche in corso contano come già fatti. Si può importare anche dopo l'inserimento a mano, collegando ogni pianeta del gioco a uno già salvato (`src/importer.js`)
+- **Importazione dalla Vista impero** con un pulsante da mettere nei preferiti del browser (bookmarklet): legge la pagina aperta e il file pubblico del server (`/api/serverData.xml`: velocità delle ricerche e punti del primo in classifica), senza leggere la sessione, apre l'app con i numeri e mostra ogni modifica prima di salvare. Edifici e ricerche in corso contano come già fatti. Si può importare anche dopo l'inserimento a mano, collegando ogni pianeta del gioco a uno già salvato (`src/importer.js`)
 - **Piano dei consigli**: l'app sceglie l'upgrade migliore, lo considera fatto, ricalcola e sceglie il successivo. Un livello per riga; i livelli successivi della stessa costruzione compaiono più in basso, già calcolati, e il dettaglio dice a che numero della lista si trova il prossimo livello
 - Energia inclusa: se un upgrade richiede più energia, al costo si aggiunge la soluzione più economica (satelliti solari o livelli di centrale solare). I deficit di energia vengono segnalati per primi
 - Filtri: tipi di consiglio a scelta multipla (miniere, edifici forme di vita, ricerche forme di vita, Plasma e colonia) e pianeti da includere; il piano viene calcolato solo con quello che hai scelto
@@ -58,8 +59,8 @@ Pubblica `index.html` su un qualsiasi hosting statico (per esempio Netlify).
 Aggiungi in cima a `src/changelog.js` una voce con l'`id` successivo, la data, un titolo e una breve descrizione, poi rifai la build. Se l'aggiornamento cambia il pulsante dei preferiti, aggiungi `bookmarklet: true`: nelle Novità comparirà il menu con le istruzioni per sostituirlo. Ogni utente salva l'ultimo id che ha visto (`profiles.last_seen_update`) e al prossimo accesso vede tutte le voci con id più alto. Non rinumerare mai le voci esistenti.
 
 ## Database (Supabase)
-- `profiles`: una riga per utente (classe, velocità, tecnologie, ufficiali, bonus, livelli delle razze, fascia del primo in classifica, valore delle risorse, limiti "ferma al livello")
-- `planets`: una riga per pianeta (coordinate, temperatura, livelli degli edifici, Fabbrica di robot e Naniti, satelliti, crawler, item, razza, edifici e ricerche forme di vita in JSON, bilancio energetico del gioco, inclusione nei calcoli)
+- `profiles`: una riga per account di gioco (più account per utente, uno per universo) (classe, velocità, tecnologie, ufficiali, bonus, livelli delle razze, fascia del primo in classifica, valore delle risorse, limiti "ferma al livello")
+- `planets`: una riga per pianeta, legata al suo account (coordinate, temperatura, livelli degli edifici, Fabbrica di robot e Naniti, satelliti, crawler, item, razza, edifici e ricerche forme di vita in JSON, bilancio energetico del gioco, inclusione nei calcoli)
 
 ## Precisione
 `tests/reference.test.js` riproduce una pagina "Impostazioni risorse" del gioco (metallo, cristallo, deuterio ed energia all'ora) con uno scarto di pochi punti. I bonus si sommano come nel gioco: il bonus di posizione moltiplica la produzione base della miniera e tutti gli altri bonus (Plasma, ufficiali, classe, alleanza Mercante, forme di vita, item) sono una percentuale di quel valore. Costi di miniere con Centro di Mineralogia, edifici Rock'tal e ricerche forme di vita T1/T2 sono confrontati con le schermate del gioco.

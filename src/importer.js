@@ -38,7 +38,7 @@ function grabEmpire(html, meta) {
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 4, at: Date.now(),
+    v: 5, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     srv: String(meta('universe') || '').split('.')[0],
@@ -71,6 +71,9 @@ function bookmarkletHref(appUrl) {
   const code = `(function(){
     var meta=function(n){var m=document.querySelector('meta[name="ogame-'+n+'"]');return m?m.content:'';};
     var r=(${grabEmpire.toString()})(document.documentElement.innerHTML,meta);
+    try{var x=new XMLHttpRequest();x.open('GET','/api/serverData.xml',false);x.send();
+      var tag=function(n){var m=x.responseText.match(new RegExp('<'+n+'>([^<]*)</'+n+'>'));return m?+m[1]:0;};
+      r.sd={rd:tag('researchDurationDivisor'),top:tag('topScore')};}catch(e){}
     if(r.error==='moons'){alert('OGame Advisor: apri la scheda Pianeti della Vista impero, non le Lune.');return;}
     if(r.error){alert('OGame Advisor: apri la Vista impero del gioco e premi di nuovo il pulsante.');return;}
     window.open(${JSON.stringify(appUrl)}+'#import='+encodeURIComponent(JSON.stringify(r)),'_blank');
@@ -105,8 +108,12 @@ function serverInfo(snap) {
 
 function mapImport(snap, existing, LF) {
   const profile = {};
+  // dati pubblici del server (serverData.xml, letti dal pulsante dalla versione 5): velocità delle ricerche = velocità × divisore
+  const sd = snap.sd || {};
   const info = serverInfo(snap);
-  if (info && info.research) profile.research_speed = info.research;
+  if (sd.rd > 0 && snap.spd > 0) profile.research_speed = snap.spd * sd.rd;
+  else if (info && info.research) profile.research_speed = info.research;
+  if (sd.top > 0) profile.top1_points = Math.round(sd.top);
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
   // livelli delle ricerche per id del gioco (la versione 1 del bookmarklet li mandava per nome)
@@ -173,7 +180,7 @@ function mapImport(snap, existing, LF) {
 }
 
 // I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo
-const BOOKMARKLET_VERSION = 4;
+const BOOKMARKLET_VERSION = 5;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
 const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, serverInfo, SERVERS, BOOKMARKLET_VERSION };

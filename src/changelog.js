@@ -4,6 +4,14 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 56, date: '2026-10-30', title: 'Dati del server in automatico', bookmarklet: true,
+    text: 'Importando dalla Vista impero, il pulsante dei preferiti legge anche i dati pubblici del server: velocità delle ricerche e punti del primo in classifica (per il massimale delle spedizioni) si impostano da soli. Restano da inserire a mano solo ufficiali e livelli delle razze.',
+  },
+  {
+    id: 55, date: '2026-10-30', title: 'Più account, uno per universo',
+    text: 'Se giochi in più universi puoi aggiungere un account per ognuno in Impostazioni → Account di gioco, e passare dall\'uno all\'altro dal menu in alto. Importando dalla Vista impero, i dati vanno da soli nell\'account dello stesso server; se il server è nuovo, l\'app ti chiede dove caricarli.',
+  },
+  {
     id: 54, date: '2026-10-30', title: 'Produzione al giorno e pulsante dei preferiti sempre pronto',
     text: 'Nei Consigli, sotto la produzione oraria, c\'è anche quella al giorno. In alto, accanto a Novità, c\'è il pulsante "OGame Advisor" da trascinare nei preferiti: è sempre l\'ultima versione.',
   },

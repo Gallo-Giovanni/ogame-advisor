@@ -70,4 +70,8 @@ assert.strictEqual(mapImport({ ...snap, uni: 'West', srv: 's278-it' }, [], LF).p
 assert.strictEqual(mapImport({ ...snap, uni: 'xolotlan', srv: 's279-it' }, [], LF).profile.research_speed, 16);
 assert.strictEqual(mapImport({ ...snap, uni: 'West', srv: 's278-de' }, [], LF).profile.research_speed, undefined); // lingua sconosciuta: resta quella inserita
 assert.strictEqual(I.serverInfo({ uni: 'Sconosciuto', srv: 's1-it' }), null);
+// Dati del server dal file pubblico serverData.xml: velocità 5 × divisore 3 = 15, punti del primo arrotondati
+const withSd = mapImport({ ...snap, spd: 5, uni: 'Nuovo', srv: 's999-it', sd: { rd: 3, top: 60283727.265 } }, [], LF).profile;
+assert.strictEqual(withSd.research_speed, 15);
+assert.strictEqual(withSd.top1_points, 60283727);
 console.log('Controlli sull\'importazione superati');
