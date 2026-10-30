@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 58, date: '2026-10-31', title: 'Energia: satelliti, centrale solare o a fusione',
-    text: 'Quando un upgrade richiede energia, l\'app confronta satelliti solari, centrale solare e centrale a fusione (contando anche il deuterio che la fusione brucia ogni ora) e consiglia la soluzione che si ripaga prima; nel dettaglio vedi anche le alternative con il loro costo. In Impostazioni puoi spuntare "Per l\'energia consiglia solo satelliti".',
+    text: 'Quando un upgrade richiede energia, l\'app confronta satelliti solari, centrale solare e centrale a fusione (contando anche il deuterio che la fusione brucia ogni ora) e consiglia solo la soluzione che costa meno. In Impostazioni puoi spuntare "Per l\'energia consiglia solo satelliti".',
   },
   {
     id: 57, date: '2026-10-31', title: 'Item attivi e popolazione dalla Vista impero', bookmarklet: true,

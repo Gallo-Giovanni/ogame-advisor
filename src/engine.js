@@ -347,7 +347,7 @@ const Engine = (() => {
       ? (ctx.gainEq - o.fuelEq > 0 ? (ctx.costEq + o.eq) / (ctx.gainEq - o.fuelEq) : Infinity)
       : o.eq + o.fuelEq * FUEL_HOURS;
     const best = opts.reduce((b, o) => (score(o) < score(b) ? o : b));
-    return { ...best, alts: opts.filter(o => o !== best) }; // le altre opzioni, per il confronto nel dettaglio
+    return best;
   }
 
   const MINES = [
@@ -673,8 +673,7 @@ const Engine = (() => {
       : f.kind === 'fusion'
         ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)`
         : `Centrale solare ${f.from} → ${f.to}`;
-    const alts = (fix.alts || []).map(a => `${one(a)}: ${fmt(a.eq)}`);
-    return one(fix) + (alts.length ? ` (${fmt(fix.eq)} in metallo eq.; costano di più ${alts.join(' · ')})` : '');
+    return one(fix);
   }
 
   function fmt(n) {
