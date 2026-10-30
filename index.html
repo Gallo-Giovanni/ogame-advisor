@@ -137,6 +137,7 @@
   .bm-top { align-self: center; margin-right: 4px; }
   .acc-switch { width: auto; max-width: 260px; padding: 4px 8px; align-self: center; }
   button.ghost.danger-text { color: var(--bad); }
+  tr.soon td { color: var(--bad); }
   @media (pointer: coarse) { .bm-top { display: none; } }
   .bm { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #0b1020 !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .imp { border-top: 1px solid var(--line); padding-top: 8px; }
@@ -1899,7 +1900,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 57, date: '2026-10-31', title: 'Item attivi e popolazione dalla Vista impero', bookmarklet: true,
-    text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni nella scheda Bonus. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
+    text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni. Nella scheda Bonus c\'è l\'elenco degli item attivi con la scadenza, in rosso quelli che scadono entro 24 ore. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
   },
   {
     id: 56, date: '2026-10-30', title: 'Dati del server in automatico', bookmarklet: true,
@@ -3438,6 +3439,18 @@ function renderBonus() {
       <p class="muted small" style="margin:0">Valori della pagina "Bonus classe personaggio" del gioco${enh ? '' : '. Il potenziamento della classe arriva con le ricerche forme di vita T3 dedicate'}.</p>
     </div>` + expHtml + h;
   } else h = expHtml + h;
+  // Item attivi letti dalla Vista impero, dal primo che scade
+  const now = Date.now(), EFF = { item_metal: 'metallo', item_crystal: 'cristallo', item_deut: 'deuterio', item_all: 'tutte le risorse', item_energy: 'energia' };
+  const its = [];
+  for (const p of state.planets) for (const [k, e] of Object.entries(p.item_expiry || {}))
+    if (e && e.until > now && +p[k] > 0) its.push({ name: e.name, where: p.name, eff: `+${+p[k]}% ${EFF[k]}`, until: e.until });
+  if (xItem && xItem.until > now) its.push({ name: xItem.name, where: 'tutto l\'account', eff: `+${xItem.pct}% risorse in spedizione`, until: xItem.until });
+  its.sort((a, b) => a.until - b.until);
+  const left = t => { const m = Math.floor((t - now) / 60000), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60); return d ? `${d}g ${hh}o` : hh ? `${hh}o ${m % 60}m` : `${m % 60}m`; };
+  if (its.length) h = `<div class="card stack"><h2 class="bh">Item attivi</h2>
+    <table class="btable"><tr><th>Item</th><th>Dove</th><th>Effetto</th><th>Scade</th><th>Tra</th></tr>
+    ${its.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}</td><td>${esc(x.where)}</td><td>${x.eff}</td><td>${whenText(x.until)}</td><td>${left(x.until)}</td></tr>`).join('')}</table>
+    <p class="muted small" style="margin:0">Dall'ultima importazione dalla Vista impero. In rosso quelli che scadono entro 24 ore; quando un item scade l'app smette di contarlo.</p></div>` + h;
   if (all.recon_fleet_speed) h += `<div class="card stack"><h2 class="bh">Altro</h2>${table(['', 'Bonus'], [row('Velocità delle flotte nei voli di ricognizione', [all.recon_fleet_speed])])}</div>`;
   $('#bonus-panel').innerHTML = h;
 }
