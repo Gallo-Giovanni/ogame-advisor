@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 57, date: '2026-10-31', title: 'Item attivi e popolazione dalla Vista impero', bookmarklet: true,
-    text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni. Nella scheda Bonus c\'è l\'elenco degli item attivi con la scadenza, in rosso quelli che scadono entro 24 ore. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
+    text: 'L\'importazione legge anche gli item attivi su ogni pianeta (amplificatori di metallo, cristallo, deuterio, energia e di tutte le risorse) con la loro scadenza, e l\'amplificatore delle spedizioni. Nella nuova scheda Item, accanto a Bonus, c\'è l\'elenco degli item attivi con la scadenza, in rosso quelli che scadono entro 24 ore. Quando un item scade, l\'app smette di contarlo. Arrivano anche popolazione e cibo di ogni pianeta, per la futura sezione Popolazione.',
   },
   {
     id: 56, date: '2026-10-30', title: 'Dati del server in automatico', bookmarklet: true,

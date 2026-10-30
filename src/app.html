@@ -384,6 +384,7 @@
       <button class="tab active" data-tab="advice">Consigli</button>
       <button class="tab" data-tab="planets">Pianeti</button>
       <button class="tab" data-tab="bonus">Bonus</button>
+      <button class="tab" data-tab="items">Item</button>
       <button class="tab" data-tab="trade">Scambi</button>
       <button class="tab" data-tab="costs">Costi</button>
       <button class="tab" data-tab="settings">Impostazioni</button>
@@ -515,6 +516,7 @@
     </section>
 
     <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
+    <section data-panel="items" class="stack hidden" id="items-panel"></section>
 
     <section data-panel="costs" class="stack hidden">
       <div class="card stack">
@@ -945,7 +947,7 @@ function renderApp() {
   const sw = $('#acc-switch');
   sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
   sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -1858,6 +1860,27 @@ $('#wiz4-finish').addEventListener('click', async () => {
 });
 
 /* Bonus: tutti i bonus attivi, a gruppi (classe, spedizioni, miniere, energia, tempi) */
+/* Item attivi: scheda a sé, accanto a Bonus */
+function renderItems() {
+  const xItem = (state.profile.items || {}).expedition;
+  // Item attivi letti dalla Vista impero, dal primo che scade
+  const now = Date.now(), EFF = { item_metal: 'metallo', item_crystal: 'cristallo', item_deut: 'deuterio', item_all: 'tutte le risorse', item_energy: 'energia' };
+  const its = [];
+  for (const p of state.planets) for (const [k, e] of Object.entries(p.item_expiry || {}))
+    if (e && e.until > now && +p[k] > 0) its.push({ name: e.name, where: p.name, eff: `+${+p[k]}% ${EFF[k]}`, until: e.until });
+  // booster inseriti a mano (senza scadenza conosciuta)
+  for (const p of state.planets) for (const k of Object.keys(EFF))
+    if (+p[k] > 0 && !((p.item_expiry || {})[k])) its.push({ name: 'Inserito a mano', where: p.name, eff: `+${+p[k]}% ${EFF[k]}`, until: Infinity });
+  if (xItem && xItem.until > now) its.push({ name: xItem.name, where: 'tutto l\'account', eff: `+${xItem.pct}% risorse in spedizione`, until: xItem.until });
+  its.sort((a, b) => a.until - b.until);
+  const left = t => { const m = Math.floor((t - now) / 60000), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60); return d ? `${d}g ${hh}o` : hh ? `${hh}o ${m % 60}m` : `${m % 60}m`; };
+  $('#items-panel').innerHTML = its.length ? `<div class="card stack"><h2 class="bh">Item attivi</h2>
+    <table class="btable"><tr><th>Item</th><th>Dove</th><th>Effetto</th><th>Scade</th><th>Tra</th></tr>
+    ${its.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}</td><td>${esc(x.where)}</td><td>${x.eff}</td><td>${x.until === Infinity ? '—' : whenText(x.until)}</td><td>${x.until === Infinity ? '—' : left(x.until)}</td></tr>`).join('')}</table>
+    <p class="muted small" style="margin:0">Dall'ultima importazione dalla Vista impero. In rosso quelli che scadono entro 24 ore; quando un item scade l'app smette di contarlo.</p></div>`
+    : '<div class="card stack"><h2 class="bh">Item attivi</h2><p class="muted small" style="margin:0">Nessun item attivo. Gli item arrivano con l\'importazione dalla Vista impero (pulsante dei preferiti aggiornato), oppure si spuntano a mano nei Booster di ogni pianeta.</p></div>';
+}
+
 function renderBonus() {
   const prof = numericProfile(state.profile);
   const planets = Engine.active(state.planets);
@@ -1991,18 +2014,6 @@ function renderBonus() {
       <p class="muted small" style="margin:0">Valori della pagina "Bonus classe personaggio" del gioco${enh ? '' : '. Il potenziamento della classe arriva con le ricerche forme di vita T3 dedicate'}.</p>
     </div>` + expHtml + h;
   } else h = expHtml + h;
-  // Item attivi letti dalla Vista impero, dal primo che scade
-  const now = Date.now(), EFF = { item_metal: 'metallo', item_crystal: 'cristallo', item_deut: 'deuterio', item_all: 'tutte le risorse', item_energy: 'energia' };
-  const its = [];
-  for (const p of state.planets) for (const [k, e] of Object.entries(p.item_expiry || {}))
-    if (e && e.until > now && +p[k] > 0) its.push({ name: e.name, where: p.name, eff: `+${+p[k]}% ${EFF[k]}`, until: e.until });
-  if (xItem && xItem.until > now) its.push({ name: xItem.name, where: 'tutto l\'account', eff: `+${xItem.pct}% risorse in spedizione`, until: xItem.until });
-  its.sort((a, b) => a.until - b.until);
-  const left = t => { const m = Math.floor((t - now) / 60000), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60); return d ? `${d}g ${hh}o` : hh ? `${hh}o ${m % 60}m` : `${m % 60}m`; };
-  if (its.length) h = `<div class="card stack"><h2 class="bh">Item attivi</h2>
-    <table class="btable"><tr><th>Item</th><th>Dove</th><th>Effetto</th><th>Scade</th><th>Tra</th></tr>
-    ${its.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}</td><td>${esc(x.where)}</td><td>${x.eff}</td><td>${whenText(x.until)}</td><td>${left(x.until)}</td></tr>`).join('')}</table>
-    <p class="muted small" style="margin:0">Dall'ultima importazione dalla Vista impero. In rosso quelli che scadono entro 24 ore; quando un item scade l'app smette di contarlo.</p></div>` + h;
   if (all.recon_fleet_speed) h += `<div class="card stack"><h2 class="bh">Altro</h2>${table(['', 'Bonus'], [row('Velocità delle flotte nei voli di ricognizione', [all.recon_fleet_speed])])}</div>`;
   $('#bonus-panel').innerHTML = h;
 }
