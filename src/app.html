@@ -66,6 +66,10 @@
 
   /* Accesso */
   .auth { max-width: 420px; margin: 8vh auto 0; }
+  .intro { margin-bottom: 14px; line-height: 1.45; }
+  .intro h2 { margin: 0 0 8px; }
+  .intro p { margin: 0 0 8px; }
+  .intro ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
   .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
   .logo {
     width: 44px; height: 44px; border-radius: 50%;
@@ -260,19 +264,29 @@
     <header class="top"><h1>Configura il tuo impero</h1><div class="row" style="gap:4px"><button class="ghost hidden" id="onb-back">Torna ai tuoi account</button><button class="ghost" data-action="logout">Esci</button></div></header>
     <div class="steps"><div class="step" data-step="1"></div><div class="step" data-step="2"></div><div class="step" data-step="3"></div></div>
 
+    <div class="card intro" data-wiz="0">
+      <h2>Cosa fa OGame Advisor</h2>
+      <p>Ti dice <b>quale upgrade conviene fare adesso</b>: mette in classifica miniere, edifici e ricerche delle forme di vita, Plasma e nuove colonie in base a quanto tempo serve perché si ripaghino con la produzione in più.</p>
+      <ul>
+        <li><b>Un piano passo per passo</b>, filtrabile per tipo e per pianeta, con energia e forme di vita già nei calcoli.</li>
+        <li><b>Calcolatore dei costi</b> di edifici e ricerche, con tempi, punti, risorse mancanti e Cargo necessari.</li>
+        <li><b>Bonus</b> del tuo impero (produzione, energia, spedizioni con il massimale di un ritrovamento) e <b>Scambi</b> al tasso del regolamento.</li>
+        <li><b>Più universi</b>: un account per ogni server, da PC e da telefono.</li>
+      </ul>
+    </div>
     <div class="card stack" data-wiz="0">
       <h2>Come vuoi caricare il tuo impero?</h2>
       <div class="choice">
         <div class="card stack opt">
           <h3 style="margin:0">Importa dal gioco <span class="tag-rec">consigliato</span></h3>
-          <p class="small" style="margin:0">Un clic e arrivano tutti i pianeti: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, velocità, Plasma, Energia e Astrofisica.</p>
+          <p class="small" style="margin:0">Un clic e arrivano tutti i pianeti: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, ricerche, velocità del server e punti del primo in classifica.</p>
           <ol class="small" style="margin:0;padding-left:20px">
             <li>Trascina questo pulsante sulla barra dei preferiti: <a class="bm" data-bm href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
             <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
             <li>Premi <b>OGame Advisor</b> nei preferiti: si apre l'app con l'elenco di cosa verrà salvato.</li>
           </ol>
           <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: sul telefono questi preferiti non funzionano.</p>
-          <p class="muted small" style="margin:0">Il pulsante legge solo la pagina che hai aperto: non fa richieste al gioco e non legge la sessione.</p>
+          <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco e non legge la sessione.</p>
         </div>
         <div class="card stack opt">
           <h3 style="margin:0">Inserisci a mano</h3>
