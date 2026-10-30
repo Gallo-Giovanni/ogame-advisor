@@ -64,4 +64,10 @@ assert.strictEqual(grabEmpire(html.replace('planetType = 0', 'planetType = 1'), 
 const href = bookmarkletHref('https://example.org/app/');
 assert.ok(href.startsWith('javascript:'));
 new Function(decodeURIComponent(href.slice('javascript:'.length)));
+// Velocità delle ricerche dalla tabella dei server, riconosciuto da lingua e nome dell'universo
+const I = require('../src/importer.js');
+assert.strictEqual(mapImport({ ...snap, uni: 'West', srv: 's278-it' }, [], LF).profile.research_speed, 15);
+assert.strictEqual(mapImport({ ...snap, uni: 'xolotlan', srv: 's279-it' }, [], LF).profile.research_speed, 16);
+assert.strictEqual(mapImport({ ...snap, uni: 'West', srv: 's278-de' }, [], LF).profile.research_speed, undefined); // lingua sconosciuta: resta quella inserita
+assert.strictEqual(I.serverInfo({ uni: 'Sconosciuto', srv: 's1-it' }), null);
 console.log('Controlli sull\'importazione superati');

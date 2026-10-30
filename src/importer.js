@@ -83,8 +83,30 @@ const RACE_IDS = { humans: 11, rocktal: 12, mechas: 13, kaelesh: 14 };
 const CLASS_IDS = { 1: 'collector', 2: 'general', 3: 'explorer' };
 const ALLY_TRADER_ID = 2; // classe dell'alleanza nei meta della pagina: 1 Guerriero, 2 Mercante, 3 Ricercatore (gioco, confermato dal giocatore)
 
+// Impostazioni dei server che la pagina del gioco non contiene (velocità delle ricerche), per lingua e nome dell'universo.
+// Fonte: elenco degli universi del forum italiano di OGame (ottobre 2026). La velocità dell'economia arriva già dalla pagina.
+const SERVERS = {
+  it: {
+    Quadrantids: { n: 195, eco: 10, research: 20 }, Yin: { n: 254, eco: 10, research: 20 }, Imai: { n: 264, eco: 8, research: 16 },
+    Jishui: { n: 265, eco: 8, research: 16 }, Keid: { n: 266, eco: 8, research: 16 }, Lyra: { n: 267, eco: 8, research: 16 },
+    Mars: { n: 268, eco: 8, research: 16 }, Nembus: { n: 269, eco: 8, research: 16 }, Ophiuchus: { n: 270, eco: 8, research: 16 },
+    Pluto: { n: 271, eco: 8, research: 16 }, 'Quasi-Stellar': { n: 272, eco: 8, research: 16 }, Regulus: { n: 273, eco: 8, research: 16 },
+    Scorpius: { n: 274, eco: 8, research: 16 }, Titania: { n: 275, eco: 8, research: 16 }, Ukdah: { n: 276, eco: 8, research: 16 },
+    Veritate: { n: 277, eco: 8, research: 16 }, West: { n: 278, eco: 5, research: 15 }, Xolotlan: { eco: 8, research: 16 },
+  },
+};
+// Impostazioni conosciute del server dell'importazione (lingua dal codice del server, es. s278-it)
+function serverInfo(snap) {
+  const lang = String(snap.srv || '').split('-')[1];
+  const list = SERVERS[lang] || {};
+  const name = Object.keys(list).find(k => k.toLowerCase() === String(snap.uni || '').trim().toLowerCase());
+  return name ? list[name] : null;
+}
+
 function mapImport(snap, existing, LF) {
   const profile = {};
+  const info = serverInfo(snap);
+  if (info && info.research) profile.research_speed = info.research;
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
   // livelli delle ricerche per id del gioco (la versione 1 del bookmarklet li mandava per nome)
@@ -154,5 +176,5 @@ function mapImport(snap, existing, LF) {
 const BOOKMARKLET_VERSION = 4;
 const outdated = snap => !(snap.v >= BOOKMARKLET_VERSION);
 
-const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, BOOKMARKLET_VERSION };
+const Importer = { grabEmpire, bookmarkletHref, mapImport, outdated, serverInfo, SERVERS, BOOKMARKLET_VERSION };
 if (typeof module !== 'undefined') module.exports = Importer;
