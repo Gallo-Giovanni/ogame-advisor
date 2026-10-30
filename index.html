@@ -2298,7 +2298,7 @@ function renderAdvice() {
   const sel = chosen.length === 1 ? chosen[0] : null;
   const RK = { Metallo: 'metal', Cristallo: 'crystal', Deuterio: 'deut' };
   const resStat = (label, cls, v) =>
-    `<div class="it res" title="${label}">${ri(RK[label])}<div><div><span class="v ${cls}">${fmt(v)}</span> <span class="muted small">/h</span></div><div class="day small muted">${fmt(v * 24)} /giorno</div></div></div>`;
+    `<div class="it res" title="${label}">${ri(RK[label])}<div><div><span class="v ${cls}">${fmt(v)}</span> <span class="muted small">/h</span></div><div class="day"><span class="v ${cls}">${fmt(v * 24)}</span> <span class="muted small">/giorno</span></div></div></div>`;
 
   if (sel) {
     // Un solo pianeta: la sua produzione e la sua energia
