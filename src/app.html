@@ -161,6 +161,8 @@
   .pe-grid h3 { margin: 0; }
   .pe-wide { grid-column: span 2; }
   .pe-full { grid-column: 1 / -1; }
+  .pe-sub { margin: 4px 0 2px; }
+  [data-pecard].off { display: none; }
   @media (max-width: 1060px) { .pe-wide { grid-column: auto; } }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
@@ -369,7 +371,7 @@
 
     <div class="card stack hidden" data-wiz="3">
       <h2>3 · Pianeti</h2>
-      <p>Ora aggiungi i tuoi pianeti, uno alla volta. Ogni pianeta ha la sua scheda con le sezioni Generale, Miniere, Energia, Item e Forme di vita.</p>
+      <p>Ora aggiungi i tuoi pianeti, uno alla volta. Ogni pianeta ha la sua scheda, divisa in due: Risorse e strutture (generale, miniere, energia, booster) e Forme di vita.</p>
       <p class="muted small">Ti basta la <b>Vista impero</b> del gioco.</p>
       <div id="wiz-msg" class="msg hidden"></div>
       <div class="row"><button class="secondary" data-next="2">Indietro</button><button id="wiz-finish">Salva e aggiungi i pianeti</button></div>
@@ -438,11 +440,15 @@
           <h2 id="pe-title" style="margin:0"></h2>
           <span id="pe-dirty" class="small hidden" style="color:var(--warn)">Modifiche non salvate</span>
         </div>
+        <div class="tabs pe-sub" id="pe-sub">
+          <button type="button" class="tab active" data-pesub="res">Risorse e strutture</button>
+          <button type="button" class="tab" data-pesub="lf">Forme di vita</button>
+        </div>
         <div id="pe-msg" class="msg hidden"></div>
         <div id="pe-preview" class="grid"></div>
-        <div class="card" style="padding:12px"><div class="muted small" style="margin-bottom:8px">Riepilogo del pianeta</div><div id="pe-summary" class="tiles"></div></div>
+        <div class="card" style="padding:12px" data-pecard="res"><div class="muted small" style="margin-bottom:8px">Riepilogo del pianeta</div><div id="pe-summary" class="tiles"></div></div>
         <form id="pe-form" class="pe-grid" autocomplete="off" onsubmit="return false">
-          <div class="card stack">
+          <div class="card stack" data-pecard="res">
             <h3>Generale</h3>
             <div class="grid">
               <div><label>Nome</label><input data-f="name" placeholder="Es. Colonia 1"></div>
@@ -454,7 +460,7 @@
             <p class="muted small" style="margin:0">Delle coordinate [galassia:sistema:posizione] ai calcoli serve solo la posizione: decide il bonus di produzione. La temperatura serve per il deuterio e i satelliti.</p>
             <label class="check"><input type="checkbox" data-f="included"> Includi questo pianeta nei calcoli</label>
           </div>
-          <div class="card stack">
+          <div class="card stack" data-pecard="res">
             <h3>Miniere</h3>
             <div class="grid">
               <div><label>Miniera di metallo</label><input data-f="metal_mine" type="number" min="0"></div>
@@ -467,7 +473,7 @@
             </div>
             <p class="muted small" style="margin:0" id="pe-crawler-info">Funzionano al massimo 8 crawler per livello di miniera.</p>
           </div>
-          <div class="card stack">
+          <div class="card stack" data-pecard="res">
             <h3>Energia</h3>
             <div class="grid">
               <div><label>Centrale solare</label><input data-f="solar_plant" type="number" min="0"></div>
@@ -477,7 +483,7 @@
             </div>
             <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Vista impero, anche negativo, e arriva con l'importazione. È il valore più preciso, perché comprende anche l'energia usata dagli edifici delle forme di vita. Se cambi satelliti, centrali, miniere o crawler, l'app la aggiorna da sola.</p>
           </div>
-          <div class="card stack pe-wide">
+          <div class="card stack pe-wide" data-pecard="res">
             <h3>Booster attivi</h3>
             <p class="muted small" style="margin:0">Spunta i booster attivi su questo pianeta. Se ne spunti un altro nella stessa riga, sostituisce il precedente; tocca di nuovo per toglierlo.</p>
             <div id="boosters"></div>
@@ -485,7 +491,7 @@
             <input type="hidden" data-f="item_all"><input type="hidden" data-f="item_energy">
             <div class="small muted" id="booster-total"></div>
           </div>
-          <div class="card stack pe-full">
+          <div class="card stack pe-full" data-pecard="lf">
             <h3>Forme di vita</h3>
             <input type="hidden" data-f="lf_race">
             <div><label>Razza di questo pianeta</label><div class="chips" id="lf-race"></div></div>
@@ -1288,6 +1294,13 @@ function confirmLeavePlanet() {
   setPlanetDirty(false);
   return true;
 }
+// Scheda del pianeta: sottomenu "Risorse e strutture" / "Forme di vita"
+function showPlanetSub(sub) {
+  state.peSub = sub;
+  $$('#pe-sub [data-pesub]').forEach(b => b.classList.toggle('active', b.dataset.pesub === sub));
+  $$('[data-pecard]').forEach(c => c.classList.toggle('off', c.dataset.pecard !== sub));
+}
+$('#pe-sub').addEventListener('click', e => { const b = e.target.closest('[data-pesub]'); if (b) showPlanetSub(b.dataset.pesub); });
 function openPlanet(id, prefill) {
   if (state.editing && !confirmLeavePlanet()) return;
   const p = id ? state.planets.find(x => x.id === id) : { ...NEW_PLANET, ...(prefill || {}) };
@@ -1304,6 +1317,7 @@ function openPlanet(id, prefill) {
   $('#planets-list-view').classList.add('hidden');
   $('#planet-editor').classList.remove('hidden');
   renderPlanetPreview();
+  showPlanetSub(id ? (state.peSub || 'res') : 'res'); // un pianeta nuovo parte da risorse e strutture
   window.scrollTo(0, 0);
   if (!id) $('#pe-form [data-f="name"]').focus();
 }
