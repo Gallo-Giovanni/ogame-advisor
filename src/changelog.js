@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 68, date: '2026-10-31', title: 'Item attivi: tabella più ordinata',
+    text: 'La lista degli item attivi è ora una tabella con colonne separate e testi centrati. Il pianeta è nell\'ultima colonna, i pianeti seguono l\'ordine dell\'Impero e gli item di tutto l\'account vengono sempre dopo.',
+  },
+  {
     id: 67, date: '2026-10-31', title: 'Impero: barra di scorrimento anche sopra',
     text: 'Nella scheda Impero la barra per scorrere i pianeti c\'è anche sopra la tabella, e i titoli delle sezioni restano visibili mentre scorri.',
   },

@@ -139,8 +139,12 @@
   .acc-switch { width: auto; max-width: 260px; padding: 4px 8px; align-self: center; }
   button.ghost.danger-text { color: var(--bad); }
   tr.soon td { color: var(--bad); }
-  .items-table td:nth-child(3) { text-align: left; white-space: normal; }
-  .items-table th:nth-child(3) { text-align: left; }
+  .items-wrap { overflow-x: auto; }
+  table.items-grid { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  table.items-grid th, table.items-grid td { border: 1px solid var(--line); padding: 7px 10px; text-align: center; vertical-align: middle; }
+  table.items-grid th { background: var(--bg2); color: var(--muted); font-weight: 600; }
+  table.items-grid tr:nth-child(even) td { background: rgba(255, 255, 255, .02); }
+  table.items-grid td:nth-child(2) { white-space: normal; }
   @media (pointer: coarse) { .bm-top { display: none; } }
   .bm { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--accent); color: #0b1020 !important; font-weight: 700; text-decoration: none; cursor: grab; }
   .imp { border-top: 1px solid var(--line); padding-top: 8px; }
@@ -862,7 +866,7 @@ const accountOf = p => p.account_id || (state.accounts[0] && state.accounts[0].i
 function useAccount(profile) {
   state.profile = profile;
   state.activeAccount = profile ? profile.id : null;
-  state.planets = profile ? state.allPlanets.filter(p => accountOf(p) === profile.id) : [];
+  state.planets = profile ? state.allPlanets.filter(p => accountOf(p) === profile.id).sort((a, b) => (+a.sort_order || 0) - (+b.sort_order || 0) || String(a.created_at).localeCompare(String(b.created_at))) : [];
   if (profile) { try { localStorage.setItem('ogadv-account', profile.id); } catch (e) {} }
 }
 // un nuovo account dello stesso utente eredita le Novità già lette negli altri
@@ -1981,15 +1985,17 @@ function renderItems() {
     rows.push(e && e.until > now ? { name: e.name, desc: `+${+p[k]}% ${EFF[k]}`, where: p.name, until: e.until, prod: true }
       : { name: 'Inserito a mano', desc: `+${+p[k]}% ${EFF[k]}`, where: p.name, until: Infinity, prod: true });
   }
-  rows.sort((a, b) => a.until - b.until || String(a.where).localeCompare(b.where));
+  // in ordine di impero (come la lista dei pianeti), gli item dell'account sempre dopo; poi dal primo che scade
+  const order = w => { const i = state.planets.findIndex(p => p.name === w); return i < 0 ? state.planets.length : i; };
+  rows.sort((a, b) => order(a.where) - order(b.where) || a.until - b.until || a.name.localeCompare(b.name));
   const f = state.itemsFilter || 'all';
   const shown = rows.filter(r => f === 'all' || (f === 'prod' ? r.prod : !r.prod));
   const left = t => { const m = Math.floor((t - now) / 60000), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60); return d ? `${d}g ${hh}o` : hh ? `${hh}o ${m % 60}m` : `${m % 60}m`; };
   const chip = (v, l, n) => `<button type="button" class="chip" data-itf="${v}" aria-pressed="${f === v}"><span class="box">${f === v ? '✓' : ''}</span>${l} (${n})</button>`;
   $('#items-panel').innerHTML = `<div class="card stack"><h2 class="bh">Item attivi</h2>
     ${rows.length ? `<div class="chips">${chip('all', 'Tutti', rows.length)}${chip('prod', 'Utili per la produzione', rows.filter(r => r.prod).length)}${chip('other', 'Altri', rows.filter(r => !r.prod).length)}</div>
-    <table class="btable items-table"><tr><th>Item</th><th>Dove</th><th>Effetto</th><th>Scade</th><th>Tra</th></tr>
-    ${shown.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}${x.prod ? ' <span class="tag">produzione</span>' : ''}</td><td>${esc(x.where)}</td><td>${esc(x.desc || '')}</td><td>${x.perm ? 'permanente' : x.until === Infinity ? '—' : whenText(x.until)}</td><td>${x.until === Infinity ? '—' : left(x.until)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">Nessun item in questo filtro.</td></tr>'}</table>
+    <div class="items-wrap"><table class="items-grid"><tr><th>Item</th><th>Effetto</th><th>Scade</th><th>Tra</th><th>Pianeta</th></tr>
+    ${shown.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}${x.prod ? ' <span class="tag">produzione</span>' : ''}</td><td>${esc(x.desc || '')}</td><td>${x.perm ? 'permanente' : x.until === Infinity ? '—' : whenText(x.until)}</td><td>${x.until === Infinity ? '—' : left(x.until)}</td><td class="${x.where === 'tutto l\'account' ? 'muted' : ''}"><b>${esc(x.where)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="muted">Nessun item in questo filtro.</td></tr>'}</table></div>
     <p class="muted small" style="margin:0">Dall'ultima importazione dalla Vista impero. Gli item uguali su tutti i pianeti sono dell'account. In rosso quelli che scadono entro 24 ore; quando un item di produzione scade l'app smette di contarlo.</p>`
     : '<p class="muted small" style="margin:0">Nessun item attivo. Gli item arrivano con l\'importazione dalla Vista impero (pulsante dei preferiti aggiornato), oppure si spuntano a mano nei Booster di ogni pianeta.</p>'}</div>`;
 }
