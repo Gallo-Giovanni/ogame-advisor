@@ -165,12 +165,19 @@
   .pe-sub { margin: 4px 0 2px; }
   [data-pecard].off { display: none; }
   .emp-wrap { overflow-x: auto; margin: 0 -4px; }
+  .emp-top { overflow-x: auto; overflow-y: hidden; margin: 0 -4px; height: 14px; }
+  .emp-top > div { height: 1px; }
+  .emp-top, .emp-wrap { scrollbar-width: thin; scrollbar-color: var(--accent) var(--bg2); }
+  .emp-top::-webkit-scrollbar, .emp-wrap::-webkit-scrollbar { height: 10px; }
+  .emp-top::-webkit-scrollbar-track, .emp-wrap::-webkit-scrollbar-track { background: var(--bg2); border-radius: 6px; }
+  .emp-top::-webkit-scrollbar-thumb, .emp-wrap::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 6px; }
   table.emp { border-collapse: collapse; font-size: .85rem; min-width: 100%; }
   table.emp th, table.emp td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
   table.emp th[scope=row] { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; font-weight: 500; display: flex; align-items: center; gap: 8px; border-bottom: none; }
   table.emp .emp-pl { text-align: center; vertical-align: bottom; }
   table.emp .emp-pl button { padding: 2px 6px; font-weight: 700; }
   table.emp tr.emp-sec th { text-align: left; color: var(--accent); font: 700 .95rem Rajdhani, sans-serif; padding-top: 12px; }
+  table.emp tr.emp-sec th > span { position: sticky; left: 8px; }
   .emp-ic { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
   .emp-ic svg { width: 20px; height: 20px; }
   .slot-lock { flex-basis: 100%; color: var(--warn); }
@@ -2023,7 +2030,7 @@ function renderEmpire() {
       return `<td class="${c}">${txt}</td>`;
     }).join('')}</tr>`;
   };
-  const sec = t => `<tr class="emp-sec"><th colspan="${pls.length + 1}">${t}</th></tr>`;
+  const sec = t => `<tr class="emp-sec"><th colspan="${pls.length + 1}"><span>${t}</span></th></tr>`;
   let body = '';
   const st = pls.map(p => Engine.planetState(prof, p));
   const R3 = (k, f) => pls.map(p => (p.resources && p.resources[k] != null ? f(p.resources[k]) : null));
@@ -2076,12 +2083,25 @@ function renderEmpire() {
   const rs = RESEARCH_ORDER.filter(id => res[id] != null);
   $('#empire-panel').innerHTML = `<div class="card stack"><h2 class="bh">Impero</h2>
     <p class="muted small" style="margin:0">Tutti i pianeti a confronto: in <span class="emp-hi">verde</span> il livello più alto, in <span class="emp-lo">arancione</span> il più basso. Tocca il nome di un pianeta per aprire la sua scheda.</p>
-    <div class="emp-wrap"><table class="emp">${head}${body}</table></div></div>`
+    <div class="emp-top"><div></div></div><div class="emp-wrap"><table class="emp">${head}${body}</table></div></div>`
     + (rs.length ? `<div class="card stack"><h2 class="bh">Ricerche</h2><div class="tiles">${rs.map(id => { const g = +(((state.profile.items || {}).research || {})[id]) || 0;
       return g && g === +res[id] ? tile('research', RESEARCH_NAMES[id] + ' ▲', null, { text: `${g - 1}▲${g}` }) : tile('research', RESEARCH_NAMES[id], res[id]); }).join('')}</div>
       <p class="muted small" style="margin:0">Valgono per tutto l'account. Arrivano con l'importazione dalla Vista impero.</p></div>` : '');
+  setTimeout(syncEmpireScroll, 0);
 }
 $('#empire-panel').addEventListener('click', e => { const b = e.target.closest('[data-emp-open]'); if (b) { goToTab('planets'); openPlanet(b.dataset.empOpen); } });
+// barra di scorrimento anche sopra la tabella dell'Impero, sincronizzata con quella sotto
+function syncEmpireScroll() {
+  const top = $('#empire-panel .emp-top'), wrap = $('#empire-panel .emp-wrap');
+  if (!top || !wrap) return;
+  top.firstElementChild.style.width = wrap.scrollWidth + 'px';
+  top.classList.toggle('hidden', wrap.scrollWidth <= wrap.clientWidth + 1);
+  let lock = false;
+  top.onscroll = () => { if (lock) { lock = false; return; } lock = true; wrap.scrollLeft = top.scrollLeft; };
+  wrap.onscroll = () => { if (lock) { lock = false; return; } lock = true; top.scrollLeft = wrap.scrollLeft; };
+}
+window.addEventListener('resize', syncEmpireScroll);
+document.addEventListener('click', e => { if (e.target.closest('[data-tab="empire"]')) setTimeout(syncEmpireScroll, 0); });
 
 // icone originali degli edifici forme di vita, per funzione (le stesse per tutte le razze)
 Object.assign(ICONS, {

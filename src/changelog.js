@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 67, date: '2026-10-31', title: 'Impero: barra di scorrimento anche sopra',
+    text: 'Nella scheda Impero la barra per scorrere i pianeti c\'è anche sopra la tabella, e i titoli delle sezioni restano visibili mentre scorri.',
+  },
+  {
     id: 66, date: '2026-10-31', title: 'Popolazione: tutti gli edifici di supporto',
     text: 'Popolazione e Sblocco slot ora contano tutti gli edifici che cambiano spazio e cibo: Grattacielo, Laboratorio biotecnologico e Magazzino alimentare degli Umani, Sala assemblaggio e Linea di montaggio microchip dei Mecha, Crisalide, Convettore di antimateria e Modulatore psionico dei Kaelesh (che riduce la popolazione richiesta dagli slot). Il calcolo dello sblocco valuta anche quanto conviene alzarli. Verificato sulle tabelle di RiV-.',
   },
