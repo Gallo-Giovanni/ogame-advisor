@@ -164,6 +164,17 @@
   .pe-full { grid-column: 1 / -1; }
   .pe-sub { margin: 4px 0 2px; }
   [data-pecard].off { display: none; }
+  .emp-wrap { overflow-x: auto; margin: 0 -4px; }
+  table.emp { border-collapse: collapse; font-size: .85rem; min-width: 100%; }
+  table.emp th, table.emp td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  table.emp th[scope=row] { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; font-weight: 500; display: flex; align-items: center; gap: 8px; border-bottom: none; }
+  table.emp .emp-pl { text-align: center; vertical-align: bottom; }
+  table.emp .emp-pl button { padding: 2px 6px; font-weight: 700; }
+  table.emp tr.emp-sec th { text-align: left; color: var(--accent); font: 700 .95rem Rajdhani, sans-serif; padding-top: 12px; }
+  .emp-ic { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
+  .emp-ic svg { width: 20px; height: 20px; }
+  .emp-hi { color: var(--ok); font-weight: 700; }
+  .emp-lo { color: var(--warn); }
   .pop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
   .pop-cell { background: var(--bg2); border-radius: 8px; padding: 8px 10px; }
   .pop-cell b { font: 700 1.1rem Rajdhani, sans-serif; }
@@ -391,6 +402,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
       <button class="tab" data-tab="planets">Pianeti</button>
+      <button class="tab" data-tab="empire">Impero</button>
       <button class="tab" data-tab="bonus">Bonus</button>
       <button class="tab" data-tab="items">Item attivi</button>
       <button class="tab" data-tab="trade">Scambi</button>
@@ -530,6 +542,7 @@
       </div>
     </section>
 
+    <section data-panel="empire" class="stack hidden" id="empire-panel"></section>
     <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
     <section data-panel="items" class="stack hidden" id="items-panel"></section>
 
@@ -1361,10 +1374,11 @@ const Engine = (() => {
   // crescita all'ora = base x (L+1) x 1,2^L, cibo prodotto e consumato = base x (L+1) x fattore^L x velocità economia.
   // T2 = abitanti T1 x 1% per livello della "scuola"; T3 = T2 x 1% per livello del "liceo" (verificato: 10% e 5%).
   const POP = {
-    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14] },
+    // capBoost: [posizione dell'edificio nell'ordine del gioco, % di spazio in più per livello] (verificato sulle tabelle di RiV-)
+    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015] },
     rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
-    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12] },
-    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14] },
+    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02] },
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02] },
   };
   // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
   const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
@@ -1373,11 +1387,13 @@ const Engine = (() => {
   function popLevels(race, planet) {
     const o = LF && LF.races[race] ? LF.races[race].buildingOrder : null;
     const b = planet.lf_buildings || {};
-    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]] } : null;
+    const cb = POP[race] && POP[race].capBoost;
+    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]],
+      capBoost: cb ? (+b[o[cb[0]]] || 0) * cb[1] : 0, capBoostKey: cb ? o[cb[0]] : null } : null;
   }
   function population(race, lv, speed, imported) {
     const P = POP[race]; if (!P) return null;
-    const cap = Math.floor(popF(P.cap, lv.quarters)), growth = popF(P.growth, lv.quarters);
+    const cap = Math.floor(popF(P.cap, lv.quarters) * (1 + (lv.capBoost || 0))), growth = popF(P.growth, lv.quarters);
     const foodProd = popF(P.food, lv.farm) * speed, foodCons = popF(P.cons, lv.quarters) * speed;
     const satiety = foodCons > 0 ? Math.floor(cap * foodProd / foodCons) : 0;
     const t1 = imported != null ? imported : Math.min(cap, satiety);
@@ -1394,7 +1410,7 @@ const Engine = (() => {
     const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
     let best = null;
     for (let q = lv.quarters; q <= lv.quarters + 30; q++) {
-      const P = POP[race], cap = popF(P.cap, q);
+      const P = POP[race], cap = popF(P.cap, q) * (1 + (lv.capBoost || 0));
       let f = lv.farm; while (popF(P.food, f) * speed < popF(P.cons, q) * speed && f < lv.farm + 60) f++;
       const tryOne = (sc, hi) => {
         const t1 = cap, t2 = t1 * sc / 100, t3 = t2 * hi / 100;
@@ -2004,6 +2020,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 62, date: '2026-10-31', title: 'Scheda Impero',
+    text: 'Nuova scheda Impero: tutti i pianeti a confronto in una tabella, come la Vista impero del gioco, con produzione, risorse, popolazione, miniere, strutture, depositi ed edifici forme di vita; in verde il livello più alto e in arancione il più basso. Sotto, tutte le ricerche dell\'account. Nella Popolazione ora conta anche l\'edificio che aumenta lo spazio abitativo di Umani, Mecha e Kaelesh.',
+  },
+  {
     id: 61, date: '2026-10-31', title: 'Valore delle risorse: server, mercante o personalizzato',
     text: 'In Impostazioni puoi scegliere come l\'app dà valore alle risorse: con i valori del server (tasso ufficiale 2,5 : 1,5 : 1), con i valori massimi del mercante (3 : 2 : 1, cioè 1 cristallo = 1,5 metallo e 1 deuterio = 3 metallo) oppure, senza spunte, con i tuoi numeri.',
   },
@@ -2514,7 +2534,7 @@ function renderApp() {
   const sw = $('#acc-switch');
   sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
   sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderEmpire(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -2738,6 +2758,24 @@ const TILE_BG = {
   satellite: '#1b2a4a', crawler: '#352a19', mrc: '#2d1f3f', item: '#3a2c10', lf: '#1e2f2f',
 };
 const ri = k => `<span class="ri" aria-hidden="true">${ICONS[k]}</span>`;
+// icone originali per la scheda Impero (strutture, depositi, ricerche)
+Object.assign(ICONS, {
+  robot: '<svg viewBox="0 0 32 32"><rect x="9" y="9" width="14" height="12" rx="3" fill="#8b97b3"/><rect x="12" y="13" width="3" height="3" rx="1" fill="#f5a524"/><rect x="17" y="13" width="3" height="3" rx="1" fill="#f5a524"/><rect x="15" y="4" width="2" height="5" fill="#8b97b3"/><circle cx="16" cy="4" r="2" fill="#f5a524"/><rect x="7" y="22" width="18" height="5" rx="2" fill="#5d6884"/></svg>',
+  nanite: '<svg viewBox="0 0 32 32"><path d="M16 4l10 6v12l-10 6-10-6V10z" fill="#3b4a6e"/><circle cx="16" cy="11" r="2" fill="#7ad7ff"/><circle cx="11" cy="16" r="2" fill="#7ad7ff"/><circle cx="21" cy="16" r="2" fill="#7ad7ff"/><circle cx="16" cy="21" r="2" fill="#7ad7ff"/><circle cx="16" cy="16" r="1.5" fill="#e6ebff"/></svg>',
+  shipyard: '<svg viewBox="0 0 32 32"><path d="M4 18l12-9 12 9-4 4H8z" fill="#9aa5bb"/><path d="M13 13l3-2 3 2v5h-6z" fill="#6fd3ff"/><rect x="5" y="24" width="22" height="3" rx="1" fill="#5d6884"/><rect x="6" y="5" width="2" height="19" fill="#f5a524"/><rect x="6" y="5" width="10" height="2" fill="#f5a524"/></svg>',
+  lab: '<svg viewBox="0 0 32 32"><path d="M13 4h6v8l7 12a3 3 0 0 1-3 4H9a3 3 0 0 1-3-4l7-12z" fill="#2c3958"/><path d="M9 21h14l2.5 4a1.5 1.5 0 0 1-1.3 2H7.8a1.5 1.5 0 0 1-1.3-2z" fill="#3ddc97"/><rect x="12" y="3" width="8" height="2" rx="1" fill="#8b97b3"/><circle cx="14" cy="23" r="1" fill="#e6ffe9"/><circle cx="18" cy="24.5" r="1.2" fill="#e6ffe9"/></svg>',
+  store_m: '<svg viewBox="0 0 32 32"><ellipse cx="16" cy="8" rx="10" ry="3.5" fill="#c3cbdb"/><path d="M6 8v16c0 2 4.5 3.5 10 3.5S26 26 26 24V8c0 2-4.5 3.5-10 3.5S6 10 6 8z" fill="#7d879c"/><rect x="6" y="16" width="20" height="3" fill="#b8c2d9"/></svg>',
+  store_c: '<svg viewBox="0 0 32 32"><ellipse cx="16" cy="8" rx="10" ry="3.5" fill="#bdeeff"/><path d="M6 8v16c0 2 4.5 3.5 10 3.5S26 26 26 24V8c0 2-4.5 3.5-10 3.5S6 10 6 8z" fill="#3aa8d8"/><rect x="6" y="16" width="20" height="3" fill="#6fd3ff"/></svg>',
+  store_d: '<svg viewBox="0 0 32 32"><ellipse cx="16" cy="8" rx="10" ry="3.5" fill="#bff5df"/><path d="M6 8v16c0 2 4.5 3.5 10 3.5S26 26 26 24V8c0 2-4.5 3.5-10 3.5S6 10 6 8z" fill="#26a882"/><rect x="6" y="16" width="20" height="3" fill="#7cf0b2"/></svg>',
+  terraformer: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="#3a7bd5"/><path d="M10 13c3 1 4-2 7-1s2 4 5 4M9 19c3-1 5 2 8 1" stroke="#3ddc97" stroke-width="2.5" fill="none"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4" stroke="#f5a524" stroke-width="2"/></svg>',
+  depot: '<svg viewBox="0 0 32 32"><rect x="4" y="16" width="11" height="10" rx="1" fill="#b07a3c"/><rect x="17" y="16" width="11" height="10" rx="1" fill="#c48a45"/><rect x="10" y="5" width="12" height="10" rx="1" fill="#d9a35b"/><path d="M4 21h11M17 21h11M10 10h12" stroke="#6b4a24" stroke-width="1.2"/></svg>',
+  dock: '<svg viewBox="0 0 32 32"><path d="M4 26V12a12 12 0 0 1 24 0v14h-4V12a8 8 0 0 0-16 0v14z" fill="#5d6884"/><path d="M11 22l5-6 5 6-2 2h-6z" fill="#c3cbdb"/><rect x="3" y="26" width="26" height="2" fill="#8b97b3"/></svg>',
+  silo: '<svg viewBox="0 0 32 32"><path d="M16 3c3 3 4 7 4 11v9h-8v-9c0-4 1-8 4-11z" fill="#d6dbe8"/><path d="M12 18l-4 6h4zM20 18l4 6h-4z" fill="#ff5d73"/><circle cx="16" cy="11" r="2" fill="#36c5f0"/><rect x="11" y="23" width="10" height="3" fill="#f5a524"/><rect x="6" y="27" width="20" height="2" fill="#5d6884"/></svg>',
+  research: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="4" fill="#36c5f0"/><ellipse cx="16" cy="16" rx="12" ry="5" stroke="#8fd8ff" stroke-width="1.6" fill="none"/><ellipse cx="16" cy="16" rx="12" ry="5" stroke="#8fd8ff" stroke-width="1.6" fill="none" transform="rotate(60 16 16)"/><ellipse cx="16" cy="16" rx="12" ry="5" stroke="#8fd8ff" stroke-width="1.6" fill="none" transform="rotate(-60 16 16)"/></svg>',
+  pop: '<svg viewBox="0 0 32 32"><circle cx="11" cy="11" r="4" fill="#c3a7ff"/><circle cx="21" cy="11" r="4" fill="#9f7cf0"/><path d="M4 26c0-5 3-8 7-8s7 3 7 8z" fill="#c3a7ff"/><path d="M14 26c0-5 3-8 7-8s7 3 7 8z" fill="#9f7cf0"/></svg>',
+});
+Object.assign(TILE_BG, { robot: '#262f45', nanite: '#1d2640', shipyard: '#262f45', lab: '#15302a', store_m: '#2a3247', store_c: '#16344a', store_d: '#143a2c',
+  terraformer: '#172b45', depot: '#352a19', dock: '#262f45', silo: '#3a1622', research: '#132a3f', pop: '#2a1f45' });
 function tile(key, label, level, opts = {}) {
   const zero = !opts.text && !(+level > 0);
   return `<div class="tile ${zero ? 'zero' : ''} ${opts.wide ? 'wide' : ''}" title="${esc(label)}${opts.text ? '' : ' ' + level}">
@@ -3106,7 +3144,7 @@ function renderPopulation(p, prof) {
       h += `<b class="small">Per aprire lo slot ${st.open + 1} (${tierOf(st.open)}), la combinazione più economica</b>
         <table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th></tr>${rows.map(([k, a, b]) => `<tr><td>${esc(N(k))}</td><td>${a}</td><td><b>${b}</b></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nessun edificio: basta aspettare la crescita.</td></tr>'}
         <tr class="tot"><td>Costo</td><td colspan="2">${ri('metal')} ${fmt(plan.cost[0])} · ${ri('crystal')} ${fmt(plan.cost[1])} · ${ri('deut')} ${fmt(plan.cost[2])}</td></tr></table>
-        <p class="muted small" style="margin:0">${plan.tier === 3 ? `T3 previsti ${fmt(plan.t3)}` : plan.tier === 2 ? `T2 previsti ${fmt(plan.t2)}` : `Abitanti previsti ${fmt(plan.cap)}`} con lo spazio pieno; poi gli abitanti devono crescere fino a ${fmt(plan.cap)}: almeno ${durText(wait * 3600)} con la crescita del nuovo livello. ${race === 'rocktal' ? 'Costi già scontati dal Monolite. ' : ''}Gli edifici che aumentano spazio o cibo (alcuni di Umani, Mecha e Kaelesh) non sono ancora contati.</p>`;
+        <p class="muted small" style="margin:0">${plan.tier === 3 ? `T3 previsti ${fmt(plan.t3)}` : plan.tier === 2 ? `T2 previsti ${fmt(plan.t2)}` : `Abitanti previsti ${fmt(plan.cap)}`} con lo spazio pieno; poi gli abitanti devono crescere fino a ${fmt(plan.cap)}: almeno ${durText(wait * 3600)} con la crescita del nuovo livello. ${race === 'rocktal' ? 'Costi già scontati dal Monolite. ' : ''}Contati gli edifici che aumentano lo spazio abitativo; quelli che cambiano produzione o consumo di cibo (alcuni di Umani, Mecha e Kaelesh) non ancora.</p>`;
     }
   }
   box.innerHTML = h;
@@ -3474,6 +3512,63 @@ $('#items-panel').addEventListener('click', e => {
   const b = e.target.closest('[data-itf]'); if (!b) return;
   state.itemsFilter = b.dataset.itf; renderItems();
 });
+
+/* Impero: tutti i pianeti a confronto, come la Vista impero del gioco (icone originali). In verde il livello più alto, in arancione il più basso */
+const EMP_BUILD = [
+  ['Miniere ed energia', [['metal', 'Miniera di metallo', p => p.metal_mine], ['crystal', 'Miniera di cristallo', p => p.crystal_mine], ['deut', 'Sintetizzatore di deuterio', p => p.deut_synth],
+    ['solar', 'Centrale solare', p => p.solar_plant], ['fusion', 'Centrale a fusione', p => p.fusion_reactor], ['satellite', 'Satelliti solari', p => p.solar_satellites], ['crawler', 'Crawler', p => p.crawlers]]],
+  ['Strutture', [['robot', 'Fabbrica di robot', 14], ['nanite', 'Fabbrica di naniti', 15], ['shipyard', 'Cantiere spaziale', 21], ['lab', 'Laboratorio di ricerca', 31],
+    ['terraformer', 'Terraformer', 33], ['depot', 'Deposito dell\'alleanza', 34], ['dock', 'Porto spaziale', 36], ['silo', 'Silo missilistico', 44]]],
+  ['Depositi', [['store_m', 'Deposito di metallo', 22], ['store_c', 'Deposito di cristallo', 23], ['store_d', 'Cisterna di deuterio', 24]]],
+];
+const RESEARCH_NAMES = { 106: 'Spionaggio', 108: 'Computer', 109: 'Armi', 110: 'Scudi', 111: 'Corazze', 113: 'Energetica', 114: 'Iperspaziale', 115: 'Combustione',
+  117: 'Impulso', 118: 'Motore iper.', 120: 'Laser', 121: 'Ioni', 122: 'Plasma', 123: 'Rete ricerca', 124: 'Astrofisica', 199: 'Gravitoni' };
+function renderEmpire() {
+  const pls = state.planets, prof = numericProfile(state.profile);
+  if (!pls.length) { $('#empire-panel').innerHTML = '<div class="card"><p class="muted small" style="margin:0">Nessun pianeta: importa dalla Vista impero o aggiungili nella scheda Pianeti.</p></div>'; return; }
+  const ic = k => `<span class="emp-ic" style="background:${TILE_BG[k]}">${ICONS[k]}</span>`;
+  const val = (p, g) => (typeof g === 'function' ? g(p) : (p.buildings || {})[g]);
+  const row = (k, label, vals, opts = {}) => {
+    const nums = vals.filter(v => v !== null && v !== undefined && v !== '').map(Number);
+    const hi = Math.max(...nums), lo = Math.min(...nums), cmp = nums.length > 1 && hi > lo && !opts.noCmp;
+    return `<tr><th scope="row">${k ? ic(k) : ''}<span>${label}</span></th>${vals.map(v => {
+      const empty = v === null || v === undefined || v === '';
+      const c = empty ? 'muted' : cmp && +v === hi ? 'emp-hi' : cmp && +v === lo ? 'emp-lo' : '';
+      return `<td class="${c}">${empty ? '—' : opts.fmt ? opts.fmt(v) : fmt(+v)}</td>`;
+    }).join('')}</tr>`;
+  };
+  const sec = t => `<tr class="emp-sec"><th colspan="${pls.length + 1}">${t}</th></tr>`;
+  let body = '';
+  // produzione e risorse
+  const st = pls.map(p => Engine.planetState(prof, p));
+  body += sec('Produzione e risorse');
+  body += row('metal', 'Metallo all\'ora', st.map(x => Math.round(x.actual[0]))) + row('crystal', 'Cristallo all\'ora', st.map(x => Math.round(x.actual[1]))) + row('deut', 'Deuterio all\'ora', st.map(x => Math.round(x.actual[2])));
+  body += row('energy', 'Energia', st.map(x => Math.round(x.balance)), { fmt: v => `<span class="${+v < 0 ? 'neg' : ''}">${+v > 0 ? '+' : ''}${fmt(+v)}</span>` });
+  if (pls.some(p => p.resources)) body += row('metal', 'Metallo sul pianeta', pls.map(p => p.resources ? p.resources.m : null), { noCmp: true }) + row('crystal', 'Cristallo sul pianeta', pls.map(p => p.resources ? p.resources.c : null), { noCmp: true }) + row('deut', 'Deuterio sul pianeta', pls.map(p => p.resources ? p.resources.d : null), { noCmp: true });
+  if (pls.some(p => p.resources && p.resources.popMax)) body += row('pop', 'Popolazione', pls.map(p => p.resources && p.resources.popMax ? p.resources.pop : null));
+  body += row(null, 'Temperatura max', pls.map(p => p.temp_max), { noCmp: true, fmt: v => v + '°C' });
+  for (const [title, items] of EMP_BUILD) {
+    const rows = items.filter(([, , g]) => typeof g === 'function' || pls.some(p => val(p, g) != null));
+    if (!rows.length) continue;
+    body += sec(title) + rows.map(([k, l, g]) => row(k, l, pls.map(p => { const v = val(p, g); return v == null && typeof g !== 'function' ? (p.buildings && Object.keys(p.buildings).length ? 0 : null) : v; }))).join('');
+  }
+  // forme di vita: gli edifici di ogni razza presente
+  const races = LF_RACES.filter(r => pls.some(p => p.lf_race === r));
+  for (const r of races) {
+    const R = Engine.LF.races[r];
+    body += sec(`Forme di vita · ${RACE_NAMES[r]}`) + R.buildingOrder.map(k => row('lf', R.buildings[k].it,
+      pls.map(p => (p.lf_race !== r ? null : k === 'mineral_centre' ? +p.mrc_level || 0 : +((p.lf_buildings || {})[k]) || 0)))).join('');
+  }
+  const head = `<tr><th></th>${pls.map(p => `<th class="emp-pl"><button class="ghost" data-emp-open="${p.id}">${esc(p.name)}</button><div class="muted small">${esc(coordsText(p))}</div></th>`).join('')}</tr>`;
+  const res = state.profile.research || {};
+  const rs = Object.keys(RESEARCH_NAMES).filter(id => res[id] != null);
+  $('#empire-panel').innerHTML = `<div class="card stack"><h2 class="bh">Impero</h2>
+    <p class="muted small" style="margin:0">Tutti i pianeti a confronto: in <span class="emp-hi">verde</span> il livello più alto, in <span class="emp-lo">arancione</span> il più basso. Tocca il nome di un pianeta per aprire la sua scheda.</p>
+    <div class="emp-wrap"><table class="emp">${head}${body}</table></div></div>`
+    + (rs.length ? `<div class="card stack"><h2 class="bh">Ricerche</h2><div class="tiles">${rs.map(id => tile('research', RESEARCH_NAMES[id], res[id])).join('')}</div>
+      <p class="muted small" style="margin:0">Valgono per tutto l'account. Arrivano con l'importazione dalla Vista impero.</p></div>` : '');
+}
+$('#empire-panel').addEventListener('click', e => { const b = e.target.closest('[data-emp-open]'); if (b) { goToTab('planets'); openPlanet(b.dataset.empOpen); } });
 
 function renderBonus() {
   const prof = numericProfile(state.profile);

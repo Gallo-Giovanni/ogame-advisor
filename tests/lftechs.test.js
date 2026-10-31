@@ -108,3 +108,13 @@ console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
   assert.ok(Math.abs(E.population('rocktal', { ...lv, quarters: 65 }, 5).cap / 3.283e9 - 1) < 0.001);
   console.log('Popolazione uguale al gioco');
 }
+
+// Spazio abitativo delle altre razze con l'edificio che lo aumenta (tabelle di RiV-, docs/riferimenti)
+{
+  const cap = (r, q, b) => E.population(r, { quarters: q, farm: q, school: 0, high: 0, capBoost: b }, 1).cap;
+  assert.strictEqual(cap('mechas', 59, 11 * 0.02), 2196427401);
+  assert.strictEqual(cap('humans', 61, 11 * 0.015), 1701549151);
+  assert.strictEqual(cap('kaelesh', 60, 18 * 0.02), 1922786087);
+  assert.strictEqual(cap('rocktal', 62, 0), 1743064486);
+  console.log('Spazio abitativo di tutte le razze uguale alle tabelle');
+}

@@ -17,6 +17,7 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 - Booster (item) per pianeta, letti anche dalla Vista impero con la scadenza (gli item scaduti non contano più); il giocatore sceglie se contarli nella classifica, perché gli item scadono e gli upgrade no
 - Energia del gioco sempre aggiornata: cambiando satelliti, centrali, miniere o crawler il valore inserito si sposta della differenza calcolata
 - Scheda **Costi**: per ogni pianeta costi, punti e tempi di edifici, ricerche, edifici forme di vita e delle ricerche forme di vita scelte negli slot del pianeta
+- Scheda **Impero**: tutti i pianeti a confronto (produzione, risorse, popolazione, miniere, strutture, depositi, edifici forme di vita) con il più alto e il più basso evidenziati, e le ricerche dell'account
 - Scheda **Bonus**: classe, spedizioni (con il massimale di un ritrovamento e i Cargo pesanti necessari), produzione delle miniere, energia, tempi di costruzione e ricerca
 - Scheda **Scambi**: quanto ricevere in uno scambio tra giocatori con il tasso del regolamento (2,5 : 1,5 : 1) e la regola delle 72 ore
 - Nuova colonia: livelli di Astrofisica davvero necessari, nave colonizzatrice, miniere fino alla mediana dell'impero e l'energia per farle funzionare, confrontati con la produzione di un pianeta medio

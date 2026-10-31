@@ -356,10 +356,11 @@ const Engine = (() => {
   // crescita all'ora = base x (L+1) x 1,2^L, cibo prodotto e consumato = base x (L+1) x fattore^L x velocità economia.
   // T2 = abitanti T1 x 1% per livello della "scuola"; T3 = T2 x 1% per livello del "liceo" (verificato: 10% e 5%).
   const POP = {
-    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14] },
+    // capBoost: [posizione dell'edificio nell'ordine del gioco, % di spazio in più per livello] (verificato sulle tabelle di RiV-)
+    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015] },
     rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
-    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12] },
-    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14] },
+    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02] },
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02] },
   };
   // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
   const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
@@ -368,11 +369,13 @@ const Engine = (() => {
   function popLevels(race, planet) {
     const o = LF && LF.races[race] ? LF.races[race].buildingOrder : null;
     const b = planet.lf_buildings || {};
-    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]] } : null;
+    const cb = POP[race] && POP[race].capBoost;
+    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]],
+      capBoost: cb ? (+b[o[cb[0]]] || 0) * cb[1] : 0, capBoostKey: cb ? o[cb[0]] : null } : null;
   }
   function population(race, lv, speed, imported) {
     const P = POP[race]; if (!P) return null;
-    const cap = Math.floor(popF(P.cap, lv.quarters)), growth = popF(P.growth, lv.quarters);
+    const cap = Math.floor(popF(P.cap, lv.quarters) * (1 + (lv.capBoost || 0))), growth = popF(P.growth, lv.quarters);
     const foodProd = popF(P.food, lv.farm) * speed, foodCons = popF(P.cons, lv.quarters) * speed;
     const satiety = foodCons > 0 ? Math.floor(cap * foodProd / foodCons) : 0;
     const t1 = imported != null ? imported : Math.min(cap, satiety);
@@ -389,7 +392,7 @@ const Engine = (() => {
     const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
     let best = null;
     for (let q = lv.quarters; q <= lv.quarters + 30; q++) {
-      const P = POP[race], cap = popF(P.cap, q);
+      const P = POP[race], cap = popF(P.cap, q) * (1 + (lv.capBoost || 0));
       let f = lv.farm; while (popF(P.food, f) * speed < popF(P.cons, q) * speed && f < lv.farm + 60) f++;
       const tryOne = (sc, hi) => {
         const t1 = cap, t2 = t1 * sc / 100, t3 = t2 * hi / 100;

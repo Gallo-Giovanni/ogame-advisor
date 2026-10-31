@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 62, date: '2026-10-31', title: 'Scheda Impero',
+    text: 'Nuova scheda Impero: tutti i pianeti a confronto in una tabella, come la Vista impero del gioco, con produzione, risorse, popolazione, miniere, strutture, depositi ed edifici forme di vita; in verde il livello più alto e in arancione il più basso. Sotto, tutte le ricerche dell\'account. Nella Popolazione ora conta anche l\'edificio che aumenta lo spazio abitativo di Umani, Mecha e Kaelesh.',
+  },
+  {
     id: 61, date: '2026-10-31', title: 'Valore delle risorse: server, mercante o personalizzato',
     text: 'In Impostazioni puoi scegliere come l\'app dà valore alle risorse: con i valori del server (tasso ufficiale 2,5 : 1,5 : 1), con i valori massimi del mercante (3 : 2 : 1, cioè 1 cristallo = 1,5 metallo e 1 deuterio = 3 metallo) oppure, senza spunte, con i tuoi numeri.',
   },
