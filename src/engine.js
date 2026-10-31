@@ -363,9 +363,12 @@ const Engine = (() => {
     humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015], foodBoost: [9, 0.05], consCut: [6, 0.01, 0.8] },
     rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
     mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02], foodBoost: [7, 0.02] },
-    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02], consCut: [5, 0.01, 0.5] },
+    // needCut: il Modulatore psionico riduce la popolazione richiesta da tutti gli slot del pianeta (serverData: 2% per livello, massimo 30%)
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02], consCut: [5, 0.01, 0.5], needCut: [9, 0.02, 0.3] },
   };
-  const EXTRA = ['capBoost', 'foodBoost', 'consCut'];
+  const EXTRA = ['capBoost', 'foodBoost', 'consCut', 'needCut'];
+  // popolazione richiesta per uno slot su un pianeta, con la riduzione del Modulatore psionico
+  const slotNeed = (lv, slot) => Math.ceil(SLOT_POP[slot - 1] * (1 - ((lv && lv.needCut) || 0)));
   // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
   const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
   const popF = ([b, f], L) => (L > 0 ? b * (L + 1) * Math.pow(f, L) : 0);
@@ -392,8 +395,8 @@ const Engine = (() => {
     const t1 = imported != null ? imported : Math.min(cap, satiety);
     const t2 = Math.floor(t1 * lv.school / 100), t3 = Math.floor(t2 * lv.high / 100);
     const have = i => (i < 6 ? t1 : i < 12 ? t2 : t3);
-    let open = 0; while (open < 18 && have(open) >= SLOT_POP[open]) open++;
-    return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap };
+    let open = 0; while (open < 18 && have(open) >= slotNeed(lv, open + 1)) open++;
+    return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap, need: s => slotNeed(lv, s) };
   }
   // sconto del Monolite (Rock'tal) a un dato livello, dalla tabella del gioco
   const monoDiscAt = m => (m > 0 && LF ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[m] || 0) : 0);
@@ -454,9 +457,10 @@ const Engine = (() => {
           if (df === 60) continue;
           const partial = base + pq.eq[dq] + pf.eq[df];
           if (best && partial >= best.eq) continue;
+          const needE = need * (1 - (vals.needCut || 0));
           const tryOne = (ds, dh) => {
             const sc = lv.school + ds, hi = lv.high + dh, t2 = cap * sc / 100, t3 = t2 * hi / 100;
-            if ((tier === 1 ? cap : tier === 2 ? t2 : t3) < need) return;
+            if ((tier === 1 ? cap : tier === 2 ? t2 : t3) < needE) return;
             const eq = partial + ps.eq[ds] + ph.eq[dh];
             if (best && eq >= best.eq) return;
             const cost = [megV, pq.v[dq], pf.v[df], ps.v[ds], ph.v[dh], ...pe.map((x, i) => x.v[combo[i]])].reduce((t, c) => t.map((y, i) => y + c[i]), [0, 0, 0]);
@@ -466,8 +470,8 @@ const Engine = (() => {
           if (tier === 1) { tryOne(0, 0); continue; }
           for (let ds = Math.max(0, 1 - lv.school); ds <= 40; ds++) {
             const sc = lv.school + ds;
-            if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(ds, 0); break; } continue; }
-            for (let dh = Math.max(0, 1 - lv.high); dh <= 40; dh++) if (cap * sc / 100 * (lv.high + dh) / 100 >= need) { tryOne(ds, dh); break; }
+            if (tier === 2) { if (cap * sc / 100 >= needE) { tryOne(ds, 0); break; } continue; }
+            for (let dh = Math.max(0, 1 - lv.high); dh <= 40; dh++) if (cap * sc / 100 * (lv.high + dh) / 100 >= needE) { tryOne(ds, dh); break; }
           }
         }
       }
@@ -478,7 +482,7 @@ const Engine = (() => {
         }
       }
     }
-    return best && { ...best, from: lv, need, tier };
+    return best && { ...best, from: lv, need, needAfter: Math.ceil(need * (1 - extraVal(race, 'needCut', (best.extra.find(e => e.kind === 'needCut') || { to: 0 }).to))), tier };
   }
 
   const MINES = [
@@ -819,7 +823,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, baseProd, POP, SLOT_POP, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();

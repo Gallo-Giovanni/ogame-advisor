@@ -147,3 +147,13 @@ console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
   assert.ok(Math.abs(k.foodProd - 2550484) < 2 && Math.abs(k.foodCons - 2559247) < 2, 'Kaelesh');
   console.log('Cibo di tutte le razze uguale alle tabelle');
 }
+
+// Modulatore psionico (Kaelesh): -2% di popolazione richiesta per livello, al massimo -30% (serverData.xml)
+{
+  assert.strictEqual(E.slotNeed({ needCut: 0.1 }, 13), 11700000);
+  const lv = E.popLevels('kaelesh', { lf_buildings: { psionic_modulator: 20 } });
+  assert.strictEqual(lv.needCut, 0.3);
+  const plan = E.popPlan('kaelesh', { lf_race: 'kaelesh', lf_buildings: { sanctuary: 45, antimatter_condenser: 46, halls_of_realisation: 6, forum_of_transcendence: 2 } }, 13, 5, { ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5 });
+  assert.ok(plan && plan.t3 >= plan.needAfter, 'il piano raggiunge la popolazione richiesta');
+  console.log('Modulatore psionico contato');
+}

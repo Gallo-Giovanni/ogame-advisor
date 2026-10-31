@@ -1404,9 +1404,12 @@ const Engine = (() => {
     humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015], foodBoost: [9, 0.05], consCut: [6, 0.01, 0.8] },
     rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
     mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02], foodBoost: [7, 0.02] },
-    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02], consCut: [5, 0.01, 0.5] },
+    // needCut: il Modulatore psionico riduce la popolazione richiesta da tutti gli slot del pianeta (serverData: 2% per livello, massimo 30%)
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02], consCut: [5, 0.01, 0.5], needCut: [9, 0.02, 0.3] },
   };
-  const EXTRA = ['capBoost', 'foodBoost', 'consCut'];
+  const EXTRA = ['capBoost', 'foodBoost', 'consCut', 'needCut'];
+  // popolazione richiesta per uno slot su un pianeta, con la riduzione del Modulatore psionico
+  const slotNeed = (lv, slot) => Math.ceil(SLOT_POP[slot - 1] * (1 - ((lv && lv.needCut) || 0)));
   // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
   const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
   const popF = ([b, f], L) => (L > 0 ? b * (L + 1) * Math.pow(f, L) : 0);
@@ -1433,8 +1436,8 @@ const Engine = (() => {
     const t1 = imported != null ? imported : Math.min(cap, satiety);
     const t2 = Math.floor(t1 * lv.school / 100), t3 = Math.floor(t2 * lv.high / 100);
     const have = i => (i < 6 ? t1 : i < 12 ? t2 : t3);
-    let open = 0; while (open < 18 && have(open) >= SLOT_POP[open]) open++;
-    return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap };
+    let open = 0; while (open < 18 && have(open) >= slotNeed(lv, open + 1)) open++;
+    return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap, need: s => slotNeed(lv, s) };
   }
   // sconto del Monolite (Rock'tal) a un dato livello, dalla tabella del gioco
   const monoDiscAt = m => (m > 0 && LF ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[m] || 0) : 0);
@@ -1495,9 +1498,10 @@ const Engine = (() => {
           if (df === 60) continue;
           const partial = base + pq.eq[dq] + pf.eq[df];
           if (best && partial >= best.eq) continue;
+          const needE = need * (1 - (vals.needCut || 0));
           const tryOne = (ds, dh) => {
             const sc = lv.school + ds, hi = lv.high + dh, t2 = cap * sc / 100, t3 = t2 * hi / 100;
-            if ((tier === 1 ? cap : tier === 2 ? t2 : t3) < need) return;
+            if ((tier === 1 ? cap : tier === 2 ? t2 : t3) < needE) return;
             const eq = partial + ps.eq[ds] + ph.eq[dh];
             if (best && eq >= best.eq) return;
             const cost = [megV, pq.v[dq], pf.v[df], ps.v[ds], ph.v[dh], ...pe.map((x, i) => x.v[combo[i]])].reduce((t, c) => t.map((y, i) => y + c[i]), [0, 0, 0]);
@@ -1507,8 +1511,8 @@ const Engine = (() => {
           if (tier === 1) { tryOne(0, 0); continue; }
           for (let ds = Math.max(0, 1 - lv.school); ds <= 40; ds++) {
             const sc = lv.school + ds;
-            if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(ds, 0); break; } continue; }
-            for (let dh = Math.max(0, 1 - lv.high); dh <= 40; dh++) if (cap * sc / 100 * (lv.high + dh) / 100 >= need) { tryOne(ds, dh); break; }
+            if (tier === 2) { if (cap * sc / 100 >= needE) { tryOne(ds, 0); break; } continue; }
+            for (let dh = Math.max(0, 1 - lv.high); dh <= 40; dh++) if (cap * sc / 100 * (lv.high + dh) / 100 >= needE) { tryOne(ds, dh); break; }
           }
         }
       }
@@ -1519,7 +1523,7 @@ const Engine = (() => {
         }
       }
     }
-    return best && { ...best, from: lv, need, tier };
+    return best && { ...best, from: lv, need, needAfter: Math.ceil(need * (1 - extraVal(race, 'needCut', (best.extra.find(e => e.kind === 'needCut') || { to: 0 }).to))), tier };
   }
 
   const MINES = [
@@ -1860,7 +1864,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, baseProd, POP, SLOT_POP, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();
@@ -3193,7 +3197,8 @@ function renderLfBuildings(race) {
       : idx === 3 ? 'forma i T2: 1% dei T1 per livello' : idx === 4 ? 'forma i T3: 1% dei T2 per livello'
       : PP.capBoost && PP.capBoost[0] === idx ? `+${pctx(PP.capBoost[1])}% spazio abitativo per livello`
       : PP.foodBoost && PP.foodBoost[0] === idx ? `+${pctx(PP.foodBoost[1])}% cibo prodotto per livello`
-      : PP.consCut && PP.consCut[0] === idx ? `-${pctx(PP.consCut[1])}% cibo consumato per livello (massimo -${pctx(PP.consCut[2])}%)` : null;
+      : PP.consCut && PP.consCut[0] === idx ? `-${pctx(PP.consCut[1])}% cibo consumato per livello (massimo -${pctx(PP.consCut[2])}%)`
+      : PP.needCut && PP.needCut[0] === idx ? `-${pctx(PP.needCut[1])}% popolazione richiesta dagli slot per livello (massimo -${pctx(PP.needCut[2])}%)` : null;
     const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ') + ' per livello'
       : used ? 'riduce costi ed energia degli edifici Rock\'tal' : popText || 'non entra nei calcoli';
     const input = isMrc
@@ -3217,7 +3222,7 @@ function renderLfTechs() {
       const cost = { 1: 200, 7: 400, 13: 600 }[slot]; // manufatti per scegliere la ricerca invece di tirarla a sorte (massimo 3.600 in inventario)
       html += `<div class="tier">T${(slot + 5) / 6 | 0} <span class="muted small">· si sbloccano con ${fmt(a)} – ${fmt(b)} abitanti ${slotTier(slot)} · scegliere la ricerca di uno slot costa <b>${cost} manufatti</b></span></div>`;
     }
-    const need = Engine.SLOT_POP[slot - 1], have = pop ? slotHave(pop.st, slot) : null, locked = have !== null && have < need;
+    const need = pop ? pop.st.need(slot) : Engine.SLOT_POP[slot - 1], have = pop ? slotHave(pop.st, slot) : null, locked = have !== null && have < need;
     const lock = have === null ? '' : locked
       ? `<div class="slot-lock small">🔒 Servono <b>${fmt(need)}</b> abitanti ${slotTier(slot)}: ne hai ${fmt(have)}, mancano <b>${fmt(need - have)}</b>.</div>`
       : `<div class="slot-open small muted">✓ Sbloccato (${fmt(need)} ${slotTier(slot)})</div>`;
@@ -3270,7 +3275,7 @@ function renderPopulation(p, prof) {
     ${cell('Abitanti T3', fmt(st.t3), `${N(lv.keys[3])} ${lv.high}: ${lv.high}% dei T2`)}
     ${cell('Sazietà', `<span class="${st.fed ? 'pos' : 'neg'}">${fmt(st.satiety)}</span>`, st.fed ? 'il cibo basta' : `il cibo non basta: alza ${N(lv.keys[1])}`)}
     ${cell('Crescita', fmt(st.growth) + ' /h', `${fmt(st.growth / 3600)} al secondo`)}
-    ${cell('Slot di ricerca aperti', `${st.open} di 18`, st.open < 18 ? `slot ${st.open + 1}: servono ${fmt(Engine.SLOT_POP[st.open])} ${tierOf(st.open)}` : 'tutti aperti')}
+    ${cell('Slot di ricerca aperti', `${st.open} di 18`, st.open < 18 ? `slot ${st.open + 1}: servono ${fmt(st.need(st.open + 1))} ${tierOf(st.open)}` : 'tutti aperti')}
   </div>`;
   if (imported === null) h += `<p class="muted small" style="margin:0">Abitanti calcolati dai livelli (pieni fino allo spazio o al cibo). Con l'importazione dalla Vista impero arrivano quelli veri.</p>`;
   if (st.open < 18) {
@@ -3727,7 +3732,7 @@ function renderEmpire() {
     body += sec('Sblocco ricerche forme di vita');
     body += row('pop', 'Slot aperti', pops.map(x => (x ? x.st.open : null)), { fmt: v => `${v}/18` });
     body += row('pop', 'Prossimo slot', pops.map(x => (x && x.st.open < 18 ? x.st.open + 1 : null)), { noCmp: true, fmt: v => `${techTag(+v)} · ${fmt(Engine.SLOT_POP[v - 1])} ${slotTier(+v)}` });
-    body += row('pop', 'Abitanti mancanti', pops.map(x => (x && x.st.open < 18 ? Engine.SLOT_POP[x.st.open] - slotHave(x.st, x.st.open + 1) : null)), { lowBest: true, fmt: v => `${fmt(+v)}` });
+    body += row('pop', 'Abitanti mancanti', pops.map(x => (x && x.st.open < 18 ? x.st.need(x.st.open + 1) - slotHave(x.st, x.st.open + 1) : null)), { lowBest: true, fmt: v => `${fmt(+v)}` });
   }
   // navi che l'app conosce (nel gioco satelliti e crawler stanno tra le navi)
   body += sec('Navi') + row('satellite', 'Satelliti solari', pls.map(p => p.solar_satellites)) + row('crawler', 'Crawler', pls.map(p => p.crawlers));
@@ -3762,14 +3767,14 @@ const LF_ICONS = {
   humans: ['pop', 'food', 'lab', 'school', 'academy', 'metal', 'granary', 'crystal', 'pop', 'foodplus', 'boost', 'shield'],
   rocktal: ['pop', 'food', 'lab', 'school', 'academy', 'metal', 'energy', 'discount', 'crystal', 'deut', 'mrc', 'recycle'],
   mechas: ['pop', 'food', 'lab', 'school', 'academy', 'shipyard', 'boost', 'foodplus', 'pop', 'deut', 'boost', 'dock'],
-  kaelesh: ['pop', 'food', 'lab', 'school', 'academy', 'granary', 'boost', 'pop', 'terraformer', 'lab', 'shipyard', 'moon'],
+  kaelesh: ['pop', 'food', 'lab', 'school', 'academy', 'granary', 'boost', 'pop', 'terraformer', 'discount', 'shipyard', 'moon'],
 };
 const lfIcon = (race, key) => { const i = Engine.LF.races[race].buildingOrder.indexOf(key); return (LF_ICONS[race] || [])[i] || 'lf'; };
 /* Sblocco slot: per il pianeta e lo slot scelti, la combinazione più economica di edifici per avere la popolazione necessaria */
 function unlockPlan(p, slot, prof) {
   const pop = planetPop(p, p, prof.economy_speed);
   if (!pop) return null;
-  const have = slotHave(pop.st, slot), need = Engine.SLOT_POP[slot - 1];
+  const have = slotHave(pop.st, slot), need = pop.st.need(slot);
   if (have >= need) return { pop, have, need, done: true };
   const plan = Engine.popPlan(p.lf_race, p, slot, prof.economy_speed, prof);
   if (!plan) return { pop, have, need, none: true };
@@ -3817,7 +3822,7 @@ function renderUnlock() {
     box.innerHTML = head + `<table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>
       ${u.rows.map(r => `<tr><td><span class="lfb-name">${ic(r.icon)}${esc(r.name)}</span></td><td>${r.from}</td><td><b>${r.to}</b></td>${costCells(r.cost)}<td>${r.sec ? durText(r.sec) : ''}</td></tr>`).join('')}
       <tr class="tot"><td>Totale</td><td></td><td></td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr></table>
-      <p class="muted small" style="margin:0">Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ` e lo sconto del Monolite (${fmt((u.plan.disc || 0) * 100)}% con il livello ${u.plan.monolith})` : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.${u.plan.monolith > u.plan.monolithFrom ? ' Alzare il Monolite consuma anche un po\' di energia in più.' : ''}</p>
+      <p class="muted small" style="margin:0">${u.plan.needAfter < u.need ? `Con il Modulatore psionico più alto lo slot chiede solo ${fmt(u.plan.needAfter)} abitanti ${slotTier(slot)}. ` : ''}Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ` e lo sconto del Monolite (${fmt((u.plan.disc || 0) * 100)}% con il livello ${u.plan.monolith})` : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.${u.plan.monolith > u.plan.monolithFrom ? ' Alzare il Monolite consuma anche un po\' di energia in più.' : ''}</p>
       ${res ? `<p class="small" style="margin:0">Risorse su ${esc(p.name)}: ${ri('metal')} ${fmt(res[0])} · ${ri('crystal')} ${fmt(res[1])} · ${ri('deut')} ${fmt(res[2])} — ${u.cost.every((x, i) => res[i] >= x) ? 'bastano.' : `mancano ${u.cost.map((x, i) => fmt(Math.max(0, x - res[i]))).join(' / ')}.`}</p>` : ''}`;
     return;
   }
