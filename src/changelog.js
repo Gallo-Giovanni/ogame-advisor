@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 65, date: '2026-10-31', title: 'Scheda Sblocco slot',
-    text: 'Nuova scheda Sblocco slot, accanto a Costi: scegli un pianeta (o tutti) e uno slot di ricerca forme di vita da sbloccare, e l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3 per avere la popolazione necessaria, con costo e tempo di ogni edificio, il tempo di crescita degli abitanti e le risorse che mancano.',
+    text: 'Nuova scheda Sblocco slot, accanto a Costi: scegli un pianeta (o tutti) e uno slot di ricerca forme di vita da sbloccare, e l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3 per avere la popolazione necessaria, con costo e tempo di ogni edificio, il tempo di crescita degli abitanti e le risorse che mancano. Per i Rock\'tal valuta anche il Monolite, che sconta gli altri edifici. Con tutti i pianeti puoi togliere la spunta a quelli da escludere dal totale.',
   },
   {
     id: 64, date: '2026-10-31', title: 'Bonus delle ricerche forme di vita più preciso',

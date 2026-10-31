@@ -387,28 +387,38 @@ const Engine = (() => {
     return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap };
   }
   // Combinazione più economica di abitazioni, cibo, scuola e liceo per aprire lo slot `slot` (1-18)
+  // sconto del Monolite (Rock'tal) a un dato livello, dalla tabella del gioco
+  const monoDiscAt = m => (m > 0 && LF ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[m] || 0) : 0);
   function popPlan(race, planet, slot, speed, profile) {
     const lv = popLevels(race, planet); if (!lv || !POP[race]) return null;
-    const R = LF.races[race], disc = race === 'rocktal' ? monolithDisc(planet) : 0;
+    const R = LF.races[race];
     const need = SLOT_POP[slot - 1], tier = slot <= 6 ? 1 : slot <= 12 ? 2 : 3;
-    const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
+    // Rock'tal: conviene anche alzare il Monolite, che sconta tutti gli edifici Rock'tal (come nelle tabelle di RiV-)
+    const m0 = race === 'rocktal' ? +((planet.lf_buildings || {}).monolith) || 0 : 0;
+    const megs = race === 'rocktal' ? Array.from({ length: 13 }, (_, i) => m0 + i).filter(m => m <= 17) : [0];
     let best = null;
+    for (const meg of megs) {
+    const disc = race === 'rocktal' ? monoDiscAt(meg) : 0;
+    const megCost = [0, 0, 0];
+    for (let L = m0 + 1; L <= meg; L++) lfBuildingCost(R.buildings.monolith, L, monoDiscAt(L - 1)).forEach((x, i) => (megCost[i] += x));
+    const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
     for (let q = lv.quarters; q <= lv.quarters + 30; q++) {
       const P = POP[race], cap = popF(P.cap, q) * (1 + (lv.capBoost || 0));
       let f = lv.farm; while (popF(P.food, f) * speed < popF(P.cons, q) * speed && f < lv.farm + 60) f++;
       const tryOne = (sc, hi) => {
         const t1 = cap, t2 = t1 * sc / 100, t3 = t2 * hi / 100;
         if ((tier === 1 ? t1 : tier === 2 ? t2 : t3) < need) return;
-        const tot = [0, 0, 0];
+        const tot = megCost.slice();
         [cum(lv.keys[0], lv.quarters, q), cum(lv.keys[1], lv.farm, f), cum(lv.keys[2], lv.school, sc), cum(lv.keys[3], lv.high, hi)].forEach(c => c.forEach((x, i) => (tot[i] += x)));
         const eq = toMetalEq(tot, profile);
-        if (!best || eq < best.eq) best = { quarters: q, farm: f, school: sc, high: hi, cost: tot, eq, cap, t2, t3, growth: popF(P.growth, q) };
+        if (!best || eq < best.eq) best = { quarters: q, farm: f, school: sc, high: hi, monolith: meg, monolithFrom: m0, disc, cost: tot, eq, cap, t2, t3, growth: popF(P.growth, q) };
       };
       if (tier === 1) tryOne(lv.school, lv.high);
       else for (let sc = Math.max(lv.school, 1); sc <= lv.school + 40; sc++) {
         if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(sc, lv.high); break; } continue; }
         for (let hi = Math.max(lv.high, 1); hi <= lv.high + 40; hi++) if (cap * sc / 100 * hi / 100 >= need) { tryOne(sc, hi); break; }
       }
+    }
     }
     return best && { ...best, from: lv, need, tier };
   }
@@ -751,7 +761,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, baseProd, POP, SLOT_POP, popLevels, population, popPlan, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, baseProd, POP, SLOT_POP, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();

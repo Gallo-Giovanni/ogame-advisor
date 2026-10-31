@@ -177,6 +177,7 @@
   .slot-open { flex-basis: 100%; }
   .trow.locked .slot { color: var(--warn); }
   .ul-combo { text-align: left; white-space: normal; }
+  tr.ul-off td:not(:first-child) { opacity: .4; }
   .ul-combo .emp-ic { width: 20px; height: 20px; vertical-align: middle; }
   .ul-combo .emp-ic svg { width: 15px; height: 15px; }
   .lfb-name { display: flex; align-items: center; gap: 8px; }
@@ -1612,7 +1613,7 @@ function renderPopulation(p, prof) {
   if (st.open < 18) {
     const plan = Engine.popPlan(race, p, st.open + 1, prof.economy_speed, prof);
     if (plan) {
-      const rows = [[lv.keys[0], lv.quarters, plan.quarters], [lv.keys[1], lv.farm, plan.farm], [lv.keys[2], lv.school, plan.school], [lv.keys[3], lv.high, plan.high]].filter(([, a, b]) => b > a);
+      const rows = [...(plan.monolith > plan.monolithFrom ? [['monolith', plan.monolithFrom, plan.monolith]] : []), [lv.keys[0], lv.quarters, plan.quarters], [lv.keys[1], lv.farm, plan.farm], [lv.keys[2], lv.school, plan.school], [lv.keys[3], lv.high, plan.high]].filter(([, a, b]) => b > a);
       const wait = Math.max(0, plan.cap - st.t1) / plan.growth;
       h += `<b class="small">Per aprire lo slot ${st.open + 1} (${tierOf(st.open)}), la combinazione più economica</b>
         <table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th></tr>${rows.map(([k, a, b]) => `<tr><td>${esc(N(k))}</td><td>${a}</td><td><b>${b}</b></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nessun edificio: basta aspettare la crescita.</td></tr>'}
@@ -2106,12 +2107,17 @@ function unlockPlan(p, slot, prof) {
   if (have >= need) return { pop, have, need, done: true };
   const plan = Engine.popPlan(p.lf_race, p, slot, prof.economy_speed, prof);
   if (!plan) return { pop, have, need, none: true };
-  const R = Engine.LF.races[p.lf_race], disc = p.lf_race === 'rocktal' ? Engine.monolithDisc(p) : 0;
+  const R = Engine.LF.races[p.lf_race], disc = plan.disc || 0;
   const robot = bl0(p, 'robotics_factory'), nanite = bl0(p, 'nanite_factory');
-  const rows = [[plan.from.keys[0], plan.from.quarters, plan.quarters], [plan.from.keys[1], plan.from.farm, plan.farm], [plan.from.keys[2], plan.from.school, plan.school], [plan.from.keys[3], plan.from.high, plan.high]]
-    .filter(([, a, b]) => b > a).map(([k, a, b]) => {
+  // il Monolite si alza per primo: sconta gli altri edifici Rock'tal
+  const steps = [...(plan.monolith > plan.monolithFrom ? [['monolith', plan.monolithFrom, plan.monolith]] : []),
+    [plan.from.keys[0], plan.from.quarters, plan.quarters], [plan.from.keys[1], plan.from.farm, plan.farm], [plan.from.keys[2], plan.from.school, plan.school], [plan.from.keys[3], plan.from.high, plan.high]];
+  const rows = steps.filter(([, a, b]) => b > a).map(([k, a, b]) => {
       const c = [0, 0, 0]; let sec = 0;
-      for (let L = a + 1; L <= b; L++) { Engine.lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (c[i] += x)); sec += Engine.lfBuildingTime(R.buildings[k], L, disc, robot, nanite, prof.economy_speed) || 0; }
+      for (let L = a + 1; L <= b; L++) {
+        const d = k === 'monolith' ? Engine.monoDiscAt(L - 1) : disc;
+        Engine.lfBuildingCost(R.buildings[k], L, d).forEach((x, i) => (c[i] += x)); sec += Engine.lfBuildingTime(R.buildings[k], L, d, robot, nanite, prof.economy_speed) || 0;
+      }
       return { k, name: R.buildings[k].it, icon: lfIcon(p.lf_race, k), from: a, to: b, cost: c, sec };
     });
   const growH = Math.max(0, plan.cap - pop.st.t1) / plan.growth;
@@ -2144,25 +2150,38 @@ function renderUnlock() {
     box.innerHTML = head + `<table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>
       ${u.rows.map(r => `<tr><td><span class="lfb-name">${ic(r.icon)}${esc(r.name)}</span></td><td>${r.from}</td><td><b>${r.to}</b></td>${costCells(r.cost)}<td>${r.sec ? durText(r.sec) : ''}</td></tr>`).join('')}
       <tr class="tot"><td>Totale</td><td></td><td></td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr></table>
-      <p class="muted small" style="margin:0">Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ' e lo sconto del Monolite' : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.</p>
+      <p class="muted small" style="margin:0">Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ` e lo sconto del Monolite (${fmt((u.plan.disc || 0) * 100)}% con il livello ${u.plan.monolith})` : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.${u.plan.monolith > u.plan.monolithFrom ? ' Alzare il Monolite consuma anche un po\' di energia in più.' : ''}</p>
       ${res ? `<p class="small" style="margin:0">Risorse su ${esc(p.name)}: ${ri('metal')} ${fmt(res[0])} · ${ri('crystal')} ${fmt(res[1])} · ${ri('deut')} ${fmt(res[2])} — ${u.cost.every((x, i) => res[i] >= x) ? 'bastano.' : `mancano ${u.cost.map((x, i) => fmt(Math.max(0, x - res[i]))).join(' / ')}.`}</p>` : ''}`;
     return;
   }
   // tutti i pianeti: una riga per pianeta e il totale
   const us = list.map(p => ({ p, u: unlockPlan(p, slot, prof) }));
-  const tot = [0, 0, 0]; let eq = 0;
+  const off = state.ulOff || (state.ulOff = new Set()); // pianeti tolti dal totale
+  const tot = [0, 0, 0]; let eq = 0, n = 0;
+  const pick = p => `<label class="check"><input type="checkbox" data-ulpick="${p.id}" ${off.has(p.id) ? '' : 'checked'}> ${esc(p.name)}</label>`;
   const rowsHtml = us.map(({ p, u }) => {
     if (!u || u.done) return `<tr><td>${esc(p.name)}</td><td colspan="5" class="muted">già sbloccato</td></tr>`;
     if (u.none) return `<tr><td>${esc(p.name)}</td><td colspan="5" class="muted">nessuna combinazione trovata</td></tr>`;
-    u.cost.forEach((x, i) => (tot[i] += x)); eq += u.plan.eq;
-    return `<tr><td>${esc(p.name)}</td><td class="ul-combo">${u.rows.map(r => `${ic(r.icon)} ${r.from}→<b>${r.to}</b>`).join(' ')}</td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr>`;
+    const on = !off.has(p.id);
+    if (on) { u.cost.forEach((x, i) => (tot[i] += x)); eq += u.plan.eq; n++; }
+    return `<tr class="${on ? '' : 'ul-off'}"><td>${pick(p)}</td><td class="ul-combo">${u.rows.map(r => `${ic(r.icon)} ${r.from}→<b>${r.to}</b>`).join(' ')}</td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="btable"><tr><th>Pianeta</th><th>Edifici (da → a)</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>${rowsHtml}
-    <tr class="tot"><td>Totale</td><td></td>${costCells(tot)}<td></td></tr></table>
-    <p class="muted small" style="margin:0">Per sbloccare ${techTag(slot)} (${fmt(Engine.SLOT_POP[slot - 1])} abitanti ${slotTier(slot)}) su tutti i pianeti: ${fmt(eq)} in metallo equivalente. Scegli un pianeta per il dettaglio di ogni edificio. Dopo le costruzioni gli abitanti devono crescere.</p>`;
+    <tr class="tot"><td>Totale (${n} ${n === 1 ? 'pianeta' : 'pianeti'})</td><td><button type="button" class="ghost" id="ul-all">Tutti</button> <button type="button" class="ghost" id="ul-none">Nessuno</button></td>${costCells(tot)}<td></td></tr></table>
+    <p class="muted small" style="margin:0">Togli la spunta ai pianeti da escludere dal totale. Per sbloccare ${techTag(slot)} (${fmt(Engine.SLOT_POP[slot - 1])} abitanti ${slotTier(slot)}) sui pianeti scelti: ${fmt(eq)} in metallo equivalente. Scegli un pianeta per il dettaglio di ogni edificio. Dopo le costruzioni gli abitanti devono crescere.</p>`;
 }
 $('#ul-planet').addEventListener('change', e => { state.ulPlanet = e.target.value; state.ulSlot = null; $('#ul-slot').value = ''; renderUnlock(); });
 $('#ul-slot').addEventListener('change', e => { state.ulSlot = +e.target.value; renderUnlock(); });
+$('#ul-result').addEventListener('change', e => {
+  const id = e.target.dataset.ulpick; if (!id) return;
+  const off = state.ulOff || (state.ulOff = new Set());
+  if (e.target.checked) off.delete(id); else off.add(id);
+  renderUnlock();
+});
+$('#ul-result').addEventListener('click', e => {
+  if (e.target.id === 'ul-all') { state.ulOff = new Set(); renderUnlock(); }
+  if (e.target.id === 'ul-none') { state.ulOff = new Set(state.planets.map(p => p.id)); renderUnlock(); }
+});
 
 function renderBonus() {
   const prof = numericProfile(state.profile);
