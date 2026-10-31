@@ -173,6 +173,7 @@
   table.emp tr.emp-sec th { text-align: left; color: var(--accent); font: 700 .95rem Rajdhani, sans-serif; padding-top: 12px; }
   .emp-ic { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
   .emp-ic svg { width: 20px; height: 20px; }
+  .lfb-name { display: flex; align-items: center; gap: 8px; }
   .emp-hi { color: var(--ok); font-weight: 700; }
   .emp-lo { color: var(--warn); }
   .pop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
@@ -3077,12 +3078,17 @@ function renderLfBuildings(race) {
     const isMrc = key === 'mineral_centre';
     const used = b.used !== false;
     const level = isMrc ? (state.editing.mrcLevel ?? '') : (lv[key] ?? '');
+    const idx = R.buildingOrder.indexOf(key), cb = Engine.POP[race] && Engine.POP[race].capBoost;
+    const popText = idx === 0 ? 'spazio abitativo e crescita (sezione Popolazione)' : idx === 1 ? 'cibo (sezione Popolazione)'
+      : idx === 3 ? 'forma i T2: 1% dei T1 per livello' : idx === 4 ? 'forma i T3: 1% dei T2 per livello'
+      : cb && cb[0] === idx ? `+${pctx(cb[1])}% spazio abitativo per livello` : null;
     const per = b.effect ? Object.entries(b.effect).map(([k, v]) => `${v > 0 ? '+' : ''}${pctx(v)}% ${EFFECT_NAMES[k] || k}`).join(', ') + ' per livello'
-      : used ? 'riduce costi ed energia degli edifici Rock\'tal' : 'non entra nei calcoli';
+      : used ? 'riduce costi ed energia degli edifici Rock\'tal' : popText || 'non entra nei calcoli';
     const input = isMrc
       ? `<input data-f="mrc_level" type="number" min="0" value="${esc(level)}" placeholder="—" title="0 se puoi costruirlo ma non l'hai ancora fatto">`
       : `<input data-lfb="${key}" type="number" min="0" value="${esc(level)}" placeholder="0">`;
-    return `<div class="lfb${used ? '' : ' unused'}"><div>${esc(b.it)}${used ? ' <b class="star" title="Usato nei calcoli">*</b>' : ''}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}</div></div>`;
+    const ik = lfIcon(race, key);
+    return `<div class="lfb${used ? '' : ' unused'}"><div class="lfb-name"><span class="emp-ic" style="background:${TILE_BG[ik]}">${ICONS[ik]}</span>${esc(b.it)}${used ? ' <b class="star" title="Usato nei calcoli">*</b>' : ''}</div>${input}<div class="eff small muted" data-lfb-eff="${key}">${per}</div></div>`;
   });
   $('#lf-buildings').innerHTML = `<div><label>Edifici ${esc(RACE_NAMES[race])}</label>${rows.join('')}</div>` +
     '<p class="muted small" style="margin:0"><b class="star">*</b> = usato nei calcoli. Gli altri puoi inserirli per avere il pianeta completo, ma non cambiano i consigli.</p>' +
@@ -3556,7 +3562,7 @@ function renderEmpire() {
   const races = LF_RACES.filter(r => pls.some(p => p.lf_race === r));
   for (const r of races) {
     const R = Engine.LF.races[r];
-    body += sec(`Forme di vita · ${RACE_NAMES[r]}`) + R.buildingOrder.map(k => row('lf', R.buildings[k].it,
+    body += sec(`Forme di vita · ${RACE_NAMES[r]}`) + R.buildingOrder.map(k => row(lfIcon(r, k), R.buildings[k].it,
       pls.map(p => (p.lf_race !== r ? null : k === 'mineral_centre' ? +p.mrc_level || 0 : +((p.lf_buildings || {})[k]) || 0)))).join('');
   }
   const head = `<tr><th></th>${pls.map(p => `<th class="emp-pl"><button class="ghost" data-emp-open="${p.id}">${esc(p.name)}</button><div class="muted small">${esc(coordsText(p))}</div></th>`).join('')}</tr>`;
@@ -3570,6 +3576,26 @@ function renderEmpire() {
 }
 $('#empire-panel').addEventListener('click', e => { const b = e.target.closest('[data-emp-open]'); if (b) { goToTab('planets'); openPlanet(b.dataset.empOpen); } });
 
+// icone originali degli edifici forme di vita, per funzione (le stesse per tutte le razze)
+Object.assign(ICONS, {
+  food: '<svg viewBox="0 0 32 32"><path d="M16 28V12" stroke="#c9a24a" stroke-width="2"/><ellipse cx="12" cy="12" rx="3" ry="5" transform="rotate(-25 12 12)" fill="#e8c35e"/><ellipse cx="20" cy="12" rx="3" ry="5" transform="rotate(25 20 12)" fill="#e8c35e"/><ellipse cx="11" cy="20" rx="3" ry="5" transform="rotate(-35 11 20)" fill="#d9b04c"/><ellipse cx="21" cy="20" rx="3" ry="5" transform="rotate(35 21 20)" fill="#d9b04c"/><ellipse cx="16" cy="6" rx="2.5" ry="4" fill="#f2d57a"/></svg>',
+  school: '<svg viewBox="0 0 32 32"><path d="M4 8c4-2 8-2 12 1v17c-4-3-8-3-12-1z" fill="#6fa8ff"/><path d="M28 8c-4-2-8-2-12 1v17c4-3 8-3 12-1z" fill="#4a86e8"/><path d="M16 9v17" stroke="#1d2b4f" stroke-width="1.2"/></svg>',
+  academy: '<svg viewBox="0 0 32 32"><path d="M16 6l13 6-13 6-13-6z" fill="#9f7cf0"/><path d="M9 15v6c0 2 3 4 7 4s7-2 7-4v-6l-7 3z" fill="#7b5ad6"/><path d="M27 12v8" stroke="#f5a524" stroke-width="1.6"/><circle cx="27" cy="21" r="1.6" fill="#f5a524"/></svg>',
+  discount: '<svg viewBox="0 0 32 32"><path d="M4 16L16 4h11v11L15 27z" fill="#f5a524"/><circle cx="22" cy="10" r="2.2" fill="#3a2c10"/><path d="M11 19l6-6" stroke="#3a2c10" stroke-width="1.8"/><circle cx="12" cy="14" r="1.4" fill="#3a2c10"/><circle cx="16" cy="18" r="1.4" fill="#3a2c10"/></svg>',
+  recycle: '<svg viewBox="0 0 32 32"><path d="M16 5l5 8h-3.5l-3 5-3.5-2 3-5H11z" fill="#3ddc97"/><path d="M27 21l-5 8-1.7-3H14v-4h6.3l-1.8-3z" fill="#2fbf87"/><path d="M5 21l4.5-8 1.7 3 3.3 5.5-3.4 2-2-3.4L7 23z" fill="#57e6a8"/></svg>',
+  shield: '<svg viewBox="0 0 32 32"><path d="M16 3l11 4v8c0 7-5 12-11 14C10 27 5 22 5 15V7z" fill="#36c5f0"/><path d="M16 7l7 3v5c0 5-3 8-7 10z" fill="#8fe0ff"/></svg>',
+  boost: '<svg viewBox="0 0 32 32"><path d="M16 3l8 10h-5v8h-6v-8H8z" fill="#3ddc97"/><rect x="8" y="23" width="16" height="2.5" rx="1" fill="#f5a524"/><rect x="10" y="27" width="12" height="2" rx="1" fill="#f5a524"/></svg>',
+  moon: '<svg viewBox="0 0 32 32"><path d="M20 4a12 12 0 1 0 8 19A10 10 0 0 1 20 4z" fill="#d6dbe8"/><circle cx="12" cy="14" r="2" fill="#aab3c9"/><circle cx="15" cy="22" r="1.5" fill="#aab3c9"/></svg>',
+});
+Object.assign(TILE_BG, { food: '#33301a', school: '#16264a', academy: '#2a1f45', discount: '#3a2c10', recycle: '#123327', shield: '#132a3f', boost: '#15302a', moon: '#262f45' });
+// simbolo di ogni edificio forme di vita, nell'ordine del gioco
+const LF_ICONS = {
+  humans: ['pop', 'food', 'lab', 'school', 'academy', 'metal', 'food', 'crystal', 'pop', 'food', 'boost', 'shield'],
+  rocktal: ['pop', 'food', 'lab', 'school', 'academy', 'metal', 'energy', 'discount', 'crystal', 'deut', 'mrc', 'recycle'],
+  mechas: ['pop', 'food', 'lab', 'school', 'academy', 'shipyard', 'boost', 'food', 'pop', 'deut', 'boost', 'dock'],
+  kaelesh: ['pop', 'food', 'lab', 'school', 'academy', 'food', 'boost', 'pop', 'terraformer', 'lab', 'shipyard', 'moon'],
+};
+const lfIcon = (race, key) => { const i = Engine.LF.races[race].buildingOrder.indexOf(key); return (LF_ICONS[race] || [])[i] || 'lf'; };
 function renderBonus() {
   const prof = numericProfile(state.profile);
   const planets = Engine.active(state.planets);
