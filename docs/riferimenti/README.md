@@ -19,4 +19,4 @@ Soglie degli slot: T1 200.000 – 1.000.000 (slot 1-6), T2 1,2 – 11 milioni (7
   (livello della razza del **pianeta**, non della ricerca) e si **somma** al bonus degli edifici che potenziano le ricerche
   (Metropoli, Trasformatore ad alte prestazioni, Produzione di massa di chip). Oggi l'app usa il livello della razza della ricerca
   e moltiplica i due bonus.
-- Artefatti per scegliere una ricerca: 200 (T1), 400 (T2), 600 (T3); massimo 3.600 in inventario.
+- Manufatti per scegliere una ricerca: 200 (T1), 400 (T2), 600 (T3); massimo 3.600 in inventario (mostrato nell'app accanto agli slot).

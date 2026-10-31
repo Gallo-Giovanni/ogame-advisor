@@ -1535,7 +1535,8 @@ function renderLfTechs() {
   for (let slot = 1; slot <= 18; slot++) {
     if (slot === 1 || slot === 7 || slot === 13) {
       const a = Engine.SLOT_POP[slot - 1], b = Engine.SLOT_POP[slot + 4];
-      html += `<div class="tier">T${(slot + 5) / 6 | 0} <span class="muted small">· si sbloccano con ${fmt(a)} – ${fmt(b)} abitanti ${slotTier(slot)}</span></div>`;
+      const cost = { 1: 200, 7: 400, 13: 600 }[slot]; // manufatti per scegliere la ricerca invece di tirarla a sorte (massimo 3.600 in inventario)
+      html += `<div class="tier">T${(slot + 5) / 6 | 0} <span class="muted small">· si sbloccano con ${fmt(a)} – ${fmt(b)} abitanti ${slotTier(slot)} · scegliere la ricerca di uno slot costa <b>${cost} manufatti</b></span></div>`;
     }
     const need = Engine.SLOT_POP[slot - 1], have = pop ? slotHave(pop.st, slot) : null, locked = have !== null && have < need;
     const lock = have === null ? '' : locked

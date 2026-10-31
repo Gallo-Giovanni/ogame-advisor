@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 63, date: '2026-10-31', title: 'Manufatti per le ricerche forme di vita',
+    text: 'Nella scheda del pianeta, sopra ogni gruppo di slot di ricerca, c\'è quanti manufatti servono per scegliere la ricerca invece di tirarla a sorte: 200 per T1, 400 per T2, 600 per T3 (al massimo 3.600 in inventario).',
+  },
+  {
     id: 62, date: '2026-10-31', title: 'Scheda Impero',
     text: 'Nuova scheda Impero: tutti i pianeti a confronto in una tabella, nello stesso ordine della Vista impero del gioco (risorse, capacità di deposito, edifici delle risorse, strutture, edifici e ricerche forme di vita, satelliti e crawler), più energia e produzione all\'ora; quello che era in costruzione o in ricerca all\'importazione è segnato come nel gioco, per esempio 37 ▲ (38); in verde il livello più alto e in arancione il più basso. Sotto, tutte le ricerche dell\'account. Nella scheda del pianeta, accanto a ogni slot di ricerca forme di vita, c\'è la popolazione necessaria per sbloccarlo e quanta ne manca; nell\'Impero, per ogni pianeta, slot aperti e abitanti mancanti al prossimo. Nella Popolazione ora conta anche l\'edificio che aumenta lo spazio abitativo di Umani, Mecha e Kaelesh.',
   },
