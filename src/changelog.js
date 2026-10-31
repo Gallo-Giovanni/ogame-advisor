@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 69, date: '2026-10-31', title: 'Item fuori dal calcolo degli upgrade',
+    text: 'Gli item attivi continuano a contare nella produzione oraria e giornaliera, ma di base non cambiano più l\'ordine degli upgrade: un item scade, un upgrade resta. Se li rinnovi sempre, puoi rimetterli nel calcolo dalle impostazioni ("Considera gli item nel calcolo degli upgrade").',
+  },
+  {
     id: 68, date: '2026-10-31', title: 'Item attivi: tabella più ordinata',
     text: 'La lista degli item attivi è ora una tabella con colonne separate e testi centrati. Il pianeta è nell\'ultima colonna, i pianeti seguono l\'ordine dell\'Impero e gli item di tutto l\'account vengono sempre dopo.',
   },

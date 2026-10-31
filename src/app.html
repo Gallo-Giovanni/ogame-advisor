@@ -400,8 +400,8 @@
         <div><label>Cristallo</label><input data-p="ratio_crystal" type="number" step="0.01" min="0.1" value="1.67"></div>
         <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
       </div>
-      <label class="check"><input type="checkbox" data-p="items_in_ranking" checked> Considera gli item attivi nel calcolo degli upgrade</label>
-      <p class="muted small" style="margin-top:0">Gli item (booster) arrivano con l'importazione dalla Vista impero, oppure si spuntano nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
+      <label class="check"><input type="checkbox" data-p="items_in_ranking"> Considera gli item attivi nel calcolo degli upgrade</label>
+      <p class="muted small" style="margin-top:0">Gli item (booster) arrivano con l'importazione dalla Vista impero, oppure si spuntano nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: di base non contano; se li rinnovi sempre, metti la spunta.</p>
       <div class="row"><button class="secondary" data-next="1">Indietro</button><button data-next="3">Avanti</button></div>
     </div>
 
@@ -762,7 +762,7 @@ const state = { user: null, profile: null, planets: [], accounts: [], allPlanets
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true, energy_satellites_only: false,
+  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_mode: 'server', astro_tech: 0, hyperspace_tech: 0, top1_points: null,

@@ -272,7 +272,7 @@ const Engine = (() => {
     const speed = profile.economy_speed;
     const mult = multipliers(profile, planet);
     // Gli upgrade durano per sempre, gli item scadono: il giocatore decide se contarli nella classifica
-    const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
+    const multRank = multipliers(profile, planet, profile.items_in_ranking === true);
     // Energia usata da miniere e crawler (anche gli edifici forme di vita consumano, ma quanto lo sa solo il gioco)
     const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
@@ -313,7 +313,7 @@ const Engine = (() => {
   const FUEL_HOURS = 24 * 90;
   function energyFix(profile, planet, energy, ctx) {
     if (energy <= 0) return null;
-    const mult = multipliers(profile, planet, profile.items_in_ranking !== false);
+    const mult = multipliers(profile, planet, profile.items_in_ranking === true);
     const perSat = Math.floor(satelliteEnergy(planet.temp_max) * mult.energy);
     const sats = Math.ceil(energy / perSat);
     const satCost = SATELLITE_COST.map(x => x * sats);

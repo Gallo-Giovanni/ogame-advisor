@@ -400,8 +400,8 @@
         <div><label>Cristallo</label><input data-p="ratio_crystal" type="number" step="0.01" min="0.1" value="1.67"></div>
         <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
       </div>
-      <label class="check"><input type="checkbox" data-p="items_in_ranking" checked> Considera gli item attivi nel calcolo degli upgrade</label>
-      <p class="muted small" style="margin-top:0">Gli item (booster) arrivano con l'importazione dalla Vista impero, oppure si spuntano nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: se di solito li rinnovi, lascia la spunta; se li usi solo ogni tanto, toglila.</p>
+      <label class="check"><input type="checkbox" data-p="items_in_ranking"> Considera gli item attivi nel calcolo degli upgrade</label>
+      <p class="muted small" style="margin-top:0">Gli item (booster) arrivano con l'importazione dalla Vista impero, oppure si spuntano nella scheda di ogni pianeta. Un upgrade dura per sempre, un item scade: di base non contano; se li rinnovi sempre, metti la spunta.</p>
       <div class="row"><button class="secondary" data-next="1">Indietro</button><button data-next="3">Avanti</button></div>
     </div>
 
@@ -1324,7 +1324,7 @@ const Engine = (() => {
     const speed = profile.economy_speed;
     const mult = multipliers(profile, planet);
     // Gli upgrade durano per sempre, gli item scadono: il giocatore decide se contarli nella classifica
-    const multRank = multipliers(profile, planet, profile.items_in_ranking !== false);
+    const multRank = multipliers(profile, planet, profile.items_in_ranking === true);
     // Energia usata da miniere e crawler (anche gli edifici forme di vita consumano, ma quanto lo sa solo il gioco)
     const needOwn = Math.round((consumption.metal_mine(planet.metal_mine)
       + consumption.crystal_mine(planet.crystal_mine)
@@ -1365,7 +1365,7 @@ const Engine = (() => {
   const FUEL_HOURS = 24 * 90;
   function energyFix(profile, planet, energy, ctx) {
     if (energy <= 0) return null;
-    const mult = multipliers(profile, planet, profile.items_in_ranking !== false);
+    const mult = multipliers(profile, planet, profile.items_in_ranking === true);
     const perSat = Math.floor(satelliteEnergy(planet.temp_max) * mult.energy);
     const sats = Math.ceil(energy / perSat);
     const satCost = SATELLITE_COST.map(x => x * sats);
@@ -2130,6 +2130,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 69, date: '2026-10-31', title: 'Item fuori dal calcolo degli upgrade',
+    text: 'Gli item attivi continuano a contare nella produzione oraria e giornaliera, ma di base non cambiano più l\'ordine degli upgrade: un item scade, un upgrade resta. Se li rinnovi sempre, puoi rimetterli nel calcolo dalle impostazioni ("Considera gli item nel calcolo degli upgrade").',
+  },
+  {
     id: 68, date: '2026-10-31', title: 'Item attivi: tabella più ordinata',
     text: 'La lista degli item attivi è ora una tabella con colonne separate e testi centrati. Il pianeta è nell\'ultima colonna, i pianeti seguono l\'ordine dell\'Impero e gli item di tutto l\'account vengono sempre dopo.',
   },
@@ -2435,7 +2439,7 @@ const state = { user: null, profile: null, planets: [], accounts: [], allPlanets
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true, energy_satellites_only: false,
+  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_mode: 'server', astro_tech: 0, hyperspace_tech: 0, top1_points: null,

@@ -46,8 +46,8 @@ assert.ok(cPatch.planet.energy_balance >= 0 || !cMetal.fix);
 const boosted = { ...planets[0], item_metal: 40 };
 const base = E.planetState(profile, planets[0]).full[0];
 assert.ok(Math.abs(E.planetState(profile, boosted).full[0] / base - 1.40) < 1e-9);
-const gainWith = E.recommendations(profile, [boosted]).find(r => r.key === 'metal_mine').gainEq;
-const gainWithout = E.recommendations({ ...profile, items_in_ranking: false }, [boosted]).find(r => r.key === 'metal_mine').gainEq;
+const gainWith = E.recommendations({ ...profile, items_in_ranking: true }, [boosted]).find(r => r.key === 'metal_mine').gainEq;
+const gainWithout = E.recommendations(profile, [boosted]).find(r => r.key === 'metal_mine').gainEq;
 const gainPlain = E.recommendations(profile, [planets[0]]).find(r => r.key === 'metal_mine').gainEq;
 assert.ok(gainWith > gainPlain && Math.abs(gainWithout - gainPlain) < 1e-9);
 // Il bonus forme di vita è per pianeta
