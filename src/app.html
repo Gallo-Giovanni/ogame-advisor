@@ -1948,13 +1948,16 @@ $('#items-panel').addEventListener('click', e => {
 });
 
 /* Impero: tutti i pianeti a confronto, come la Vista impero del gioco (icone originali). In verde il livello più alto, in arancione il più basso */
+// stesso ordine della Vista impero del gioco: Risorse (edifici 1, 2, 3, 4, 12, 22, 23, 24) e Strutture (14, 15, 21, 31, 33, 34, 44, 36)
 const EMP_BUILD = [
-  ['Miniere ed energia', [['metal', 'Miniera di metallo', p => p.metal_mine], ['crystal', 'Miniera di cristallo', p => p.crystal_mine], ['deut', 'Sintetizzatore di deuterio', p => p.deut_synth],
-    ['solar', 'Centrale solare', p => p.solar_plant], ['fusion', 'Centrale a fusione', p => p.fusion_reactor], ['satellite', 'Satelliti solari', p => p.solar_satellites], ['crawler', 'Crawler', p => p.crawlers]]],
+  ['Risorse', [['metal', 'Miniera di metallo', p => p.metal_mine], ['crystal', 'Miniera di cristallo', p => p.crystal_mine], ['deut', 'Sintetizzatore di deuterio', p => p.deut_synth],
+    ['solar', 'Centrale solare', p => p.solar_plant], ['fusion', 'Centrale a fusione', p => p.fusion_reactor],
+    ['store_m', 'Deposito di metallo', 22], ['store_c', 'Deposito di cristallo', 23], ['store_d', 'Cisterna di deuterio', 24]]],
   ['Strutture', [['robot', 'Fabbrica di robot', 14], ['nanite', 'Fabbrica di naniti', 15], ['shipyard', 'Cantiere spaziale', 21], ['lab', 'Laboratorio di ricerca', 31],
-    ['terraformer', 'Terraformer', 33], ['depot', 'Deposito dell\'alleanza', 34], ['dock', 'Porto spaziale', 36], ['silo', 'Silo missilistico', 44]]],
-  ['Depositi', [['store_m', 'Deposito di metallo', 22], ['store_c', 'Deposito di cristallo', 23], ['store_d', 'Cisterna di deuterio', 24]]],
+    ['terraformer', 'Terraformer', 33], ['depot', 'Deposito dell\'alleanza', 34], ['silo', 'Silo missilistico', 44], ['dock', 'Porto spaziale', 36]]],
 ];
+// ricerche nell'ordine della Vista impero
+const RESEARCH_ORDER = [114, 113, 120, 121, 122, 115, 117, 118, 106, 108, 124, 123, 199, 109, 110, 111];
 const RESEARCH_NAMES = { 106: 'Spionaggio', 108: 'Computer', 109: 'Armi', 110: 'Scudi', 111: 'Corazze', 113: 'Energetica', 114: 'Iperspaziale', 115: 'Combustione',
   117: 'Impulso', 118: 'Motore iper.', 120: 'Laser', 121: 'Ioni', 122: 'Plasma', 123: 'Rete ricerca', 124: 'Astrofisica', 199: 'Gravitoni' };
 function renderEmpire() {
@@ -1973,29 +1976,45 @@ function renderEmpire() {
   };
   const sec = t => `<tr class="emp-sec"><th colspan="${pls.length + 1}">${t}</th></tr>`;
   let body = '';
-  // produzione e risorse
   const st = pls.map(p => Engine.planetState(prof, p));
-  body += sec('Produzione e risorse');
-  body += row('metal', 'Metallo all\'ora', st.map(x => Math.round(x.actual[0]))) + row('crystal', 'Cristallo all\'ora', st.map(x => Math.round(x.actual[1]))) + row('deut', 'Deuterio all\'ora', st.map(x => Math.round(x.actual[2])));
+  const R3 = (k, f) => pls.map(p => (p.resources && p.resources[k] != null ? f(p.resources[k]) : null));
+  // in alto, come sotto ogni pianeta nel gioco: energia e temperatura; poi la produzione calcolata dall'app
+  body += sec('Pianeta');
   body += row('energy', 'Energia', st.map(x => Math.round(x.balance)), { fmt: v => `<span class="${+v < 0 ? 'neg' : ''}">${+v > 0 ? '+' : ''}${fmt(+v)}</span>` });
-  if (pls.some(p => p.resources)) body += row('metal', 'Metallo sul pianeta', pls.map(p => p.resources ? p.resources.m : null), { noCmp: true }) + row('crystal', 'Cristallo sul pianeta', pls.map(p => p.resources ? p.resources.c : null), { noCmp: true }) + row('deut', 'Deuterio sul pianeta', pls.map(p => p.resources ? p.resources.d : null), { noCmp: true });
-  if (pls.some(p => p.resources && p.resources.popMax)) body += row('pop', 'Popolazione', pls.map(p => p.resources && p.resources.popMax ? p.resources.pop : null));
   body += row(null, 'Temperatura max', pls.map(p => p.temp_max), { noCmp: true, fmt: v => v + '°C' });
+  body += row('metal', 'Metallo all\'ora', st.map(x => Math.round(x.actual[0]))) + row('crystal', 'Cristallo all\'ora', st.map(x => Math.round(x.actual[1]))) + row('deut', 'Deuterio all\'ora', st.map(x => Math.round(x.actual[2])));
+  if (pls.some(p => p.resources)) {
+    body += sec('Risorse sul pianeta') + row('metal', 'Metallo', R3('m', Number), { noCmp: true }) + row('crystal', 'Cristallo', R3('c', Number), { noCmp: true }) + row('deut', 'Deuterio', R3('d', Number), { noCmp: true });
+    if (pls.some(p => p.resources && p.resources.popMax)) body += row('food', 'Cibo', R3('food', Number), { noCmp: true }) + row('pop', 'Popolazione', R3('pop', Number));
+    if (pls.some(p => p.resources && p.resources.popMax)) body += sec('Capacità di deposito') + row('food', 'Magazzino alimentare', R3('foodMax', Number)) + row('pop', 'Spazio abitativo', R3('popMax', Number));
+  }
   for (const [title, items] of EMP_BUILD) {
     const rows = items.filter(([, , g]) => typeof g === 'function' || pls.some(p => val(p, g) != null));
     if (!rows.length) continue;
     body += sec(title) + rows.map(([k, l, g]) => row(k, l, pls.map(p => { const v = val(p, g); return v == null && typeof g !== 'function' ? (p.buildings && Object.keys(p.buildings).length ? 0 : null) : v; }))).join('');
   }
-  // forme di vita: gli edifici di ogni razza presente
+  // forme di vita: edifici di ogni razza presente, poi le ricerche per slot
   const races = LF_RACES.filter(r => pls.some(p => p.lf_race === r));
   for (const r of races) {
     const R = Engine.LF.races[r];
-    body += sec(`Forme di vita · ${RACE_NAMES[r]}`) + R.buildingOrder.map(k => row(lfIcon(r, k), R.buildings[k].it,
+    body += sec(`Edifici forme di vita · ${RACE_NAMES[r]}`) + R.buildingOrder.map(k => row(lfIcon(r, k), R.buildings[k].it,
       pls.map(p => (p.lf_race !== r ? null : k === 'mineral_centre' ? +p.mrc_level || 0 : +((p.lf_buildings || {})[k]) || 0)))).join('');
   }
+  if (pls.some(p => p.lf_techs && Object.keys(p.lf_techs).length)) {
+    body += sec('Ricerche forme di vita');
+    for (let slot = 1; slot <= 18; slot++) {
+      const es = pls.map(p => (p.lf_techs || {})[slot]);
+      if (!es.some(e => e && e.race)) continue;
+      const names = [...new Set(es.filter(e => e && e.race).map(e => e.race))];
+      const label = names.length === 1 ? `${techTag(slot)} ${Engine.LF.races[names[0]].techs[slot - 1].it}` : `${techTag(slot)} (razze diverse)`;
+      body += row('research', label, es.map(e => (e && e.race ? +e.level || 0 : null)), { fmt: v => esc(String(v)) });
+    }
+  }
+  // navi che l'app conosce (nel gioco satelliti e crawler stanno tra le navi)
+  body += sec('Navi') + row('satellite', 'Satelliti solari', pls.map(p => p.solar_satellites)) + row('crawler', 'Crawler', pls.map(p => p.crawlers));
   const head = `<tr><th></th>${pls.map(p => `<th class="emp-pl"><button class="ghost" data-emp-open="${p.id}">${esc(p.name)}</button><div class="muted small">${esc(coordsText(p))}</div></th>`).join('')}</tr>`;
   const res = state.profile.research || {};
-  const rs = Object.keys(RESEARCH_NAMES).filter(id => res[id] != null);
+  const rs = RESEARCH_ORDER.filter(id => res[id] != null);
   $('#empire-panel').innerHTML = `<div class="card stack"><h2 class="bh">Impero</h2>
     <p class="muted small" style="margin:0">Tutti i pianeti a confronto: in <span class="emp-hi">verde</span> il livello più alto, in <span class="emp-lo">arancione</span> il più basso. Tocca il nome di un pianeta per aprire la sua scheda.</p>
     <div class="emp-wrap"><table class="emp">${head}${body}</table></div></div>`
