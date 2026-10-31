@@ -13,8 +13,9 @@ const LIFEFORMS = {
     techSlotsPerRace: 18,                // guida; slot 1-6 = T1, 7-12 = T2, 13-18 = T3 (gioco)
     // ogni slot N contiene lo slot N di UNA razza, scelta dal giocatore (gioco, confermato dal giocatore)
     raceSwitchCooldownHours: 48,         // guida
-    // Bonus effettivo di una ricerca = base x (1 + edificio che potenzia le ricerche del pianeta) x (1 + bonus del livello della razza)  (esempio 2 della guida, ricalcolato: 1,599 contro 1,598 mostrato)
-    techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
+    // Bonus effettivo di una ricerca = base x (1 + edificio che potenzia le ricerche del pianeta + bonus del livello della razza del pianeta)
+    // (FAQ del forum; verificato sulla pagina Impostazioni risorse del gioco con le ricerche di 11 pianeti Rock'tal)
+    techBonusFormula: 'base * (1 + buildingBoost + planetRaceLevelBonus)',
     // Costo di un edificio forme di vita al livello L = base x fattore^(L-1) x L; il Monolite riduce i costi Rock'tal
     // e l'energia (Monolite 5 = -5%, confermato dal giocatore)
     buildingCostFormula: 'base * factor^(L-1) * L',      // verificato su 7 edifici Rock'tal, livelli 1-2 e 15->16

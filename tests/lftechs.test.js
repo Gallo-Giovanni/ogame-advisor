@@ -118,3 +118,19 @@ console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
   assert.strictEqual(cap('rocktal', 62, 0), 1743064486);
   console.log('Spazio abitativo di tutte le razze uguale alle tabelle');
 }
+
+// Bonus delle ricerche forme di vita di tutto l'account confrontato con la pagina "Impostazioni risorse" del gioco
+// (31/10/2026, 11 pianeti Rock'tal, livelli delle razze Umani 40, Rock'tal 44, Mecha 42, Kaelesh 43; ricerche in corso escluse).
+// Riga "Bonus Tecnologia Forme di vita" / riga della miniera: metallo 70.134 / 287.826, cristallo 11.218 / 59.502, deuterio 13.628 / 42.970.
+{
+  const R = { m: 'mechas', h: 'humans', r: 'rocktal', k: 'kaelesh' };
+  const codes = ['m8 h10 r7 k6 k9 m7 r6 h6 r5 k5 k7 k6', 'm8 h9 r7 k6 k9 m6 r7 h6 r5 k6 k7 k6', 'm8 h9 r7 k6 k9 m6 r6 h6 r5 k5 k7 k6', 'm8 h9 r7 k6 k9 m6 r6 h6 r5 k5 k7 k6',
+    'm8 h10 r7 k7 k9 m6 r6 h6 r5 k5 k7 k6', 'h6 h9 r6 k6 k9 m6 r6 h6 r4 k5 k6 k6', 'm8 h9 r6 k5 k9 m6 r6 h6 r5 k5 k6 k6', 'm8 h10 r7 k6 k9 m6 r6 h6 r5 k6 k6 k6',
+    'm8 h9 r7 k6 k9 m6 r6 h6 r5 k6 k6 k6', 'm8 h9 r7 k6 k9 m6 r6 h6 r5 k6 k6 k6', 'm8 h9 r6 k6 k9 m7 r5 h6 r5 k5 k6 k5'];
+  const pls = codes.map(c => ({ lf_race: 'rocktal', lf_buildings: {}, lf_techs: Object.fromEntries(c.split(' ').map((x, i) => [i + 1, { race: R[x[0]], level: +x.slice(1) }])) }));
+  const t = E.techTotals({ lf_level_humans: 40, lf_level_rocktal: 44, lf_level_mechas: 42, lf_level_kaelesh: 43 }, pls);
+  assert.ok(Math.abs(t.metal - 70134 / 287826) < 0.0001, 'metallo ' + t.metal);
+  assert.ok(Math.abs(t.crystal - 11218 / 59502) < 0.0001, 'cristallo ' + t.crystal);
+  assert.ok(Math.abs(t.deut - 13628 / 42970) < 0.0001, 'deuterio ' + t.deut);
+  console.log('Bonus delle ricerche forme di vita uguale al gioco (livello della razza del pianeta)');
+}

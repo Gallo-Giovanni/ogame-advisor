@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 64, date: '2026-10-31', title: 'Bonus delle ricerche forme di vita più preciso',
+    text: 'Il livello della razza ora potenzia le ricerche in base alla razza del pianeta dove sono fatte (non alla razza della ricerca), sommato agli edifici che potenziano le ricerche, come nel gioco. Verificato sulla pagina Impostazioni risorse: il bonus calcolato coincide con quello del gioco.',
+  },
+  {
     id: 63, date: '2026-10-31', title: 'Manufatti per le ricerche forme di vita',
     text: 'Nella scheda del pianeta, sopra ogni gruppo di slot di ricerca, c\'è quanti manufatti servono per scegliere la ricerca invece di tirarla a sorte: 200 per T1, 400 per T2, 600 per T3 (al massimo 3.600 in inventario).',
   },

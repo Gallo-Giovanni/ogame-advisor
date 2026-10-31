@@ -95,11 +95,14 @@ assert.ok(Math.abs(both.full[0] / base - 1.80) < 1e-9);
 assert.ok(Math.abs(both.mult.energy - E.planetState(profile, planets[0]).mult.energy) < 1e-12);
 
 // ---- Forme di vita ----
-// Effetto ricerca = base x livello x (1 + potenziamento edifici del pianeta) x (1 + 0,1% x livello razza) (esempio della guida: x1,045 x1,02)
+// Effetto ricerca = base x livello x (1 + potenziamento edifici del pianeta + 0,1% x livello della razza del pianeta) (FAQ: i due bonus si sommano)
 const human = { ...planets[0], id: 'h', lf_race: 'humans', lf_buildings: { metropolis: 9 }, lf_techs: { 2: { race: 'humans', level: 10 } } };
 const lfProfile = { ...profile, lf_level_humans: 20 };
 const eff = E.techEffect(lfProfile, human, 2, human.lf_techs[2]);
-assert.ok(Math.abs(eff.metal - 0.0006 * 10 * 1.045 * 1.02) < 1e-12);
+assert.ok(Math.abs(eff.metal - 0.0006 * 10 * (1 + 0.045 + 0.02)) < 1e-12);
+// conta il livello della razza del pianeta, non quello della razza della ricerca
+const onRock = { ...human, lf_race: 'rocktal', lf_buildings: {} };
+assert.ok(Math.abs(E.techEffect({ ...profile, lf_level_humans: 20, lf_level_rocktal: 44 }, onRock, 2, human.lf_techs[2]).metal - 0.0006 * 10 * 1.044) < 1e-12);
 // Le ricerche agiscono su tutti i pianeti: anche un pianeta senza forme di vita riceve il totale dell'account
 const plain = { ...planets[1], id: 'p' };
 const withLf = E.withLifeforms(lfProfile, [human, plain]);

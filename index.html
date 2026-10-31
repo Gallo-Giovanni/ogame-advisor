@@ -714,8 +714,9 @@ const LIFEFORMS = {
     techSlotsPerRace: 18,                // guida; slot 1-6 = T1, 7-12 = T2, 13-18 = T3 (gioco)
     // ogni slot N contiene lo slot N di UNA razza, scelta dal giocatore (gioco, confermato dal giocatore)
     raceSwitchCooldownHours: 48,         // guida
-    // Bonus effettivo di una ricerca = base x (1 + edificio che potenzia le ricerche del pianeta) x (1 + bonus del livello della razza)  (esempio 2 della guida, ricalcolato: 1,599 contro 1,598 mostrato)
-    techBonusFormula: 'base * (1 + buildingBoost) * (1 + levelBonus)',
+    // Bonus effettivo di una ricerca = base x (1 + edificio che potenzia le ricerche del pianeta + bonus del livello della razza del pianeta)
+    // (FAQ del forum; verificato sulla pagina Impostazioni risorse del gioco con le ricerche di 11 pianeti Rock'tal)
+    techBonusFormula: 'base * (1 + buildingBoost + planetRaceLevelBonus)',
     // Costo di un edificio forme di vita al livello L = base x fattore^(L-1) x L; il Monolite riduce i costi Rock'tal
     // e l'energia (Monolite 5 = -5%, confermato dal giocatore)
     buildingCostFormula: 'base * factor^(L-1) * L',      // verificato su 7 edifici Rock'tal, livelli 1-2 e 15->16
@@ -1198,10 +1199,12 @@ const Engine = (() => {
     const tech = LF.races[entry.race].techs[slot - 1];
     if (!tech) return out;
     const be = buildingEffects(planet);
-    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
-    const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
+    // Potenziamento = edifici del pianeta che potenziano le ricerche + livello della razza DEL PIANETA, sommati
+    // (FAQ del forum; verificato sulla pagina Impostazioni risorse del gioco: 24,367% metallo contro 24,367% calcolato)
+    const levelBonus = planet.lf_race ? LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + planet.lf_race] || 0) : 0;
+    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0) + levelBonus;
     const ks = keys === 'all' ? Object.keys(tech.perLevel).filter(k => typeof tech.perLevel[k] === 'number') : keys;
-    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost;
     return out;
   }
   // Le ricerche forme di vita agiscono su tutti i pianeti: somma su tutto l'account (tutti i pianeti, anche quelli esclusi)
@@ -2027,6 +2030,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 64, date: '2026-10-31', title: 'Bonus delle ricerche forme di vita più preciso',
+    text: 'Il livello della razza ora potenzia le ricerche in base alla razza del pianeta dove sono fatte (non alla razza della ricerca), sommato agli edifici che potenziano le ricerche, come nel gioco. Verificato sulla pagina Impostazioni risorse: il bonus calcolato coincide con quello del gioco.',
+  },
   {
     id: 63, date: '2026-10-31', title: 'Manufatti per le ricerche forme di vita',
     text: 'Nella scheda del pianeta, sopra ogni gruppo di slot di ricerca, c\'è quanti manufatti servono per scegliere la ricerca invece di tirarla a sorte: 200 per T1, 400 per T2, 600 per T3 (al massimo 3.600 in inventario).',

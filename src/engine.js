@@ -174,10 +174,12 @@ const Engine = (() => {
     const tech = LF.races[entry.race].techs[slot - 1];
     if (!tech) return out;
     const be = buildingEffects(planet);
-    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0);
-    const raceLevel = 1 + LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + entry.race] || 0);
+    // Potenziamento = edifici del pianeta che potenziano le ricerche + livello della razza DEL PIANETA, sommati
+    // (FAQ del forum; verificato sulla pagina Impostazioni risorse del gioco: 24,367% metallo contro 24,367% calcolato)
+    const levelBonus = planet.lf_race ? LF.rules.levelBonusPerLevel.value * (+profile['lf_level_' + planet.lf_race] || 0) : 0;
+    const boost = 1 + be.techBoost + (entry.race === 'kaelesh' ? be.techBoostOwnRace : 0) + levelBonus;
     const ks = keys === 'all' ? Object.keys(tech.perLevel).filter(k => typeof tech.perLevel[k] === 'number') : keys;
-    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost * raceLevel;
+    for (const k of ks) if (tech.perLevel[k]) out[k] = tech.perLevel[k] * +entry.level * boost;
     return out;
   }
   // Le ricerche forme di vita agiscono su tutti i pianeti: somma su tutto l'account (tutti i pianeti, anche quelli esclusi)
