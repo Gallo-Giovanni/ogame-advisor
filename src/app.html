@@ -129,6 +129,7 @@
   td input { padding: 6px; min-width: 58px; }
   td input.name { min-width: 110px; }
   .neg { color: var(--bad); }
+  .pos { color: var(--ok); }
   .modal-back { position: fixed; inset: 0; background: #050814cc; display: grid; place-items: center; padding: 16px; z-index: 50; }
   .modal { width: min(560px, 100%); max-height: 85vh; display: flex; flex-direction: column; }
   .modal .list { overflow-y: auto; margin: 12px 0; padding-right: 4px; }
@@ -163,6 +164,9 @@
   .pe-full { grid-column: 1 / -1; }
   .pe-sub { margin: 4px 0 2px; }
   [data-pecard].off { display: none; }
+  .pop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+  .pop-cell { background: var(--bg2); border-radius: 8px; padding: 8px 10px; }
+  .pop-cell b { font: 700 1.1rem Rajdhani, sans-serif; }
   @media (max-width: 1060px) { .pe-wide { grid-column: auto; } }
   .pe-actions { position: sticky; bottom: 8px; z-index: 5; box-shadow: 0 6px 24px #0008; display: flex; gap: 8px; align-items: center; padding: 10px 12px; }
   .pe-actions #pe-delete { margin-left: auto; }
@@ -513,6 +517,10 @@
               <p class="muted small">Calcolatore: per ogni colonna copia il valore della riga della miniera e la somma delle righe delle forme di vita (edifici e "Bonus Tecnologia Forme di vita").</p>
               <div class="grid" id="lf-calc"></div>
             </details>
+          </div>
+          <div class="card stack pe-full" data-pecard="lf">
+            <h3>Popolazione</h3>
+            <div id="pe-pop" class="stack"></div>
           </div>
         </form>
         <div class="card pe-actions">
@@ -1499,6 +1507,40 @@ function renderTechEffect(slot) {
   if (e.plasma_tech_cost) parts.push(`<b>${pctx(e.plasma_tech_cost)}%</b> costo Plasma`);
   el.innerHTML = parts.join(' · ');
 }
+/* Popolazione del pianeta: abitanti, cibo, slot di ricerca aperti e la combinazione più economica per il prossimo slot */
+function renderPopulation(p, prof) {
+  const box = $('#pe-pop'), race = p.lf_race;
+  if (!race) { box.innerHTML = '<p class="muted small" style="margin:0">Scegli la razza del pianeta per vedere la popolazione.</p>'; return; }
+  const lv = Engine.popLevels(race, p), R = Engine.LF.races[race], N = k => R.buildings[k].it;
+  const saved = state.planets.find(x => x.id === (state.editing && state.editing.id));
+  const res = saved && saved.resources;
+  const sameQ = saved && +((saved.lf_buildings || {})[lv.keys[0]] || 0) === lv.quarters;
+  const imported = res && res.popMax && sameQ ? +res.pop : null;
+  const st = Engine.population(race, lv, prof.economy_speed, imported);
+  const tierOf = i => (i < 6 ? 'T1' : i < 12 ? 'T2' : 'T3');
+  const cell = (l, v, sub) => `<div class="pop-cell"><div class="muted small">${l}</div><b>${v}</b>${sub ? `<div class="muted small">${sub}</div>` : ''}</div>`;
+  let h = `<div class="pop-grid">
+    ${cell('Abitanti T1', fmt(st.t1), `spazio ${fmt(st.cap)}`)}
+    ${cell('Abitanti T2', fmt(st.t2), `${N(lv.keys[2])} ${lv.school}: ${lv.school}% dei T1`)}
+    ${cell('Abitanti T3', fmt(st.t3), `${N(lv.keys[3])} ${lv.high}: ${lv.high}% dei T2`)}
+    ${cell('Sazietà', `<span class="${st.fed ? 'pos' : 'neg'}">${fmt(st.satiety)}</span>`, st.fed ? 'il cibo basta' : `il cibo non basta: alza ${N(lv.keys[1])}`)}
+    ${cell('Crescita', fmt(st.growth) + ' /h', `${fmt(st.growth / 3600)} al secondo`)}
+    ${cell('Slot di ricerca aperti', `${st.open} di 18`, st.open < 18 ? `slot ${st.open + 1}: servono ${fmt(Engine.SLOT_POP[st.open])} ${tierOf(st.open)}` : 'tutti aperti')}
+  </div>`;
+  if (imported === null) h += `<p class="muted small" style="margin:0">Abitanti calcolati dai livelli (pieni fino allo spazio o al cibo). Con l'importazione dalla Vista impero arrivano quelli veri.</p>`;
+  if (st.open < 18) {
+    const plan = Engine.popPlan(race, p, st.open + 1, prof.economy_speed, prof);
+    if (plan) {
+      const rows = [[lv.keys[0], lv.quarters, plan.quarters], [lv.keys[1], lv.farm, plan.farm], [lv.keys[2], lv.school, plan.school], [lv.keys[3], lv.high, plan.high]].filter(([, a, b]) => b > a);
+      const wait = Math.max(0, plan.cap - st.t1) / plan.growth;
+      h += `<b class="small">Per aprire lo slot ${st.open + 1} (${tierOf(st.open)}), la combinazione più economica</b>
+        <table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th></tr>${rows.map(([k, a, b]) => `<tr><td>${esc(N(k))}</td><td>${a}</td><td><b>${b}</b></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nessun edificio: basta aspettare la crescita.</td></tr>'}
+        <tr class="tot"><td>Costo</td><td colspan="2">${ri('metal')} ${fmt(plan.cost[0])} · ${ri('crystal')} ${fmt(plan.cost[1])} · ${ri('deut')} ${fmt(plan.cost[2])}</td></tr></table>
+        <p class="muted small" style="margin:0">${plan.tier === 3 ? `T3 previsti ${fmt(plan.t3)}` : plan.tier === 2 ? `T2 previsti ${fmt(plan.t2)}` : `Abitanti previsti ${fmt(plan.cap)}`} con lo spazio pieno; poi gli abitanti devono crescere fino a ${fmt(plan.cap)}: almeno ${durText(wait * 3600)} con la crescita del nuovo livello. ${race === 'rocktal' ? 'Costi già scontati dal Monolite. ' : ''}Gli edifici che aumentano spazio o cibo (alcuni di Umani, Mecha e Kaelesh) non sono ancora contati.</p>`;
+    }
+  }
+  box.innerHTML = h;
+}
 function renderLfSummary() {
   const p = editorPlanet();
   const all = planetsWithEdit(p);
@@ -1511,6 +1553,7 @@ function renderLfSummary() {
   $('#lf-sum').innerHTML = (p.lf_race ? `Edifici di questo pianeta: ${row(be)}<br>` : '') +
     `Ricerche di questo pianeta: ${row(own)}<br>Ricerche di tutto l'account: ${row(t)}<br>` +
     `<span>Il totale dell'account deve coincidere con la riga "Bonus Tecnologia Forme di vita" della pagina Impostazioni risorse del gioco.</span>`;
+  renderPopulation(p, prof);
   $('#lf-manual-note').textContent = prof._lf.computed
     ? 'Ora l\'app usa razza, edifici e ricerche: queste percentuali vengono ignorate.'
     : 'Usate solo finché nessun pianeta ha razza o ricerche inserite. Per ricavarle apri Risorse → Impostazioni risorse e usa il calcolatore.';

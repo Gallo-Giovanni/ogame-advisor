@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 59, date: '2026-10-31', title: 'Popolazione del pianeta',
+    text: 'Nella scheda di ogni pianeta, sotto Forme di vita, c\'è la sezione Popolazione: abitanti T1, T2 e T3, spazio, sazietà, crescita e slot di ricerca aperti. Per il prossimo slot l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3, con il costo e il tempo di crescita. Le formule vengono dai dati del server e sono verificate sulle tabelle del gioco.',
+  },
+  {
     id: 58, date: '2026-10-31', title: 'Energia: satelliti, centrale solare o a fusione',
     text: 'Quando un upgrade richiede energia, l\'app confronta satelliti solari, centrale solare e centrale a fusione (contando anche il deuterio che la fusione brucia ogni ora) e consiglia solo la soluzione che costa meno. In Impostazioni puoi spuntare "Per l\'energia consiglia solo satelliti".',
   },

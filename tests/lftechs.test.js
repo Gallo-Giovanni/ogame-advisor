@@ -94,3 +94,17 @@ const KC2 = { 4: [60000, 45000, 22500], 6: [130000, 130000, 52000], 8: [192000, 
 for (const [slot, c] of Object.entries(KC2))
   assert.deepStrictEqual(E.lfTechCost(E.LF.races.kaelesh.techs[slot - 1], 2, 0), c, 'costo Kaelesh slot ' + slot);
 console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
+
+// Popolazione Rock'tal confrontata con il gioco (Gonnia: Enclave 53, Fattoria 55, Fucina 10, Orictorium 5, velocità 5)
+{
+  const lv = { quarters: 53, farm: 55, school: 10, high: 5, keys: [] };
+  const st = E.population('rocktal', lv, 5, 257018562);
+  assert.strictEqual(st.cap, 257018562, 'spazio abitativo');
+  assert.ok(Math.abs(st.satiety - 261650324) < 50, 'sazietà');
+  assert.ok(Math.abs(st.growth / 3600 - 2830.6) < 0.1, 'crescita al secondo');
+  assert.deepStrictEqual([st.t2, st.t3, st.open], [25701856, 1285092, 12]);
+  // tabella dell'Enclave (Tech. Info.): spazio al livello 60 e 65
+  assert.ok(Math.abs(E.population('rocktal', { ...lv, quarters: 60 }, 5).cap / 1.141e9 - 1) < 0.001);
+  assert.ok(Math.abs(E.population('rocktal', { ...lv, quarters: 65 }, 5).cap / 3.283e9 - 1) < 0.001);
+  console.log('Popolazione uguale al gioco');
+}

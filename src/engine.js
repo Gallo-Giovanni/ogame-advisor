@@ -350,6 +350,64 @@ const Engine = (() => {
     return best;
   }
 
+  // ---- Popolazione delle forme di vita ----
+  // Parametri dal file pubblico del server (serverData.xml, lifeformSettings), uguali per tutti i server.
+  // Verificati su un pianeta Rock'tal con le tabelle "Tech. Info." del gioco: spazio = base x (L+1) x fattore^L,
+  // crescita all'ora = base x (L+1) x 1,2^L, cibo prodotto e consumato = base x (L+1) x fattore^L x velocità economia.
+  // T2 = abitanti T1 x 1% per livello della "scuola"; T3 = T2 x 1% per livello del "liceo" (verificato: 10% e 5%).
+  const POP = {
+    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14] },
+    rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
+    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12] },
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14] },
+  };
+  // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
+  const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
+  const popF = ([b, f], L) => (L > 0 ? b * (L + 1) * Math.pow(f, L) : 0);
+  // livelli: quarters (abitazioni), farm (cibo), school (T1 -> T2), high (T2 -> T3)
+  function popLevels(race, planet) {
+    const o = LF && LF.races[race] ? LF.races[race].buildingOrder : null;
+    const b = planet.lf_buildings || {};
+    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]] } : null;
+  }
+  function population(race, lv, speed, imported) {
+    const P = POP[race]; if (!P) return null;
+    const cap = Math.floor(popF(P.cap, lv.quarters)), growth = popF(P.growth, lv.quarters);
+    const foodProd = popF(P.food, lv.farm) * speed, foodCons = popF(P.cons, lv.quarters) * speed;
+    const satiety = foodCons > 0 ? Math.floor(cap * foodProd / foodCons) : 0;
+    const t1 = imported != null ? imported : Math.min(cap, satiety);
+    const t2 = Math.floor(t1 * lv.school / 100), t3 = Math.floor(t2 * lv.high / 100);
+    const have = i => (i < 6 ? t1 : i < 12 ? t2 : t3);
+    let open = 0; while (open < 18 && have(open) >= SLOT_POP[open]) open++;
+    return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap };
+  }
+  // Combinazione più economica di abitazioni, cibo, scuola e liceo per aprire lo slot `slot` (1-18)
+  function popPlan(race, planet, slot, speed, profile) {
+    const lv = popLevels(race, planet); if (!lv || !POP[race]) return null;
+    const R = LF.races[race], disc = race === 'rocktal' ? monolithDisc(planet) : 0;
+    const need = SLOT_POP[slot - 1], tier = slot <= 6 ? 1 : slot <= 12 ? 2 : 3;
+    const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
+    let best = null;
+    for (let q = lv.quarters; q <= lv.quarters + 30; q++) {
+      const P = POP[race], cap = popF(P.cap, q);
+      let f = lv.farm; while (popF(P.food, f) * speed < popF(P.cons, q) * speed && f < lv.farm + 60) f++;
+      const tryOne = (sc, hi) => {
+        const t1 = cap, t2 = t1 * sc / 100, t3 = t2 * hi / 100;
+        if ((tier === 1 ? t1 : tier === 2 ? t2 : t3) < need) return;
+        const tot = [0, 0, 0];
+        [cum(lv.keys[0], lv.quarters, q), cum(lv.keys[1], lv.farm, f), cum(lv.keys[2], lv.school, sc), cum(lv.keys[3], lv.high, hi)].forEach(c => c.forEach((x, i) => (tot[i] += x)));
+        const eq = toMetalEq(tot, profile);
+        if (!best || eq < best.eq) best = { quarters: q, farm: f, school: sc, high: hi, cost: tot, eq, cap, t2, t3, growth: popF(P.growth, q) };
+      };
+      if (tier === 1) tryOne(lv.school, lv.high);
+      else for (let sc = Math.max(lv.school, 1); sc <= lv.school + 40; sc++) {
+        if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(sc, lv.high); break; } continue; }
+        for (let hi = Math.max(lv.high, 1); hi <= lv.high + 40; hi++) if (cap * sc / 100 * hi / 100 >= need) { tryOne(sc, hi); break; }
+      }
+    }
+    return best && { ...best, from: lv, need, tier };
+  }
+
   const MINES = [
     { key: 'metal_mine',   label: 'Miniera di metallo',   res: 0, cap: 'cap_metal' },
     { key: 'crystal_mine', label: 'Miniera di cristallo', res: 1, cap: 'cap_crystal' },
@@ -688,7 +746,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, baseProd, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, baseProd, POP, SLOT_POP, popLevels, population, popPlan, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();

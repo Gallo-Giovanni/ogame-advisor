@@ -13,6 +13,7 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 - Simboli per tipo di consiglio e sigle degli slot delle ricerche (T1-1 … T3-6)
 - Forme di vita: razza per pianeta, tutti i 12 edifici di ogni razza nell'ordine del gioco (con * quelli usati nei calcoli) e i 18 slot di ricerca (T1/T2/T3, una razza per slot). Gli edifici agiscono sul loro pianeta, le ricerche su tutto l'account, potenziate dagli edifici del pianeta e dal livello della razza. Dati di tutte e quattro le razze in `src/lifeforms.js`, ognuno con la sua fonte
 - Edifici di produzione Rock'tal e ricerche forme di vita T1/T2 nella stessa classifica delle miniere, con costi verificati sul gioco, sconto del Monolite e dell'edificio di ricerca
+- **Popolazione** per pianeta: abitanti T1/T2/T3, spazio, sazietà, crescita, slot di ricerca aperti e la combinazione più economica di edifici per aprire il prossimo slot (formule del serverData.xml, verificate sulle tabelle del gioco)
 - Booster (item) per pianeta, letti anche dalla Vista impero con la scadenza (gli item scaduti non contano più); il giocatore sceglie se contarli nella classifica, perché gli item scadono e gli upgrade no
 - Energia del gioco sempre aggiornata: cambiando satelliti, centrali, miniere o crawler il valore inserito si sposta della differenza calcolata
 - Scheda **Costi**: per ogni pianeta costi, punti e tempi di edifici, ricerche, edifici forme di vita e delle ricerche forme di vita scelte negli slot del pianeta
