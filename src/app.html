@@ -610,7 +610,11 @@
           <div><label>Livello Mecha</label><input data-s="lf_level_mechas" type="number" min="0"></div>
           <div><label>Livello Kaelesh</label><input data-s="lf_level_kaelesh" type="number" min="0"></div>
         </div>
-        <label class="check"><input type="checkbox" data-s="ratio_from_server"> Valore delle risorse dal tasso di scambio del server (di solito 2,5 : 1,5 : 1, cioè 1 : 1,67 : 2,5), aggiornato a ogni importazione</label>
+        <b class="small">Valore delle risorse</b>
+        <input type="hidden" data-s="ratio_mode">
+        <label class="check"><input type="checkbox" data-ratiomode="server"> Usa i valori del server: tasso di scambio ufficiale 2,5 : 1,5 : 1, cioè 1 : 1,67 : 2,5 (si aggiorna a ogni importazione)</label>
+        <label class="check"><input type="checkbox" data-ratiomode="merchant"> Usa i valori massimi del mercante: 3 : 2 : 1, cioè 1 : 1,5 : 3</label>
+        <p class="muted small" style="margin:0">Senza spunte vale il personalizzato: scrivi tu i tre valori qui sotto.</p>
         <div class="grid">
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
           <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.01" min="0.1"></div>
@@ -715,7 +719,7 @@ const PROFILE_DEFAULTS = {
   geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true, energy_satellites_only: false,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
-  ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_from_server: true, astro_tech: 0, hyperspace_tech: 0, top1_points: null,
+  ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_mode: 'server', astro_tech: 0, hyperspace_tech: 0, top1_points: null,
   lf_level_humans: 0, lf_level_rocktal: 0, lf_level_mechas: 0, lf_level_kaelesh: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
@@ -1720,7 +1724,7 @@ function openImport() {
     if (same && same.id !== state.activeAccount) { state.activeAccount = same.id; state.importChosen = true; loadUserData(); return; }
   }
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
-  if (m.serverRatio && (!state.profile || state.profile.ratio_from_server !== false)) Object.assign(m.profile, m.serverRatio);
+  if (m.serverRatio && (!state.profile || !state.profile.ratio_mode || state.profile.ratio_mode === 'server')) Object.assign(m.profile, m.serverRatio);
   state.importSnap = snap;
   state.importBase = m;
   state.importLinks = m.planets.map(x => (x.match ? x.match.id : null)); // quale pianeta salvato aggiorna ogni pianeta importato (null = nuovo)
@@ -2270,21 +2274,29 @@ function renderSettings() {
   $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
   paintTop1(); syncRatioInputs();
 }
-// con il tasso del server i valori delle risorse non si scrivono a mano
+// Valore delle risorse: valori del server, massimi del mercante (3 : 2 : 1) o personalizzato (nessuna spunta)
+const RATIO_PRESETS = { server: [1, 1.6667, 2.5], merchant: [1, 1.5, 3] };
 function syncRatioInputs() {
-  const on = $('[data-s="ratio_from_server"]').checked;
-  ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => ($(`[data-s="${k}"]`).disabled = on));
+  const mode = $('[data-s="ratio_mode"]').value || 'server';
+  $$('[data-ratiomode]').forEach(b => (b.checked = b.dataset.ratiomode === mode));
+  ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => ($(`[data-s="${k}"]`).disabled = mode !== 'custom'));
 }
-$('[data-s="ratio_from_server"]').addEventListener('change', () => {
-  if ($('[data-s="ratio_from_server"]').checked) { $('[data-s="ratio_metal"]').value = 1; $('[data-s="ratio_crystal"]').value = 1.6667; $('[data-s="ratio_deut"]').value = 2.5; }
+$$('[data-ratiomode]').forEach(b => b.addEventListener('change', () => {
+  const mode = b.checked ? b.dataset.ratiomode : 'custom';
+  $('[data-s="ratio_mode"]').value = mode;
+  // il server tiene i valori dell'ultima importazione se ci sono, altrimenti il tasso standard
+  const pr = state.profile || {}, fromServer = pr.ratio_mode === 'server' || pr.ratio_mode == null;
+  const v = mode === 'merchant' ? RATIO_PRESETS.merchant : mode === 'server' ? (fromServer ? [pr.ratio_metal, pr.ratio_crystal, pr.ratio_deut].map(Number) : RATIO_PRESETS.server) : null;
+  if (v) ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach((k, i) => ($(`[data-s="${k}"]`).value = v[i]));
   syncRatioInputs();
-});
+}));
 $('#save-settings').addEventListener('click', async () => {
   const patch = {};
   $$('[data-s]').forEach(el => { patch[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   NUM_FIELDS.forEach(k => { if (k in patch) patch[k] = Number(patch[k]) || PROFILE_DEFAULTS[k]; });
   CAP_FIELDS.forEach(k => (patch[k] = patch[k] === '' ? null : Math.max(0, parseInt(patch[k], 10))));
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
+  patch.ratio_mode = ['server', 'merchant', 'custom'].includes(patch.ratio_mode) ? patch.ratio_mode : 'server';
   patch.research_speed = patch.research_speed === '' ? null : Math.max(0.1, Number(patch.research_speed) || 0) || null;
   const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);

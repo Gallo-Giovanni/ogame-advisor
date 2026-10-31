@@ -48,3 +48,7 @@ alter table public.profiles add column if not exists energy_satellites_only bool
 -- Valore delle risorse dal tasso di scambio del server (2,5 : 1,5 : 1 = 1 : 1,6667 : 2,5)
 alter table public.profiles add column if not exists ratio_from_server boolean not null default true;
 alter table public.profiles alter column ratio_crystal set default 1.6667;
+
+-- Valore delle risorse: 'server' (tasso ufficiale), 'merchant' (3 : 2 : 1) o 'custom'
+alter table public.profiles add column if not exists ratio_mode text not null default 'server' check (ratio_mode in ('server', 'merchant', 'custom'));
+update public.profiles set ratio_mode = 'custom' where ratio_from_server = false;

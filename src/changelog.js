@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 61, date: '2026-10-31', title: 'Valore delle risorse: server, mercante o personalizzato',
+    text: 'In Impostazioni puoi scegliere come l\'app dà valore alle risorse: con i valori del server (tasso ufficiale 2,5 : 1,5 : 1), con i valori massimi del mercante (3 : 2 : 1, cioè 1 cristallo = 1,5 metallo e 1 deuterio = 3 metallo) oppure, senza spunte, con i tuoi numeri.',
+  },
+  {
     id: 60, date: '2026-10-31', title: 'Valore delle risorse dal tasso del server',
     text: 'L\'ammortamento ora usa il tasso di scambio ufficiale del server, 2,5 : 1,5 : 1, cioè 1 cristallo = 1,67 metallo e 1 deuterio = 2,5 metallo (prima il cristallo valeva 1,5). Si aggiorna alla prossima importazione dalla Vista impero. Se preferisci un altro valore, togli la spunta in Impostazioni e scrivi il tuo.',
   },
