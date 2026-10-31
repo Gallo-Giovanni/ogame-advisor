@@ -188,6 +188,8 @@ function mapImport(snap, existing, LF) {
     if (ip.r) data.resources = { m: ip.r[0], c: ip.r[1], d: ip.r[2], at: snap.at || null };
     // popolazione e cibo della Vista impero (dalla versione 6 del pulsante)
     if (ip.po && data.resources) Object.assign(data.resources, { pop: ip.po[0], popMax: ip.po[1], food: ip.po[2], foodMax: ip.po[3] });
+    // costruzioni in corso al momento dell'importazione (id del gioco -> livello in arrivo), per mostrarle nella scheda Impero
+    if (data.resources) data.resources.q = Object.fromEntries(Object.entries(q).map(([k, v]) => [k, +v]));
     // item attivi sul pianeta (dalla versione 6): percentuale e scadenza; quelli non attivi tornano a 0
     if (Array.isArray(ip.it)) {
       const F = { m: 'item_metal', c: 'item_crystal', d: 'item_deut', a: 'item_all', e: 'item_energy' };
@@ -222,7 +224,7 @@ function mapImport(snap, existing, LF) {
     data.lf_techs = techs;
     return { match, data, inProgress: Object.keys(q).map(Number) };
   });
-  if (snap.v >= 6) profile.items = { expedition: expItem };
+  if (snap.v >= 6) profile.items = { expedition: expItem, research: Object.fromEntries(Object.entries(snap.rg || {}).map(([k, v]) => [k, +v])) }; // ricerche in corso
   const unmatched = existing.filter(x => !used.has(x.id));
   return { profile, planets, unmatched, inProgress, serverRatio };
 }
