@@ -362,10 +362,10 @@
           <div><label>Livello Mecha</label><input data-p="lf_level_mechas" type="number" min="0"></div>
           <div><label>Livello Kaelesh</label><input data-p="lf_level_kaelesh" type="number" min="0"></div>
         </div>
-      <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il rapporto ufficiale è 1 : 1,5 : 2,5.</p>
+      <p class="muted small">Valore delle risorse: quanto vale ognuna rispetto al metallo. Il tasso ufficiale del gioco è 2,5 : 1,5 : 1, cioè 1 : 1,67 : 2,5 in valore del metallo.</p>
       <div class="grid">
         <div><label>Metallo</label><input data-p="ratio_metal" type="number" step="0.1" min="0.1" value="1"></div>
-        <div><label>Cristallo</label><input data-p="ratio_crystal" type="number" step="0.1" min="0.1" value="1.5"></div>
+        <div><label>Cristallo</label><input data-p="ratio_crystal" type="number" step="0.01" min="0.1" value="1.67"></div>
         <div><label>Deuterio</label><input data-p="ratio_deut" type="number" step="0.1" min="0.1" value="2.5"></div>
       </div>
       <label class="check"><input type="checkbox" data-p="items_in_ranking" checked> Considera gli item attivi nel calcolo degli upgrade</label>
@@ -610,9 +610,10 @@
           <div><label>Livello Mecha</label><input data-s="lf_level_mechas" type="number" min="0"></div>
           <div><label>Livello Kaelesh</label><input data-s="lf_level_kaelesh" type="number" min="0"></div>
         </div>
+        <label class="check"><input type="checkbox" data-s="ratio_from_server"> Valore delle risorse dal tasso di scambio del server (di solito 2,5 : 1,5 : 1, cioè 1 : 1,67 : 2,5), aggiornato a ogni importazione</label>
         <div class="grid">
           <div><label>Valore metallo</label><input data-s="ratio_metal" type="number" step="0.1" min="0.1"></div>
-          <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.1" min="0.1"></div>
+          <div><label>Valore cristallo</label><input data-s="ratio_crystal" type="number" step="0.01" min="0.1"></div>
           <div><label>Valore deuterio</label><input data-s="ratio_deut" type="number" step="0.1" min="0.1"></div>
         </div>
 
@@ -714,7 +715,7 @@ const PROFILE_DEFAULTS = {
   geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: true, energy_satellites_only: false,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
-  ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5, astro_tech: 0, hyperspace_tech: 0, top1_points: null,
+  ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_from_server: true, astro_tech: 0, hyperspace_tech: 0, top1_points: null,
   lf_level_humans: 0, lf_level_rocktal: 0, lf_level_mechas: 0, lf_level_kaelesh: 0,
   cap_metal: null, cap_crystal: null, cap_deut: null, cap_plasma: null, cap_astro: null,
 };
@@ -1671,11 +1672,11 @@ const IMPORT_LABELS = {
   solar_plant: 'Centrale solare', fusion_reactor: 'Centrale a fusione', robotics_factory: 'Fabbrica di robot', nanite_factory: 'Fabbrica di naniti', solar_satellites: 'Satelliti solari', crawlers: 'Crawler',
   energy_balance: 'Energia (bilancio)', mrc_level: 'Centro di Mineralogia', lf_race: 'Razza',
   player_class: 'Classe', economy_speed: 'Velocità economia', plasma_tech: 'Tecnologia Plasma', energy_tech: 'Tecnologia Energetica',
-  astro_tech: 'Astrofisica', research_speed: 'Velocità delle ricerche', item_metal: 'Item metallo (%)', item_crystal: 'Item cristallo (%)', item_deut: 'Item deuterio (%)', item_all: 'Item tutte le risorse (%)', item_energy: 'Item energia (%)', top1_points: 'Punti del primo in classifica', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
+  astro_tech: 'Astrofisica', research_speed: 'Velocità delle ricerche', ratio_metal: 'Valore metallo', ratio_crystal: 'Valore cristallo', ratio_deut: 'Valore deuterio', item_metal: 'Item metallo (%)', item_crystal: 'Item cristallo (%)', item_deut: 'Item deuterio (%)', item_all: 'Item tutte le risorse (%)', item_energy: 'Item energia (%)', top1_points: 'Punti del primo in classifica', hyperspace_tech: 'Tecnologia iperspaziale', server: 'Server', alliance_trader: 'Alleanza Mercante', universe: 'Universo', nickname: 'Nome giocatore',
 };
 const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
   : k === 'lf_race' ? RACE_NAMES[v] : k === 'player_class' ? ({ explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[v] || v)
-  : typeof v === 'boolean' ? (v ? 'sì' : 'no') : typeof v === 'number' ? fmt(v) : String(v);
+  : typeof v === 'boolean' ? (v ? 'sì' : 'no') : /^ratio_/.test(k) ? (+v).toLocaleString('it-IT', { maximumFractionDigits: 2 }) : typeof v === 'number' ? fmt(v) : String(v);
 function importChanges(oldObj, data) {
   const out = [];
   for (const [k, v] of Object.entries(data)) {
@@ -1719,6 +1720,7 @@ function openImport() {
     if (same && same.id !== state.activeAccount) { state.activeAccount = same.id; state.importChosen = true; loadUserData(); return; }
   }
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
+  if (m.serverRatio && (!state.profile || state.profile.ratio_from_server !== false)) Object.assign(m.profile, m.serverRatio);
   state.importSnap = snap;
   state.importBase = m;
   state.importLinks = m.planets.map(x => (x.match ? x.match.id : null)); // quale pianeta salvato aggiorna ogni pianeta importato (null = nuovo)
@@ -2266,8 +2268,17 @@ $('#cc-have-all').addEventListener('click', () => {
 function renderSettings() {
   const p = state.profile;
   $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
-  paintTop1();
+  paintTop1(); syncRatioInputs();
 }
+// con il tasso del server i valori delle risorse non si scrivono a mano
+function syncRatioInputs() {
+  const on = $('[data-s="ratio_from_server"]').checked;
+  ['ratio_metal', 'ratio_crystal', 'ratio_deut'].forEach(k => ($(`[data-s="${k}"]`).disabled = on));
+}
+$('[data-s="ratio_from_server"]').addEventListener('change', () => {
+  if ($('[data-s="ratio_from_server"]').checked) { $('[data-s="ratio_metal"]').value = 1; $('[data-s="ratio_crystal"]').value = 1.6667; $('[data-s="ratio_deut"]').value = 2.5; }
+  syncRatioInputs();
+});
 $('#save-settings').addEventListener('click', async () => {
   const patch = {};
   $$('[data-s]').forEach(el => { patch[el.dataset.s] = el.type === 'checkbox' ? el.checked : el.value.trim(); });

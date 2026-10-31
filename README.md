@@ -38,7 +38,7 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 | Build: inserisce dati forme di vita, motore, importazione e novità nella pagina | `build.js` → `index.html` |
 | Test, compresi i confronti con i numeri mostrati dal gioco | `tests/` |
 
-Le risorse vengono convertite in metallo equivalente con il rapporto del giocatore (di base 1 : 1,5 : 2,5), poi:
+Le risorse vengono convertite in metallo equivalente con il tasso di scambio del server (di solito 2,5 : 1,5 : 1, cioè 1 : 1,67 : 2,5), oppure con il valore scelto dal giocatore, poi:
 
 ```
 ammortamento (ore) = costo in metallo eq. / produzione in più all'ora in metallo eq.

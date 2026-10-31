@@ -62,7 +62,7 @@ function grabEmpire(html, meta) {
   const resGoing = {};
   for (const id of Object.keys(research)) { const t = going(first, id); if (t) resGoing[id] = t; }
   return {
-    v: 6, at: Date.now(),
+    v: 7, at: Date.now(),
     rg: resGoing,
     uni: meta('universe-name') || '', nick: meta('player-name') || '',
     srv: String(meta('universe') || '').split('.')[0],
@@ -99,7 +99,7 @@ function bookmarkletHref(appUrl) {
     var r=(${grabEmpire.toString()})(document.documentElement.innerHTML,meta);
     try{var x=new XMLHttpRequest();x.open('GET','/api/serverData.xml',false);x.send();
       var tag=function(n){var m=x.responseText.match(new RegExp('<'+n+'>([^<]*)</'+n+'>'));return m?+m[1]:0;};
-      r.sd={rd:tag('researchDurationDivisor'),top:tag('topScore')};}catch(e){}
+      r.sd={rd:tag('researchDurationDivisor'),top:tag('topScore'),tr:[tag('marketplaceBasicTradeRatioMetal'),tag('marketplaceBasicTradeRatioCrystal'),tag('marketplaceBasicTradeRatioDeuterium')]};}catch(e){}
     if(r.error==='moons'){alert('OGame Advisor: apri la scheda Pianeti della Vista impero, non le Lune.');return;}
     if(r.error){alert('OGame Advisor: apri la Vista impero del gioco e premi di nuovo il pulsante.');return;}
     window.open(${JSON.stringify(appUrl)}+'#import='+encodeURIComponent(JSON.stringify(r)),'_blank');
@@ -140,6 +140,10 @@ function mapImport(snap, existing, LF) {
   if (sd.rd > 0 && snap.spd > 0) profile.research_speed = snap.spd * sd.rd;
   else if (info && info.research) profile.research_speed = info.research;
   if (sd.top > 0) profile.top1_points = Math.round(sd.top);
+  // tasso di scambio del server (es. 2,5 : 1,5 : 1) in valore del metallo (1 : 1,67 : 2,5); senza dato, il tasso standard del gioco.
+  // L'app lo usa solo se il giocatore tiene la spunta "usa il tasso del server".
+  const tr = Array.isArray(sd.tr) && sd.tr.every(x => x > 0) ? sd.tr : [2.5, 1.5, 1];
+  const serverRatio = { ratio_metal: 1, ratio_crystal: Math.round(tr[0] / tr[1] * 10000) / 10000, ratio_deut: Math.round(tr[0] / tr[2] * 10000) / 10000 };
   if (CLASS_IDS[snap.cls]) profile.player_class = CLASS_IDS[snap.cls];
   if (snap.spd > 0) profile.economy_speed = snap.spd;
   // livelli delle ricerche per id del gioco (la versione 1 del bookmarklet li mandava per nome)
@@ -220,7 +224,7 @@ function mapImport(snap, existing, LF) {
   });
   if (snap.v >= 6) profile.items = { expedition: expItem };
   const unmatched = existing.filter(x => !used.has(x.id));
-  return { profile, planets, unmatched, inProgress };
+  return { profile, planets, unmatched, inProgress, serverRatio };
 }
 
 // I bookmarklet trascinati prima di questa versione non leggono alcuni dati: l'app chiede di trascinare quello nuovo

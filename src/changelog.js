@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 60, date: '2026-10-31', title: 'Valore delle risorse dal tasso del server',
+    text: 'L\'ammortamento ora usa il tasso di scambio ufficiale del server, 2,5 : 1,5 : 1, cioè 1 cristallo = 1,67 metallo e 1 deuterio = 2,5 metallo (prima il cristallo valeva 1,5). Si aggiorna alla prossima importazione dalla Vista impero. Se preferisci un altro valore, togli la spunta in Impostazioni e scrivi il tuo.',
+  },
+  {
     id: 59, date: '2026-10-31', title: 'Popolazione del pianeta',
     text: 'Nella scheda di ogni pianeta, sotto Forme di vita, c\'è la sezione Popolazione: abitanti T1, T2 e T3, spazio, sazietà, crescita e slot di ricerca aperti. Per il prossimo slot l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3, con il costo e il tempo di crescita. Le formule vengono dai dati del server e sono verificate sulle tabelle del gioco.',
   },

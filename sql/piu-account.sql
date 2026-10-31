@@ -44,3 +44,7 @@ alter table public.planets add column if not exists items jsonb;
 
 -- Energia: il giocatore può chiedere di consigliare solo satelliti solari
 alter table public.profiles add column if not exists energy_satellites_only boolean not null default false;
+
+-- Valore delle risorse dal tasso di scambio del server (2,5 : 1,5 : 1 = 1 : 1,6667 : 2,5)
+alter table public.profiles add column if not exists ratio_from_server boolean not null default true;
+alter table public.profiles alter column ratio_crystal set default 1.6667;

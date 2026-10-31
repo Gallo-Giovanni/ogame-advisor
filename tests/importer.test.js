@@ -87,4 +87,7 @@ assert.strictEqual(I.serverInfo({ uni: 'Sconosciuto', srv: 's1-it' }), null);
 const withSd = mapImport({ ...snap, spd: 5, uni: 'Nuovo', srv: 's999-it', sd: { rd: 3, top: 60283727.265 } }, [], LF).profile;
 assert.strictEqual(withSd.research_speed, 15);
 assert.strictEqual(withSd.top1_points, 60283727);
+// tasso di scambio: dal server se c'è, altrimenti 2,5 : 1,5 : 1 -> 1 : 1,6667 : 2,5
+assert.deepStrictEqual(mapImport(snap, [], LF).serverRatio, { ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5 });
+assert.deepStrictEqual(mapImport({ ...snap, sd: { tr: [3, 2, 1] } }, [], LF).serverRatio, { ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 3 });
 console.log('Controlli sull\'importazione superati');
