@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 62, date: '2026-10-31', title: 'Scheda Impero',
-    text: 'Nuova scheda Impero: tutti i pianeti a confronto in una tabella, nello stesso ordine della Vista impero del gioco (risorse, capacità di deposito, edifici delle risorse, strutture, edifici e ricerche forme di vita, satelliti e crawler), più energia e produzione all\'ora; quello che era in costruzione o in ricerca all\'importazione è segnato come nel gioco, per esempio 37 ▲ (38); in verde il livello più alto e in arancione il più basso. Sotto, tutte le ricerche dell\'account. Nella Popolazione ora conta anche l\'edificio che aumenta lo spazio abitativo di Umani, Mecha e Kaelesh.',
+    text: 'Nuova scheda Impero: tutti i pianeti a confronto in una tabella, nello stesso ordine della Vista impero del gioco (risorse, capacità di deposito, edifici delle risorse, strutture, edifici e ricerche forme di vita, satelliti e crawler), più energia e produzione all\'ora; quello che era in costruzione o in ricerca all\'importazione è segnato come nel gioco, per esempio 37 ▲ (38); in verde il livello più alto e in arancione il più basso. Sotto, tutte le ricerche dell\'account. Nella scheda del pianeta, accanto a ogni slot di ricerca forme di vita, c\'è la popolazione necessaria per sbloccarlo e quanta ne manca; nell\'Impero, per ogni pianeta, slot aperti e abitanti mancanti al prossimo. Nella Popolazione ora conta anche l\'edificio che aumenta lo spazio abitativo di Umani, Mecha e Kaelesh.',
   },
   {
     id: 61, date: '2026-10-31', title: 'Valore delle risorse: server, mercante o personalizzato',

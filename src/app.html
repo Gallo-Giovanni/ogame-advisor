@@ -173,6 +173,9 @@
   table.emp tr.emp-sec th { text-align: left; color: var(--accent); font: 700 .95rem Rajdhani, sans-serif; padding-top: 12px; }
   .emp-ic { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
   .emp-ic svg { width: 20px; height: 20px; }
+  .slot-lock { flex-basis: 100%; color: var(--warn); }
+  .slot-open { flex-basis: 100%; }
+  .trow.locked .slot { color: var(--warn); }
   .lfb-name { display: flex; align-items: center; gap: 8px; }
   .emp-up { color: var(--ok); font-size: .8em; }
   .emp-to { color: #e070ff; font-weight: 700; }
@@ -1526,15 +1529,24 @@ function renderLfBuildings(race) {
 }
 function renderLfTechs() {
   const techs = state.editing.lf.techs;
+  const p = editorPlanet(), saved = state.planets.find(x => x.id === state.editing.id);
+  const pop = planetPop(p, saved, numericProfile(state.profile).economy_speed);
   let html = '';
   for (let slot = 1; slot <= 18; slot++) {
-    if (slot === 1 || slot === 7 || slot === 13) html += `<div class="tier">T${(slot + 5) / 6 | 0}</div>`;
+    if (slot === 1 || slot === 7 || slot === 13) {
+      const a = Engine.SLOT_POP[slot - 1], b = Engine.SLOT_POP[slot + 4];
+      html += `<div class="tier">T${(slot + 5) / 6 | 0} <span class="muted small">· si sbloccano con ${fmt(a)} – ${fmt(b)} abitanti ${slotTier(slot)}</span></div>`;
+    }
+    const need = Engine.SLOT_POP[slot - 1], have = pop ? slotHave(pop.st, slot) : null, locked = have !== null && have < need;
+    const lock = have === null ? '' : locked
+      ? `<div class="slot-lock small">🔒 Servono <b>${fmt(need)}</b> abitanti ${slotTier(slot)}: ne hai ${fmt(have)}, mancano <b>${fmt(need - have)}</b>.</div>`
+      : `<div class="slot-open small muted">✓ Sbloccato (${fmt(need)} ${slotTier(slot)})</div>`;
     const cur = techs[slot] || {};
     const chips = LF_RACES.map(r => {
       const t = Engine.LF.races[r].techs[slot - 1], dot = techDot(t);
       return `<button type="button" class="chip tchip" data-tslot="${slot}" data-trace="${r}" aria-pressed="${cur.race === r}"><span class="r R-${r}">${RACE_SHORT[r]}</span>${esc(t.it)}${dot ? ` <span class="dot ${dot}">●</span>` : ''}</button>`;
     }).join('');
-    html += `<div class="trow"><div class="slot" title="Slot ${slot}">${techTag(slot)}</div><div class="chips">${chips}</div>
+    html += `<div class="trow${locked ? ' locked' : ''}"><div class="slot" title="Slot ${slot}: servono ${fmt(need)} abitanti ${slotTier(slot)}">${locked ? '🔒 ' : ''}${techTag(slot)}</div><div class="chips">${chips}${lock}</div>
       <input type="number" min="0" data-tlvl="${slot}" value="${cur.race ? esc(cur.level ?? '') : ''}" placeholder="—" ${cur.race ? '' : 'disabled'} aria-label="Livello slot ${slot}">
       <div class="eff small muted" data-teff="${slot}"></div></div>`;
   }
@@ -1552,15 +1564,24 @@ function renderTechEffect(slot) {
   el.innerHTML = parts.join(' · ');
 }
 /* Popolazione del pianeta: abitanti, cibo, slot di ricerca aperti e la combinazione più economica per il prossimo slot */
-function renderPopulation(p, prof) {
-  const box = $('#pe-pop'), race = p.lf_race;
-  if (!race) { box.innerHTML = '<p class="muted small" style="margin:0">Scegli la razza del pianeta per vedere la popolazione.</p>'; return; }
-  const lv = Engine.popLevels(race, p), R = Engine.LF.races[race], N = k => R.buildings[k].it;
-  const saved = state.planets.find(x => x.id === (state.editing && state.editing.id));
+// Popolazione di un pianeta: abitanti veri dall'importazione se le abitazioni non sono cambiate, altrimenti stimati dai livelli
+function planetPop(p, saved, speed) {
+  if (!p.lf_race) return null;
+  const lv = Engine.popLevels(p.lf_race, p); if (!lv) return null;
   const res = saved && saved.resources;
   const sameQ = saved && +((saved.lf_buildings || {})[lv.keys[0]] || 0) === lv.quarters;
   const imported = res && res.popMax && sameQ ? +res.pop : null;
-  const st = Engine.population(race, lv, prof.economy_speed, imported);
+  return { lv, imported, st: Engine.population(p.lf_race, lv, speed, imported) };
+}
+// popolazione che ha un pianeta per lo slot (T1 per 1-6, T2 per 7-12, T3 per 13-18)
+const slotHave = (st, slot) => (slot <= 6 ? st.t1 : slot <= 12 ? st.t2 : st.t3);
+const slotTier = slot => (slot <= 6 ? 'T1' : slot <= 12 ? 'T2' : 'T3');
+function renderPopulation(p, prof) {
+  const box = $('#pe-pop'), race = p.lf_race;
+  if (!race) { box.innerHTML = '<p class="muted small" style="margin:0">Scegli la razza del pianeta per vedere la popolazione.</p>'; return; }
+  const R = Engine.LF.races[race], N = k => R.buildings[k].it;
+  const saved = state.planets.find(x => x.id === (state.editing && state.editing.id));
+  const { lv, imported, st } = planetPop(p, saved, prof.economy_speed);
   const tierOf = i => (i < 6 ? 'T1' : i < 12 ? 'T2' : 'T3');
   const cell = (l, v, sub) => `<div class="pop-cell"><div class="muted small">${l}</div><b>${v}</b>${sub ? `<div class="muted small">${sub}</div>` : ''}</div>`;
   let h = `<div class="pop-grid">
@@ -1974,7 +1995,8 @@ function renderEmpire() {
     const hi = Math.max(...nums), lo = Math.min(...nums), cmp = nums.length > 1 && hi > lo && !opts.noCmp;
     return `<tr><th scope="row">${k ? ic(k) : ''}<span>${label}</span></th>${vals.map((v, i) => {
       const empty = v === null || v === undefined || v === '';
-      const c = empty ? 'muted' : cmp && +v === hi ? 'emp-hi' : cmp && +v === lo ? 'emp-lo' : '';
+      const best = opts.lowBest ? lo : hi, worst = opts.lowBest ? hi : lo;
+      const c = empty ? 'muted' : cmp && +v === best ? 'emp-hi' : cmp && +v === worst ? 'emp-lo' : '';
       const g = !empty && opts.id != null ? going(pls[i], opts.id) : 0;
       const txt = empty ? '—' : g && g === +v ? `${fmt(g - 1)} <span class="emp-up" title="in costruzione">▲</span> <span class="emp-to">(${fmt(g)})</span>` : opts.fmt ? opts.fmt(v) : fmt(+v);
       return `<td class="${c}">${txt}</td>`;
@@ -2017,6 +2039,14 @@ function renderEmpire() {
       const RB = { humans: 11, rocktal: 12, mechas: 13, kaelesh: 14 };
       body += row('research', label, es.map(e => (e && e.race ? +e.level || 0 : null)), { id: names.length === 1 ? RB[names[0]] * 1000 + 200 + slot : null });
     }
+  }
+  // sblocco degli slot: quanti sono aperti e quanta popolazione manca al prossimo
+  const pops = pls.map(p => planetPop(p, p, prof.economy_speed));
+  if (pops.some(Boolean)) {
+    body += sec('Sblocco ricerche forme di vita');
+    body += row('pop', 'Slot aperti', pops.map(x => (x ? x.st.open : null)), { fmt: v => `${v}/18` });
+    body += row('pop', 'Prossimo slot', pops.map(x => (x && x.st.open < 18 ? x.st.open + 1 : null)), { noCmp: true, fmt: v => `${techTag(+v)} · ${fmt(Engine.SLOT_POP[v - 1])} ${slotTier(+v)}` });
+    body += row('pop', 'Abitanti mancanti', pops.map(x => (x && x.st.open < 18 ? Engine.SLOT_POP[x.st.open] - slotHave(x.st, x.st.open + 1) : null)), { lowBest: true, fmt: v => `${fmt(+v)}` });
   }
   // navi che l'app conosce (nel gioco satelliti e crawler stanno tra le navi)
   body += sec('Navi') + row('satellite', 'Satelliti solari', pls.map(p => p.solar_satellites)) + row('crawler', 'Crawler', pls.map(p => p.crawlers));
