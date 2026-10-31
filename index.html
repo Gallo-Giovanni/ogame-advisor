@@ -176,6 +176,9 @@
   .slot-lock { flex-basis: 100%; color: var(--warn); }
   .slot-open { flex-basis: 100%; }
   .trow.locked .slot { color: var(--warn); }
+  .ul-combo { text-align: left; white-space: normal; }
+  .ul-combo .emp-ic { width: 20px; height: 20px; vertical-align: middle; }
+  .ul-combo .emp-ic svg { width: 15px; height: 15px; }
   .lfb-name { display: flex; align-items: center; gap: 8px; }
   .emp-up { color: var(--ok); font-size: .8em; }
   .emp-to { color: #e070ff; font-weight: 700; }
@@ -413,6 +416,7 @@
       <button class="tab" data-tab="items">Item attivi</button>
       <button class="tab" data-tab="trade">Scambi</button>
       <button class="tab" data-tab="costs">Costi</button>
+      <button class="tab" data-tab="unlock">Sblocco slot</button>
       <button class="tab" data-tab="settings">Impostazioni</button>
     </div>
 
@@ -552,6 +556,17 @@
     <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
     <section data-panel="items" class="stack hidden" id="items-panel"></section>
 
+    <section data-panel="unlock" class="stack hidden">
+      <div class="card stack">
+        <h2 class="bh">Sblocco degli slot di ricerca forme di vita</h2>
+        <p class="muted small" style="margin:0">Scegli il pianeta e lo slot da sbloccare: l'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3 per avere la popolazione necessaria, con costi e tempi.</p>
+        <div class="row">
+          <div><label>Pianeta</label><select id="ul-planet"></select></div>
+          <div><label>Slot</label><select id="ul-slot"></select></div>
+        </div>
+        <div id="ul-result" class="stack"></div>
+      </div>
+    </section>
     <section data-panel="costs" class="stack hidden">
       <div class="card stack">
         <h2 style="margin:0">Calcolatore dei costi</h2>
@@ -2031,6 +2046,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 65, date: '2026-10-31', title: 'Scheda Sblocco slot',
+    text: 'Nuova scheda Sblocco slot, accanto a Costi: scegli un pianeta (o tutti) e uno slot di ricerca forme di vita da sbloccare, e l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3 per avere la popolazione necessaria, con costo e tempo di ogni edificio, il tempo di crescita degli abitanti e le risorse che mancano.',
+  },
+  {
     id: 64, date: '2026-10-31', title: 'Bonus delle ricerche forme di vita più preciso',
     text: 'Il livello della razza ora potenzia le ricerche in base alla razza del pianeta dove sono fatte (non alla razza della ricerca), sommato agli edifici che potenziano le ricerche, come nel gioco. Verificato sulla pagina Impostazioni risorse: il bonus calcolato coincide con quello del gioco.',
   },
@@ -2553,7 +2572,7 @@ function renderApp() {
   const sw = $('#acc-switch');
   sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
   sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderEmpire(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderEmpire(); renderUnlock(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -3668,6 +3687,72 @@ const LF_ICONS = {
   kaelesh: ['pop', 'food', 'lab', 'school', 'academy', 'food', 'boost', 'pop', 'terraformer', 'lab', 'shipyard', 'moon'],
 };
 const lfIcon = (race, key) => { const i = Engine.LF.races[race].buildingOrder.indexOf(key); return (LF_ICONS[race] || [])[i] || 'lf'; };
+/* Sblocco slot: per il pianeta e lo slot scelti, la combinazione più economica di edifici per avere la popolazione necessaria */
+function unlockPlan(p, slot, prof) {
+  const pop = planetPop(p, p, prof.economy_speed);
+  if (!pop) return null;
+  const have = slotHave(pop.st, slot), need = Engine.SLOT_POP[slot - 1];
+  if (have >= need) return { pop, have, need, done: true };
+  const plan = Engine.popPlan(p.lf_race, p, slot, prof.economy_speed, prof);
+  if (!plan) return { pop, have, need, none: true };
+  const R = Engine.LF.races[p.lf_race], disc = p.lf_race === 'rocktal' ? Engine.monolithDisc(p) : 0;
+  const robot = bl0(p, 'robotics_factory'), nanite = bl0(p, 'nanite_factory');
+  const rows = [[plan.from.keys[0], plan.from.quarters, plan.quarters], [plan.from.keys[1], plan.from.farm, plan.farm], [plan.from.keys[2], plan.from.school, plan.school], [plan.from.keys[3], plan.from.high, plan.high]]
+    .filter(([, a, b]) => b > a).map(([k, a, b]) => {
+      const c = [0, 0, 0]; let sec = 0;
+      for (let L = a + 1; L <= b; L++) { Engine.lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (c[i] += x)); sec += Engine.lfBuildingTime(R.buildings[k], L, disc, robot, nanite, prof.economy_speed) || 0; }
+      return { k, name: R.buildings[k].it, icon: lfIcon(p.lf_race, k), from: a, to: b, cost: c, sec };
+    });
+  const growH = Math.max(0, plan.cap - pop.st.t1) / plan.growth;
+  return { pop, have, need, plan, rows, growH, cost: plan.cost, sec: rows.reduce((t, r) => t + r.sec, 0) };
+}
+function renderUnlock() {
+  const prof = numericProfile(state.profile);
+  const withRace = state.planets.filter(p => p.lf_race);
+  const ps = $('#ul-planet'), cur = ps.value || state.ulPlanet;
+  ps.innerHTML = withRace.length ? `<option value="all">Tutti i pianeti</option>` + withRace.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') : '<option value="">Nessun pianeta con razza</option>';
+  if ([...ps.options].some(o => o.value === cur)) ps.value = cur;
+  const box = $('#ul-result');
+  if (!withRace.length) { box.innerHTML = '<p class="muted small" style="margin:0">Scegli la razza dei pianeti (scheda Pianeti → Forme di vita) o importa dalla Vista impero.</p>'; $('#ul-slot').innerHTML = ''; return; }
+  const list = ps.value === 'all' ? withRace : withRace.filter(p => p.id === ps.value);
+  // slot: il primo bloccato è la scelta di partenza
+  const opens = list.map(p => (planetPop(p, p, prof.economy_speed) || { st: { open: 18 } }).st.open);
+  const firstLocked = Math.min(...opens) + 1;
+  const ss = $('#ul-slot'), sCur = +ss.value || state.ulSlot;
+  ss.innerHTML = Array.from({ length: 18 }, (_, i) => i + 1).map(n => `<option value="${n}">${techTag(n)} · ${fmt(Engine.SLOT_POP[n - 1])} abitanti ${slotTier(n)}${list.length === 1 && n <= opens[0] ? ' (sbloccato)' : ''}</option>`).join('');
+  ss.value = sCur && sCur <= 18 ? sCur : Math.min(firstLocked, 18);
+  const slot = +ss.value;
+  const ic = k => `<span class="emp-ic" style="background:${TILE_BG[k]}">${ICONS[k]}</span>`;
+  const costCells = c => `<td>${fmt(c[0])}</td><td>${fmt(c[1])}</td><td>${fmt(c[2])}</td>`;
+  if (list.length === 1) {
+    const p = list[0], u = unlockPlan(p, slot, prof);
+    const head = `<div class="pop-grid">${[['Servono', `${fmt(u.need)} ${slotTier(slot)}`], ['Ne hai', fmt(u.have)], ['Mancano', u.done ? '—' : fmt(u.need - u.have)]].map(([l, v]) => `<div class="pop-cell"><div class="muted small">${l}</div><b>${v}</b></div>`).join('')}</div>`;
+    if (u.done) { box.innerHTML = head + `<p class="small" style="margin:0">✓ Lo slot ${techTag(slot)} su ${esc(p.name)} è già sbloccato.</p>`; return; }
+    if (u.none) { box.innerHTML = head + '<p class="muted small" style="margin:0">Nessuna combinazione trovata entro 30 livelli in più di abitazioni.</p>'; return; }
+    const res = p.resources ? [+p.resources.m || 0, +p.resources.c || 0, +p.resources.d || 0] : null;
+    box.innerHTML = head + `<table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>
+      ${u.rows.map(r => `<tr><td><span class="lfb-name">${ic(r.icon)}${esc(r.name)}</span></td><td>${r.from}</td><td><b>${r.to}</b></td>${costCells(r.cost)}<td>${r.sec ? durText(r.sec) : ''}</td></tr>`).join('')}
+      <tr class="tot"><td>Totale</td><td></td><td></td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr></table>
+      <p class="muted small" style="margin:0">Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ' e lo sconto del Monolite' : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.</p>
+      ${res ? `<p class="small" style="margin:0">Risorse su ${esc(p.name)}: ${ri('metal')} ${fmt(res[0])} · ${ri('crystal')} ${fmt(res[1])} · ${ri('deut')} ${fmt(res[2])} — ${u.cost.every((x, i) => res[i] >= x) ? 'bastano.' : `mancano ${u.cost.map((x, i) => fmt(Math.max(0, x - res[i]))).join(' / ')}.`}</p>` : ''}`;
+    return;
+  }
+  // tutti i pianeti: una riga per pianeta e il totale
+  const us = list.map(p => ({ p, u: unlockPlan(p, slot, prof) }));
+  const tot = [0, 0, 0]; let eq = 0;
+  const rowsHtml = us.map(({ p, u }) => {
+    if (!u || u.done) return `<tr><td>${esc(p.name)}</td><td colspan="5" class="muted">già sbloccato</td></tr>`;
+    if (u.none) return `<tr><td>${esc(p.name)}</td><td colspan="5" class="muted">nessuna combinazione trovata</td></tr>`;
+    u.cost.forEach((x, i) => (tot[i] += x)); eq += u.plan.eq;
+    return `<tr><td>${esc(p.name)}</td><td class="ul-combo">${u.rows.map(r => `${ic(r.icon)} ${r.from}→<b>${r.to}</b>`).join(' ')}</td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr>`;
+  }).join('');
+  box.innerHTML = `<table class="btable"><tr><th>Pianeta</th><th>Edifici (da → a)</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>${rowsHtml}
+    <tr class="tot"><td>Totale</td><td></td>${costCells(tot)}<td></td></tr></table>
+    <p class="muted small" style="margin:0">Per sbloccare ${techTag(slot)} (${fmt(Engine.SLOT_POP[slot - 1])} abitanti ${slotTier(slot)}) su tutti i pianeti: ${fmt(eq)} in metallo equivalente. Scegli un pianeta per il dettaglio di ogni edificio. Dopo le costruzioni gli abitanti devono crescere.</p>`;
+}
+$('#ul-planet').addEventListener('change', e => { state.ulPlanet = e.target.value; state.ulSlot = null; $('#ul-slot').value = ''; renderUnlock(); });
+$('#ul-slot').addEventListener('change', e => { state.ulSlot = +e.target.value; renderUnlock(); });
+
 function renderBonus() {
   const prof = numericProfile(state.profile);
   const planets = Engine.active(state.planets);
