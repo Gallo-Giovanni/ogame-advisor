@@ -134,3 +134,16 @@ console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
   assert.ok(Math.abs(t.deut - 13628 / 42970) < 0.0001, 'deuterio ' + t.deut);
   console.log('Bonus delle ricerche forme di vita uguale al gioco (livello della razza del pianeta)');
 }
+
+// Cibo delle altre razze con gli edifici che lo cambiano (tabelle di RiV-, slot 13, velocità 1)
+{
+  const st = (r, lv) => E.population(r, { school: 0, high: 0, ...lv }, 1);
+  const m = st('mechas', { quarters: 59, farm: 69, capBoost: 11 * 0.02, foodBoost: 12 * 0.02 });
+  assert.ok(Math.abs(m.foodProd - 4969253) < 2 && Math.abs(m.foodCons - 5032068) < 2, 'Mecha');
+  const h = st('humans', { quarters: 61, farm: 59, capBoost: 11 * 0.015, foodBoost: 14 * 0.05, consCut: 17 * 0.01 });
+  assert.ok(Math.abs(h.foodProd - 2322664) < 2 && Math.abs(h.foodCons - 2334966) < 2, 'Umani');
+  assert.ok(Math.abs(h.satiety - 1692584449) < 1000, 'Umani: popolazione con il cibo che manca');
+  const k = st('kaelesh', { quarters: 60, farm: 62, capBoost: 18 * 0.02, consCut: 13 * 0.01 });
+  assert.ok(Math.abs(k.foodProd - 2550484) < 2 && Math.abs(k.foodCons - 2559247) < 2, 'Kaelesh');
+  console.log('Cibo di tutte le razze uguale alle tabelle');
+}

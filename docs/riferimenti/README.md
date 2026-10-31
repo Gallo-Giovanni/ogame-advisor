@@ -19,3 +19,8 @@ Soglie degli slot: T1 200.000 – 1.000.000 (slot 1-6), T2 1,2 – 11 milioni (7
   non della ricerca) e si **somma** al bonus degli edifici che potenziano le ricerche (Metropoli, Trasformatore ad alte
   prestazioni, Produzione di massa di chip). Verificato sulla pagina Impostazioni risorse del gioco e applicato nell'app (31/10/2026).
 - Manufatti per scegliere una ricerca: 200 (T1), 400 (T2), 600 (T3); massimo 3.600 in inventario (mostrato nell'app accanto agli slot).
+
+Verificati nell'app (31/10/2026): spazio abitativo, cibo prodotto e consumato di tutte le razze con gli edifici di supporto
+(Umani: Grattacielo +1,5% spazio, Laboratorio biotecnologico +5% cibo, Magazzino alimentare -1% consumo fino a -80%;
+Mecha: Sala assemblaggio +2% spazio, Linea di montaggio microchip +2% cibo; Kaelesh: Crisalide +2% spazio, Convettore di
+antimateria -1% consumo fino a -50%). Non ancora contato: il Modulatore psionico dei Kaelesh (colonna "Psionic").

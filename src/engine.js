@@ -358,27 +358,36 @@ const Engine = (() => {
   // crescita all'ora = base x (L+1) x 1,2^L, cibo prodotto e consumato = base x (L+1) x fattore^L x velocità economia.
   // T2 = abitanti T1 x 1% per livello della "scuola"; T3 = T2 x 1% per livello del "liceo" (verificato: 10% e 5%).
   const POP = {
-    // capBoost: [posizione dell'edificio nell'ordine del gioco, % di spazio in più per livello] (verificato sulle tabelle di RiV-)
-    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015] },
+    // Edifici che cambiano la popolazione, come [posizione nell'ordine del gioco, effetto per livello(, massimo)] (dal serverData.xml,
+    // verificati sulle tabelle di RiV-): capBoost = spazio abitativo in più, foodBoost = cibo prodotto in più, consCut = consumo di cibo in meno
+    humans:  { cap: [210, 1.21],  growth: [16, 1.2], cons: [9, 1.15],  food: [10, 1.14], capBoost: [8, 0.015], foodBoost: [9, 0.05], consCut: [6, 0.01, 0.8] },
     rocktal: { cap: [150, 1.216], growth: [12, 1.2], cons: [5, 1.15],  food: [6, 1.14] },
-    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02] },
-    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02] },
+    mechas:  { cap: [500, 1.205], growth: [24, 1.2], cons: [22, 1.15], food: [23, 1.12], capBoost: [8, 0.02], foodBoost: [7, 0.02] },
+    kaelesh: { cap: [250, 1.21],  growth: [16, 1.2], cons: [11, 1.15], food: [12, 1.14], capBoost: [7, 0.02], consCut: [5, 0.01, 0.5] },
   };
+  const EXTRA = ['capBoost', 'foodBoost', 'consCut'];
   // popolazione necessaria per ogni slot di ricerca: T1 per gli slot 1-6, T2 per 7-12, T3 per 13-18
   const SLOT_POP = [200e3, 300e3, 400e3, 500e3, 750e3, 1e6, 1.2e6, 3e6, 5e6, 7e6, 9e6, 11e6, 13e6, 26e6, 56e6, 112e6, 224e6, 448e6];
   const popF = ([b, f], L) => (L > 0 ? b * (L + 1) * Math.pow(f, L) : 0);
-  // livelli: quarters (abitazioni), farm (cibo), school (T1 -> T2), high (T2 -> T3)
+  const extraVal = (race, kind, L) => { const e = POP[race] && POP[race][kind]; return e ? Math.min(e[2] || Infinity, L * e[1]) : 0; };
+  // livelli: quarters (abitazioni), farm (cibo), school (T1 -> T2), high (T2 -> T3) e gli edifici che cambiano spazio e cibo
   function popLevels(race, planet) {
     const o = LF && LF.races[race] ? LF.races[race].buildingOrder : null;
+    if (!o) return null;
     const b = planet.lf_buildings || {};
-    const cb = POP[race] && POP[race].capBoost;
-    return o ? { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]],
-      capBoost: cb ? (+b[o[cb[0]]] || 0) * cb[1] : 0, capBoostKey: cb ? o[cb[0]] : null } : null;
+    const lv = { quarters: +b[o[0]] || 0, farm: +b[o[1]] || 0, school: +b[o[3]] || 0, high: +b[o[4]] || 0, keys: [o[0], o[1], o[3], o[4]], extra: {} };
+    for (const kind of EXTRA) {
+      const e = POP[race] && POP[race][kind]; if (!e) continue;
+      const L = +b[o[e[0]]] || 0;
+      lv.extra[kind] = { key: o[e[0]], level: L };
+      lv[kind] = extraVal(race, kind, L);
+    }
+    return lv;
   }
   function population(race, lv, speed, imported) {
     const P = POP[race]; if (!P) return null;
     const cap = Math.floor(popF(P.cap, lv.quarters) * (1 + (lv.capBoost || 0))), growth = popF(P.growth, lv.quarters);
-    const foodProd = popF(P.food, lv.farm) * speed, foodCons = popF(P.cons, lv.quarters) * speed;
+    const foodProd = popF(P.food, lv.farm) * (1 + (lv.foodBoost || 0)) * speed, foodCons = popF(P.cons, lv.quarters) * (1 - (lv.consCut || 0)) * speed;
     const satiety = foodCons > 0 ? Math.floor(cap * foodProd / foodCons) : 0;
     const t1 = imported != null ? imported : Math.min(cap, satiety);
     const t2 = Math.floor(t1 * lv.school / 100), t3 = Math.floor(t2 * lv.high / 100);
@@ -386,39 +395,88 @@ const Engine = (() => {
     let open = 0; while (open < 18 && have(open) >= SLOT_POP[open]) open++;
     return { cap, growth, foodProd, foodCons, satiety, t1, t2, t3, open, fed: satiety >= cap };
   }
-  // Combinazione più economica di abitazioni, cibo, scuola e liceo per aprire lo slot `slot` (1-18)
   // sconto del Monolite (Rock'tal) a un dato livello, dalla tabella del gioco
   const monoDiscAt = m => (m > 0 && LF ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[m] || 0) : 0);
+  // Combinazione più economica per aprire lo slot `slot` (1-18): abitazioni, cibo, scuola e liceo, più gli edifici che
+  // aumentano spazio o cibo (Umani, Mecha, Kaelesh) e il Monolite (Rock'tal). Costi cumulati precalcolati per livello.
+  const planCache = new Map();
   function popPlan(race, planet, slot, speed, profile) {
     const lv = popLevels(race, planet); if (!lv || !POP[race]) return null;
-    const R = LF.races[race];
+    const ck = JSON.stringify([race, planet.lf_buildings || {}, slot, speed, profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut]);
+    if (planCache.has(ck)) return planCache.get(ck);
+    const res = popPlanRun(race, planet, slot, speed, profile, lv);
+    if (planCache.size > 500) planCache.clear();
+    planCache.set(ck, res);
+    return res;
+  }
+  function popPlanRun(race, planet, slot, speed, profile, lv) {
+    const R = LF.races[race], P = POP[race];
     const need = SLOT_POP[slot - 1], tier = slot <= 6 ? 1 : slot <= 12 ? 2 : 3;
-    // Rock'tal: conviene anche alzare il Monolite, che sconta tutti gli edifici Rock'tal (come nelle tabelle di RiV-)
+    // costo cumulato (vettore ed equivalente) per salire da `from` a ogni livello fino a `from + n`
+    const prefix = (key, from, n, disc) => {
+      const v = [[0, 0, 0]], eq = [0];
+      for (let L = from + 1; L <= from + n; L++) {
+        const c = lfBuildingCost(R.buildings[key], L, typeof disc === 'function' ? disc(L) : disc);
+        const prev = v[v.length - 1], nv = prev.map((x, i) => x + c[i]);
+        v.push(nv); eq.push(toMetalEq(nv, profile));
+      }
+      return { v, eq, from };
+    };
     const m0 = race === 'rocktal' ? +((planet.lf_buildings || {}).monolith) || 0 : 0;
     const megs = race === 'rocktal' ? Array.from({ length: 13 }, (_, i) => m0 + i).filter(m => m <= 17) : [0];
+    const ext = EXTRA.filter(k => P[k]).map(k => ({ kind: k, ...lv.extra[k] }));
     let best = null;
     for (const meg of megs) {
-    const disc = race === 'rocktal' ? monoDiscAt(meg) : 0;
-    const megCost = [0, 0, 0];
-    for (let L = m0 + 1; L <= meg; L++) lfBuildingCost(R.buildings.monolith, L, monoDiscAt(L - 1)).forEach((x, i) => (megCost[i] += x));
-    const cum = (k, a, b) => { const t = [0, 0, 0]; for (let L = a + 1; L <= b; L++) lfBuildingCost(R.buildings[k], L, disc).forEach((x, i) => (t[i] += x)); return t; };
-    for (let q = lv.quarters; q <= lv.quarters + 30; q++) {
-      const P = POP[race], cap = popF(P.cap, q) * (1 + (lv.capBoost || 0));
-      let f = lv.farm; while (popF(P.food, f) * speed < popF(P.cons, q) * speed && f < lv.farm + 60) f++;
-      const tryOne = (sc, hi) => {
-        const t1 = cap, t2 = t1 * sc / 100, t3 = t2 * hi / 100;
-        if ((tier === 1 ? t1 : tier === 2 ? t2 : t3) < need) return;
-        const tot = megCost.slice();
-        [cum(lv.keys[0], lv.quarters, q), cum(lv.keys[1], lv.farm, f), cum(lv.keys[2], lv.school, sc), cum(lv.keys[3], lv.high, hi)].forEach(c => c.forEach((x, i) => (tot[i] += x)));
-        const eq = toMetalEq(tot, profile);
-        if (!best || eq < best.eq) best = { quarters: q, farm: f, school: sc, high: hi, monolith: meg, monolithFrom: m0, disc, cost: tot, eq, cap, t2, t3, growth: popF(P.growth, q) };
-      };
-      if (tier === 1) tryOne(lv.school, lv.high);
-      else for (let sc = Math.max(lv.school, 1); sc <= lv.school + 40; sc++) {
-        if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(sc, lv.high); break; } continue; }
-        for (let hi = Math.max(lv.high, 1); hi <= lv.high + 40; hi++) if (cap * sc / 100 * hi / 100 >= need) { tryOne(sc, hi); break; }
+      const disc = race === 'rocktal' ? monoDiscAt(meg) : 0;
+      const pMeg = race === 'rocktal' ? prefix('monolith', m0, meg - m0, L => monoDiscAt(L - 1)) : null;
+      const megV = pMeg ? pMeg.v[meg - m0] : [0, 0, 0], megEq = pMeg ? pMeg.eq[meg - m0] : 0;
+      const pq = prefix(lv.keys[0], lv.quarters, 30, disc), pf = prefix(lv.keys[1], lv.farm, 60, disc);
+      const ps = prefix(lv.keys[2], lv.school, 40, disc), ph = prefix(lv.keys[3], lv.high, 40, disc);
+      const span = 40; // livelli in più provati per ogni edificio extra
+      const pe = ext.map(e => prefix(e.key, e.level, span, disc));
+      // combinazioni degli edifici extra: prima a passi (più larghi con tre edifici), poi attorno alla migliore a passi di 1
+      const grid = steps => { let out = [[]]; steps.forEach(vals => { const next = []; for (const c of out) for (const d of vals) next.push([...c, d]); out = next; }); return out; };
+      const coarse = ext.length >= 3 ? 3 : ext.length === 2 ? 2 : 1;
+      const range = (lo, hi, st) => { const r = []; for (let d = Math.max(0, lo); d <= Math.min(span, hi); d += st) r.push(d); return r; };
+      const byCost = list => list.sort((x, y) => x.reduce((t, d, i) => t + pe[i].eq[d], 0) - y.reduce((t, d, i) => t + pe[i].eq[d], 0));
+      const phases = [byCost(grid(ext.map(() => range(0, span, coarse))))];
+      for (const combos of phases) {
+      for (const combo of combos) {
+        const vals = {}; let exEq = 0;
+        ext.forEach((e, i) => { vals[e.kind] = extraVal(race, e.kind, e.level + combo[i]); exEq += pe[i].eq[combo[i]]; });
+        const base = megEq + exEq;
+        if (best && base >= best.eq) break; // combinazioni ordinate per costo: le successive costano ancora di più
+        for (let dq = 0; dq <= 30; dq++) {
+          const q = lv.quarters + dq;
+          const cap = popF(P.cap, q) * (1 + (vals.capBoost || 0));
+          const cons = popF(P.cons, q) * (1 - (vals.consCut || 0));
+          let df = 0; while (df < 60 && popF(P.food, lv.farm + df) * (1 + (vals.foodBoost || 0)) < cons) df++;
+          if (df === 60) continue;
+          const partial = base + pq.eq[dq] + pf.eq[df];
+          if (best && partial >= best.eq) continue;
+          const tryOne = (ds, dh) => {
+            const sc = lv.school + ds, hi = lv.high + dh, t2 = cap * sc / 100, t3 = t2 * hi / 100;
+            if ((tier === 1 ? cap : tier === 2 ? t2 : t3) < need) return;
+            const eq = partial + ps.eq[ds] + ph.eq[dh];
+            if (best && eq >= best.eq) return;
+            const cost = [megV, pq.v[dq], pf.v[df], ps.v[ds], ph.v[dh], ...pe.map((x, i) => x.v[combo[i]])].reduce((t, c) => t.map((y, i) => y + c[i]), [0, 0, 0]);
+            best = { quarters: q, farm: lv.farm + df, school: sc, high: hi, monolith: meg, monolithFrom: m0, disc, cost, eq, cap, t2, t3, growth: popF(P.growth, q),
+              extra: ext.map((e, i) => ({ kind: e.kind, key: e.key, from: e.level, to: e.level + combo[i] })) };
+          };
+          if (tier === 1) { tryOne(0, 0); continue; }
+          for (let ds = Math.max(0, 1 - lv.school); ds <= 40; ds++) {
+            const sc = lv.school + ds;
+            if (tier === 2) { if (cap * sc / 100 >= need) { tryOne(ds, 0); break; } continue; }
+            for (let dh = Math.max(0, 1 - lv.high); dh <= 40; dh++) if (cap * sc / 100 * (lv.high + dh) / 100 >= need) { tryOne(ds, dh); break; }
+          }
+        }
       }
-    }
+        // seconda fase: attorno alla combinazione migliore trovata con questo Monolite, a passi di 1
+        if (phases.length === 1 && coarse > 1 && best && best.monolith === meg && best.extra.length) {
+          const c0 = best.extra.map(e => e.to - e.from);
+          phases.push(byCost(grid(c0.map(d => range(d - coarse + 1, d + coarse - 1, 1)))));
+        }
+      }
     }
     return best && { ...best, from: lv, need, tier };
   }

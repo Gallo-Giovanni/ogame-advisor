@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 66, date: '2026-10-31', title: 'Popolazione: tutti gli edifici di supporto',
+    text: 'Popolazione e Sblocco slot ora contano tutti gli edifici che cambiano spazio e cibo: Grattacielo, Laboratorio biotecnologico e Magazzino alimentare degli Umani, Sala assemblaggio e Linea di montaggio microchip dei Mecha, Crisalide e Convettore di antimateria dei Kaelesh. Il calcolo dello sblocco valuta anche quanto conviene alzarli. Verificato sulle tabelle di RiV-.',
+  },
+  {
     id: 65, date: '2026-10-31', title: 'Scheda Sblocco slot',
     text: 'Nuova scheda Sblocco slot, accanto a Costi: scegli un pianeta (o tutti) e uno slot di ricerca forme di vita da sbloccare, e l\'app calcola la combinazione più economica di abitazioni, cibo e degli edifici che formano T2 e T3 per avere la popolazione necessaria, con costo e tempo di ogni edificio, il tempo di crescita degli abitanti e le risorse che mancano. Per i Rock\'tal valuta anche il Monolite, che sconta gli altri edifici. Con tutti i pianeti puoi togliere la spunta a quelli da escludere dal totale.',
   },
