@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 70, date: '2026-11-02', title: 'Spedizioni: massimale per tutte le fasce',
-    text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica fino a 100 milioni, dai limiti di Punti spedizione della guida del forum. La fascia da 50 a 75 milioni è verificata sul gioco; per le altre l\'app lo indica. Oltre i 100 milioni il limite non è ancora noto.',
+    text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica fino a 100 milioni, dai limiti di Punti spedizione della guida del forum. La fascia da 50 a 75 milioni è verificata sul gioco; per le altre l\'app lo indica. Oltre i 100 milioni il limite non è noto: l\'app mostra una stima, indicata come tale.',
   },
   {
     id: 69, date: '2026-10-31', title: 'Item fuori dal calcolo degli upgrade',
