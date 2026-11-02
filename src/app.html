@@ -2314,11 +2314,11 @@ function renderBonus() {
   // Massimale di un ritrovamento: base dai punti del primo x velocità economia x classe x Pathfinder,
   // poi il bonus delle forme di vita; cristallo = metallo / 2, deuterio = metallo / 3, navi = metallo prima del bonus / 2 x bonus navi
   const top1 = prof.top1_points === null || prof.top1_points === undefined || prof.top1_points === '' ? null : +prof.top1_points;
-  // Fasce dei punti del primo: limite di Punti spedizione della guida del forum, massimale = 200 x limite.
-  // La fascia 50-75 M è verificata sul gioco (primo a 56 M: 4,2 M = 200 x 21.000); oltre i 100 M il limite non è noto:
-  // stima 28.000, cioè +3.000 come quasi tutti gli scalini precedenti.
-  const EXP_BASE = [[0, 1e4, 2500], [1e4, 1e5, 6000], [1e5, 1e6, 9000], [1e6, 5e6, 12000], [5e6, 25e6, 15000],
-    [25e6, 50e6, 18000], [50e6, 75e6, 21000, 'ok'], [75e6, 100e6, 25000], [100e6, Infinity, 28000, 'stima']].map(([a, b, ep, q]) => [a, b, ep * 200, q || 'guida']);
+  // Fasce dei punti del primo (guida del forum): limite di Punti spedizione, massimale = 200 x limite.
+  // La prima fascia viene dall'esempio della guida (60.000 di metallo a velocità 1). Confermato con un calcolatore
+  // delle spedizioni: primo sotto i 75 M, Esploratore, velocità 5, Pathfinder, +35,5% risorse -> 73.170.000 di metallo.
+  const EXP_BASE = [[0, 1e4, 300], [1e4, 1e5, 2500], [1e5, 1e6, 6000], [1e6, 5e6, 9000], [5e6, 25e6, 12000],
+    [25e6, 50e6, 15000], [50e6, 75e6, 18000], [75e6, 100e6, 21000], [100e6, Infinity, 25000]].map(([a, b, ep]) => [a, b, ep * 200]);
   const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
   const mln = x => x >= 1e6 ? fmt(x / 1e6) + ' milioni' : fmt(x);
   let maxHtml;
@@ -2334,7 +2334,7 @@ function renderBonus() {
     };
     maxHtml = `<b class="small">Massimale di un ritrovamento</b>
       ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
-      <p class="muted small" style="margin:0">Primo in classifica ${band[1] === Infinity ? 'oltre i ' + mln(band[0]) : 'tra ' + mln(band[0]) + ' e ' + mln(band[1])} di punti${{ ok: ' (fascia verificata sul gioco)', guida: ' (fascia dalla guida del forum, non ancora verificata sul gioco)', stima: ' (<b>stima</b>: il limite di questa fascia non è noto, calcolato proseguendo gli scalini precedenti)' }[band[3]]}: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}.${xItem && xItem.until > Date.now() ? ` L'amplificatore delle spedizioni (+${xItem.pct}%) non è compreso: come si somma al massimale non è ancora verificato.` : ''}</p>`;
+      <p class="muted small" style="margin:0">Primo in classifica ${band[1] === Infinity ? 'oltre i ' + mln(band[0]) : 'tra ' + mln(band[0]) + ' e ' + mln(band[1])} di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}.${xItem && xItem.until > Date.now() ? ` L'amplificatore delle spedizioni (+${xItem.pct}%) non è compreso: come si somma al massimale non è ancora verificato.` : ''}</p>`;
   }
   const expHtml = `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
