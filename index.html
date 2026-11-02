@@ -426,6 +426,7 @@
       <button class="tab" data-tab="planets">Pianeti</button>
       <button class="tab" data-tab="empire">Impero</button>
       <button class="tab" data-tab="bonus">Bonus</button>
+      <button class="tab" data-tab="expo">Spedizioni</button>
       <button class="tab" data-tab="items">Item attivi</button>
       <button class="tab" data-tab="trade">Scambi</button>
       <button class="tab" data-tab="costs">Costi</button>
@@ -567,6 +568,7 @@
 
     <section data-panel="empire" class="stack hidden" id="empire-panel"></section>
     <section data-panel="bonus" class="stack hidden" id="bonus-panel"></section>
+    <section data-panel="expo" class="stack hidden" id="expo-panel"></section>
     <section data-panel="items" class="stack hidden" id="items-panel"></section>
 
     <section data-panel="unlock" class="stack hidden">
@@ -2132,7 +2134,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 70, date: '2026-11-02', title: 'Spedizioni: massimale per tutte le fasce',
-    text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica, dai limiti di Punti spedizione della guida del forum. Corretti la fascia da 50 a 75 milioni (la base è 3,6 milioni di metallo, non 4,2) e il valore massimo delle navi trovate, che non va dimezzato. Nuova tabella "Prova una flotta": inserisci le navi che mandi e vedi quali navi puoi trovare e quante al massimo, la stiva e il ritrovamento massimo di risorse.',
+    text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica, dai limiti di Punti spedizione della guida del forum. Corretti la fascia da 50 a 75 milioni (la base è 3,6 milioni di metallo, non 4,2) e il valore massimo delle navi trovate, che non va dimezzato. Nuova scheda Spedizioni: inserisci le navi che mandi e vedi quali navi puoi trovare e quante al massimo, la stiva e il ritrovamento massimo di risorse.',
   },
   {
     id: 69, date: '2026-10-31', title: 'Item fuori dal calcolo degli upgrade',
@@ -2677,7 +2679,7 @@ function renderApp() {
   const sw = $('#acc-switch');
   sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
   sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderItems(); renderEmpire(); renderUnlock(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
+  renderAdvice(); renderPlanetCards(); renderBonus(); renderExpeditions(); renderItems(); renderEmpire(); renderUnlock(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -3898,10 +3900,11 @@ $('#ul-result').addEventListener('click', e => {
   if (e.target.id === 'ul-none') { state.ulOff = new Set(state.planets.map(p => p.id)); renderUnlock(); }
 });
 
-// Flotta di spedizione: cosa si può trovare mandando certe navi.
+// Flotta di spedizione: cosa si può trovare mandando certe navi (confrontato con un calcolatore delle spedizioni).
 // Navi in ordine di "grado" (guida del forum): si trovano le navi fino a un grado sopra la più alta mandata.
-// Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Valore di una nave = metallo + cristallo;
-// Punti spedizione = valore x 5 / 1000, e il massimale usa il più basso tra quelli della flotta e il limite della fascia.
+// Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Valore di una nave = metallo + cristallo.
+// Ogni risorsa si ferma alla stiva della flotta; anche il valore delle navi trovate parte dal più basso tra
+// massimale e stiva, poi prende il bonus navi.
 const EXP_SHIPS = [
   ['small_cargo', 'Cargo leggero', 2000, 2000, 5000, 'cargo'], ['large_cargo', 'Cargo pesante', 6000, 6000, 25000, 'cargo'],
   ['light_fighter', 'Caccia leggero', 3000, 1000, 50], ['heavy_fighter', 'Caccia pesante', 6000, 4000, 100],
@@ -3926,17 +3929,19 @@ function expFleetCalc() {
     top = Math.max(top, EXP_RANK.indexOf(id));
   }
   const pf = n('pathfinder') > 0 ? 2 : 1;
-  const used = Math.min(points, c.limit);
-  const metal = used * 200 * c.k * pf * c.res, shipValue = used * 200 * c.k * pf * c.ships;
+  const theo = c.base * c.k * pf;
+  const metal = Math.min(theo * c.res, cap), crystal = Math.min(theo * c.res / 2, cap), deut = Math.min(theo * c.res / 3, cap);
+  const shipValue = Math.min(theo, cap) * c.ships;
   const ships = EXP_SHIPS.map(([id, , m, cr]) => {
-    const r = EXP_RANK.indexOf(id), ok = points > 0 && r >= 0 && r <= top + 1;
+    const r = EXP_RANK.indexOf(id), ok = top >= 0 && r >= 0 && r <= top + 1;
     return { id, ok, max: ok ? Math.floor(shipValue / (m + cr)) : 0 };
   });
-  return { points, cap, pf, used, metal, shipValue, ships };
+  const need = Math.ceil(theo * c.res / (25000 * (1 + c.cargoBonus + (c.cls === 'collector' ? 0.25 : 0) + c.civil)));
+  return { points, cap, pf, theo, metal, crystal, deut, shipValue, ships, need };
 }
 function expFleetHtml() {
   const r = expFleetCalc();
-  return `<b class="small">Prova una flotta</b>
+  return `<b class="small">Navi che mandi</b>
     <div class="bwrap"><table class="btable exp-fleet"><tr><th>Nave</th><th>Quante ne mandi</th><th>Si può trovare?</th><th>Quante al massimo</th></tr>
     ${EXP_SHIPS.map(([id, name], i) => `<tr><td>${name}</td><td><input type="number" min="0" step="1" data-xs="${id}" value="${Math.max(0, Math.floor(+expFleet[id] || 0)) || ''}" placeholder="0"></td>
       <td id="xs-ok-${id}">${r.ships[i].ok ? '<b>sì</b>' : 'no'}</td><td id="xs-max-${id}">${r.ships[i].ok ? '<b>' + fmt(r.ships[i].max) + '</b>' : '0'}</td></tr>`).join('')}
@@ -3944,17 +3949,28 @@ function expFleetHtml() {
     <div id="xs-sum">${expFleetSum(r)}</div>`;
 }
 function expFleetSum(r) {
-  const short = r.cap < r.metal;
+  const c = EXP_CTX, short = r.cap < r.theo * c.res;
   return `<div class="bwrap"><table class="btable">
-    <tr><td>Punti spedizione della flotta</td><td>${fmt(r.points)} (usati ${fmt(r.used)}, limite della fascia ${fmt(EXP_CTX.limit)})</td></tr>
     <tr><td>Pathfinder nella flotta</td><td>${r.pf === 2 ? 'sì: massimale × 2' : 'no'}</td></tr>
-    <tr><td>Capacità di stiva</td><td${short ? ' class="neg"' : ''}>${fmt(r.cap)}${short && r.points ? ' — non basta per il metallo massimo' : ''}</td></tr>
+    <tr><td>Massimale di metallo senza limite di stiva</td><td>${fmt(r.theo * c.res)} (${fmt(r.need)} Cargo pesanti)</td></tr>
+    <tr><td>Capacità di stiva della flotta</td><td${short ? ' class="neg"' : ''}>${fmt(r.cap)}${short ? ' — non basta: il ritrovamento si ferma qui' : ''}</td></tr>
     <tr><td>${ri('metal')} Metallo massimo</td><td>${fmt(r.metal)}</td></tr>
-    <tr><td>${ri('crystal')} Cristallo massimo</td><td>${fmt(r.metal / 2)}</td></tr>
-    <tr><td>${ri('deut')} Deuterio massimo</td><td>${fmt(r.metal / 3)}</td></tr>
+    <tr><td>${ri('crystal')} Cristallo massimo</td><td>${fmt(r.crystal)}</td></tr>
+    <tr><td>${ri('deut')} Deuterio massimo</td><td>${fmt(r.deut)}</td></tr>
     <tr><td>Navi trovate al massimo (valore)</td><td>${fmt(r.shipValue)}</td></tr>
   </table></div>
-  <p class="muted small" style="margin:0">Si trovano le navi fino a un grado sopra la più forte che mandi (Sonda, Cargo leggero, Caccia leggero, Cargo pesante, Pathfinder, Caccia pesante, Incrociatore, Nave da battaglia, Incrociatore da battaglia, Bombardiere, Corazzata, Reaper); Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Il valore di una nave è metallo + cristallo del suo costo. Se la stiva non basta, il ritrovamento di risorse si ferma alla capacità della flotta.</p>`;
+  <p class="muted small" style="margin:0">Si trovano le navi fino a un grado sopra la più forte che mandi (Sonda, Cargo leggero, Caccia leggero, Cargo pesante, Pathfinder, Caccia pesante, Incrociatore, Nave da battaglia, Incrociatore da battaglia, Bombardiere, Corazzata, Reaper); Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Il valore di una nave è metallo + cristallo del suo costo. Ogni risorsa e il valore delle navi trovate si fermano alla capacità di stiva della flotta.</p>`;
+}
+function renderExpeditions() {
+  const c = EXP_CTX;
+  if (!c) { $('#expo-panel').innerHTML = `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2><p class="muted small" style="margin:0">Per il calcolo servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p></div>`; return; }
+  const pct = v => (v * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + '%';
+  const band = c.hi === Infinity ? 'oltre i ' + fmt(c.lo) : 'da ' + fmt(c.lo) + ' a ' + fmt(c.hi);
+  const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[c.cls] || 'nessuna';
+  $('#expo-panel').innerHTML = `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2>
+    <p class="muted small" style="margin:0">Primo in classifica ${band} punti · classe ${cls} · velocità economia ${c.speed} · Tecnologia iperspaziale ${c.hyper} · ricerche forme di vita: risorse trovate +${pct(c.res - 1)}, navi trovate +${pct(c.ships - 1)}. Sono i dati del tuo account: per cambiarli, aggiorna l'account o reimporta.</p>
+    ${expFleetHtml()}
+  </div>`;
 }
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-xs]'); if (!el || !EXP_CTX) return;
@@ -4073,6 +4089,7 @@ function renderBonus() {
   const band = top1 === null ? null : EXP_BASE.find(([a, b]) => top1 >= a && top1 < b);
   const mln = x => x >= 1e6 ? fmt(x / 1e6) + ' milioni' : fmt(x);
   let maxHtml;
+  EXP_CTX = null;
   if (top1 === null) maxHtml = '<p class="muted small" style="margin:0">Per vedere il massimale delle spedizioni servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p>';
   else if (!band) maxHtml = `<p class="muted small" style="margin:0">Massimale non ancora disponibile con il primo oltre i 100 milioni di punti: il limite di questa fascia non è noto.</p>`;
   else {
@@ -4086,8 +4103,8 @@ function renderBonus() {
     maxHtml = `<b class="small">Massimale di un ritrovamento</b>
       ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
       <p class="muted small" style="margin:0">Primo in classifica ${band[1] === Infinity ? 'oltre i ' + mln(band[0]) : 'tra ' + mln(band[0]) + ' e ' + mln(band[1])} di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}.${xItem && xItem.until > Date.now() ? ` L'amplificatore delle spedizioni (+${xItem.pct}%) non è compreso: come si somma al massimale non è ancora verificato.` : ''}</p>`;
-    EXP_CTX = { limit: band[2] / 200, k, res, ships, cargoBonus: 0.05 * (+prof.hyperspace_tech || 0), civil: all.civil_cargo || 0, cls };
-    maxHtml += expFleetHtml();
+    EXP_CTX = { base: band[2], lo: band[0], hi: band[1], k, res, ships, speed: prof.economy_speed, hyper: +prof.hyperspace_tech || 0,
+      cargoBonus: 0.05 * (+prof.hyperspace_tech || 0), civil: all.civil_cargo || 0, cls };
   }
   const expHtml = `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
