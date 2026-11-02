@@ -220,6 +220,7 @@
   .ccres .card { background: var(--bg2); padding: 10px 12px; }
   @media (max-width: 700px) { .ccres { grid-template-columns: 1fr; } }
   .btable.cc input { width: 70px; padding: 3px 6px; }
+  .btable.exp-fleet input { width: 100px; padding: 3px 6px; text-align: right; }
   .btable { width: 100%; border-collapse: collapse; font-size: .88rem; }
   .btable th, .btable td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
   .btable th:first-child, .btable td:first-child { text-align: left; white-space: normal; }
@@ -2216,6 +2217,75 @@ $('#ul-result').addEventListener('click', e => {
   if (e.target.id === 'ul-none') { state.ulOff = new Set(state.planets.map(p => p.id)); renderUnlock(); }
 });
 
+// Flotta di spedizione: cosa si può trovare mandando certe navi.
+// Navi in ordine di "grado" (guida del forum): si trovano le navi fino a un grado sopra la più alta mandata.
+// Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Valore di una nave = metallo + cristallo;
+// Punti spedizione = valore x 5 / 1000, e il massimale usa il più basso tra quelli della flotta e il limite della fascia.
+const EXP_SHIPS = [
+  ['small_cargo', 'Cargo leggero', 2000, 2000, 5000, 'cargo'], ['large_cargo', 'Cargo pesante', 6000, 6000, 25000, 'cargo'],
+  ['light_fighter', 'Caccia leggero', 3000, 1000, 50], ['heavy_fighter', 'Caccia pesante', 6000, 4000, 100],
+  ['pathfinder', 'Pathfinder', 8000, 15000, 10000, 'pf'], ['cruiser', 'Incrociatore', 20000, 7000, 800],
+  ['battleship', 'Nave da battaglia', 45000, 15000, 1500], ['battlecruiser', 'Incrociatore da battaglia', 30000, 40000, 750],
+  ['colony_ship', 'Colonizzatrice', 10000, 20000, 7500, 'civil'], ['recycler', 'Riciclatrice', 10000, 6000, 20000, 'rec'],
+  ['espionage_probe', 'Sonda spia', 0, 1000, 0, 'civil'], ['bomber', 'Bombardiere', 50000, 25000, 500],
+  ['destroyer', 'Corazzata', 60000, 50000, 2000], ['deathstar', 'Morte Nera', 5000000, 4000000, 1000000], ['reaper', 'Reaper', 85000, 55000, 10000],
+];
+const EXP_RANK = ['espionage_probe', 'small_cargo', 'light_fighter', 'large_cargo', 'pathfinder', 'heavy_fighter', 'cruiser', 'battleship', 'battlecruiser', 'bomber', 'destroyer', 'reaper'];
+let EXP_CTX = null;
+let expFleet = (() => { try { return JSON.parse(localStorage.getItem('oa_exp_fleet') || '{}') || {}; } catch (e) { return {}; } })();
+function expFleetCalc() {
+  const c = EXP_CTX, n = id => Math.max(0, Math.floor(+expFleet[id] || 0));
+  let points = 0, cap = 0, top = -1;
+  for (const [id, , m, cr, cg, kind] of EXP_SHIPS) {
+    const q = n(id); if (!q) continue;
+    points += q * (m + cr) * 5 / 1000;
+    const extra = (kind === 'cargo' && c.cls === 'collector' ? 0.25 : 0) + ((kind === 'pf' || kind === 'rec') && c.cls === 'general' ? 0.20 : 0)
+      + (kind === 'cargo' || kind === 'civil' || kind === 'rec' ? c.civil : 0);
+    cap += q * cg * (1 + c.cargoBonus + extra);
+    top = Math.max(top, EXP_RANK.indexOf(id));
+  }
+  const pf = n('pathfinder') > 0 ? 2 : 1;
+  const used = Math.min(points, c.limit);
+  const metal = used * 200 * c.k * pf * c.res, shipValue = used * 200 * c.k * pf * c.ships;
+  const ships = EXP_SHIPS.map(([id, , m, cr]) => {
+    const r = EXP_RANK.indexOf(id), ok = points > 0 && r >= 0 && r <= top + 1;
+    return { id, ok, max: ok ? Math.floor(shipValue / (m + cr)) : 0 };
+  });
+  return { points, cap, pf, used, metal, shipValue, ships };
+}
+function expFleetHtml() {
+  const r = expFleetCalc();
+  return `<b class="small">Prova una flotta</b>
+    <div class="bwrap"><table class="btable exp-fleet"><tr><th>Nave</th><th>Quante ne mandi</th><th>Si può trovare?</th><th>Quante al massimo</th></tr>
+    ${EXP_SHIPS.map(([id, name], i) => `<tr><td>${name}</td><td><input type="number" min="0" step="1" data-xs="${id}" value="${Math.max(0, Math.floor(+expFleet[id] || 0)) || ''}" placeholder="0"></td>
+      <td id="xs-ok-${id}">${r.ships[i].ok ? '<b>sì</b>' : 'no'}</td><td id="xs-max-${id}">${r.ships[i].ok ? '<b>' + fmt(r.ships[i].max) + '</b>' : '0'}</td></tr>`).join('')}
+    </table></div>
+    <div id="xs-sum">${expFleetSum(r)}</div>`;
+}
+function expFleetSum(r) {
+  const short = r.cap < r.metal;
+  return `<div class="bwrap"><table class="btable">
+    <tr><td>Punti spedizione della flotta</td><td>${fmt(r.points)} (usati ${fmt(r.used)}, limite della fascia ${fmt(EXP_CTX.limit)})</td></tr>
+    <tr><td>Pathfinder nella flotta</td><td>${r.pf === 2 ? 'sì: massimale × 2' : 'no'}</td></tr>
+    <tr><td>Capacità di stiva</td><td${short ? ' class="neg"' : ''}>${fmt(r.cap)}${short && r.points ? ' — non basta per il metallo massimo' : ''}</td></tr>
+    <tr><td>${ri('metal')} Metallo massimo</td><td>${fmt(r.metal)}</td></tr>
+    <tr><td>${ri('crystal')} Cristallo massimo</td><td>${fmt(r.metal / 2)}</td></tr>
+    <tr><td>${ri('deut')} Deuterio massimo</td><td>${fmt(r.metal / 3)}</td></tr>
+    <tr><td>Navi trovate al massimo (valore)</td><td>${fmt(r.shipValue)}</td></tr>
+  </table></div>
+  <p class="muted small" style="margin:0">Si trovano le navi fino a un grado sopra la più forte che mandi (Sonda, Cargo leggero, Caccia leggero, Cargo pesante, Pathfinder, Caccia pesante, Incrociatore, Nave da battaglia, Incrociatore da battaglia, Bombardiere, Corazzata, Reaper); Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Il valore di una nave è metallo + cristallo del suo costo. Se la stiva non basta, il ritrovamento di risorse si ferma alla capacità della flotta.</p>`;
+}
+document.addEventListener('input', e => {
+  const el = e.target.closest('[data-xs]'); if (!el || !EXP_CTX) return;
+  expFleet[el.dataset.xs] = Math.max(0, Math.floor(+el.value || 0));
+  try { localStorage.setItem('oa_exp_fleet', JSON.stringify(expFleet)); } catch (err) {}
+  const r = expFleetCalc();
+  EXP_SHIPS.forEach(([id], i) => {
+    $('#xs-ok-' + id).innerHTML = r.ships[i].ok ? '<b>sì</b>' : 'no';
+    $('#xs-max-' + id).innerHTML = r.ships[i].ok ? '<b>' + fmt(r.ships[i].max) + '</b>' : '0';
+  });
+  $('#xs-sum').innerHTML = expFleetSum(r);
+});
 function renderBonus() {
   const prof = numericProfile(state.profile);
   const planets = Engine.active(state.planets);
@@ -2330,11 +2400,13 @@ function renderBonus() {
     const cargo = 25000 * (1 + 0.05 * (+prof.hyperspace_tech || 0) + (cls === 'collector' ? 0.25 : 0) + (all.civil_cargo || 0));
     const line = (label, pf) => {
       const m = band[2] * k * pf * res;
-      return `<tr><td>${label}</td><td>${fmt(m)}</td><td>${fmt(m / 2)}</td><td>${fmt(m / 3)}</td><td>${fmt(band[2] * k * pf / 2 * ships)}</td><td>${fmt(Math.ceil(m / cargo))}</td></tr>`;
+      return `<tr><td>${label}</td><td>${fmt(m)}</td><td>${fmt(m / 2)}</td><td>${fmt(m / 3)}</td><td>${fmt(band[2] * k * pf * ships)}</td><td>${fmt(Math.ceil(m / cargo))}</td></tr>`;
     };
     maxHtml = `<b class="small">Massimale di un ritrovamento</b>
       ${table(['', `${ri('metal')} Metallo`, `${ri('crystal')} Cristallo`, `${ri('deut')} Deuterio`, 'Navi (valore)', 'Cargo pesanti per il metallo'], [line('Con Pathfinder nella flotta', 2)])}
       <p class="muted small" style="margin:0">Primo in classifica ${band[1] === Infinity ? 'oltre i ' + mln(band[0]) : 'tra ' + mln(band[0]) + ' e ' + mln(band[1])} di punti: base ${fmt(band[2])} di metallo × velocità ${prof.economy_speed}${cls === 'explorer' ? ' × Esploratore 1,5' : ''} × Pathfinder 2, più il bonus delle ricerche forme di vita sulle risorse (${P(res - 1)}) e sulle navi (${P(ships - 1)}). Un Cargo pesante porta circa ${fmt(cargo)} con la Tecnologia iperspaziale ${+prof.hyperspace_tech || 0}.${xItem && xItem.until > Date.now() ? ` L'amplificatore delle spedizioni (+${xItem.pct}%) non è compreso: come si somma al massimale non è ancora verificato.` : ''}</p>`;
+    EXP_CTX = { limit: band[2] / 200, k, res, ships, cargoBonus: 0.05 * (+prof.hyperspace_tech || 0), civil: all.civil_cargo || 0, cls };
+    maxHtml += expFleetHtml();
   }
   const expHtml = `<div class="card stack"><h2 class="bh">${kindBadge('colony')} Spedizioni</h2>
     ${xRows.length ? table(['', 'Effetto'], xRows) : '<p class="muted small" style="margin:0">Nessun bonus per le spedizioni.</p>'}
