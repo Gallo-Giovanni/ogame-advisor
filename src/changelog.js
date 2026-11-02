@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 70, date: '2026-11-02', title: 'Spedizioni: massimale per tutte le fasce',
+    text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica fino a 100 milioni, dai limiti di Punti spedizione della guida del forum. La fascia da 50 a 75 milioni è verificata sul gioco; per le altre l\'app lo indica. Oltre i 100 milioni il limite non è ancora noto.',
+  },
+  {
     id: 69, date: '2026-10-31', title: 'Item fuori dal calcolo degli upgrade',
     text: 'Gli item attivi continuano a contare nella produzione oraria e giornaliera, ma di base non cambiano più l\'ordine degli upgrade: un item scade, un upgrade resta. Se li rinnovi sempre, puoi rimetterli nel calcolo dalle impostazioni ("Considera gli item nel calcolo degli upgrade").',
   },
