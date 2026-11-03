@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 71, date: '2026-11-03', title: 'Importa anche da una pagina salvata',
+    text: 'Oltre al pulsante nei preferiti, ora puoi importare salvando la Vista impero del gioco con Ctrl+S (su Mac Cmd+S) e caricando il file in Impostazioni, nella sezione "Importa dal gioco". Arrivano gli stessi dati del pulsante, tranne i punti del primo in classifica e il tasso di scambio del server, che restano quelli già inseriti. Il file viene letto solo nel browser e la sessione del gioco viene scartata.',
+  },
+  {
     id: 70, date: '2026-11-02', title: 'Spedizioni: massimale per tutte le fasce',
     text: 'Il massimale di un ritrovamento in spedizione ora si calcola per tutte le fasce di punti del primo in classifica, dai limiti di Punti spedizione della guida del forum. Corretti la fascia da 50 a 75 milioni (la base è 3,6 milioni di metallo, non 4,2) e il valore massimo delle navi trovate, che non va dimezzato. Nuova scheda Spedizioni: inserisci le navi che mandi e vedi quali navi puoi trovare e quante al massimo, la stiva e il ritrovamento massimo di risorse.',
   },

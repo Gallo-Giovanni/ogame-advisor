@@ -220,6 +220,10 @@
   .ccres .card { background: var(--bg2); padding: 10px 12px; }
   @media (max-width: 700px) { .ccres { grid-template-columns: 1fr; } }
   .btable.cc input { width: 70px; padding: 3px 6px; }
+  .imp-pick { display: inline-block; cursor: pointer; }
+  .imp-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .imp-pick span { display: inline-block; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg2); }
+  .imp-pick:hover span { border-color: var(--accent); }
   .btable.exp-fleet input { width: 100px; padding: 3px 6px; text-align: right; }
   .btable { width: 100%; border-collapse: collapse; font-size: .88rem; }
   .btable th, .btable td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
@@ -329,6 +333,16 @@
           </ol>
           <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: sul telefono questi preferiti non funzionano.</p>
           <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco e non legge la sessione.</p>
+          <div class="imp-file stack">
+            <b class="small">Oppure salva la pagina (Ctrl+S)</b>
+            <ol class="small" style="margin:0;padding-left:20px">
+              <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
+              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
+              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
+            </ol>
+            <p class="muted small" style="margin:0" data-imp-msg></p>
+            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica e tasso di scambio del server non sono nella pagina: restano quelli già inseriti (li cambi in Impostazioni).</p>
+          </div>
         </div>
         <div class="card stack opt">
           <h3 style="margin:0">Inserisci a mano</h3>
@@ -636,6 +650,16 @@
           <li>Premi <b>OGame Advisor</b> nei preferiti: si apre questa app con l'anteprima dell'importazione.</li>
         </ol>
         <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco, non clicca nulla e non legge la sessione. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+        <div class="imp-file stack">
+            <b class="small">Oppure salva la pagina (Ctrl+S)</b>
+            <ol class="small" style="margin:0;padding-left:20px">
+              <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
+              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
+              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
+            </ol>
+            <p class="muted small" style="margin:0" data-imp-msg></p>
+            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica e tasso di scambio del server non sono nella pagina: restano quelli già inseriti (li cambi in Impostazioni).</p>
+          </div>
       </div>
       <div class="card stack" id="settings-form">
         <h2>Account e bonus</h2>
@@ -1819,7 +1843,8 @@ function openImport() {
     if (same && same.id !== state.activeAccount) { state.activeAccount = same.id; state.importChosen = true; loadUserData(); return; }
   }
   const m = Importer.mapImport(snap, state.planets, Engine.LF);
-  if (m.serverRatio && (!state.profile || !state.profile.ratio_mode || state.profile.ratio_mode === 'server')) Object.assign(m.profile, m.serverRatio);
+  // il tasso del server arriva solo dal pulsante (serverData.xml); da una pagina salvata non si tocca
+  if (m.serverRatio && snap.sd && (!state.profile || !state.profile.ratio_mode || state.profile.ratio_mode === 'server')) Object.assign(m.profile, m.serverRatio);
   state.importSnap = snap;
   state.importBase = m;
   state.importLinks = m.planets.map(x => (x.match ? x.match.id : null)); // quale pianeta salvato aggiorna ogni pianeta importato (null = nuovo)
@@ -1936,6 +1961,28 @@ $('#import-ok').addEventListener('click', async () => {
   }
   await loadUserData();
   message($('#planets-msg'), `Importati ${m.planets.length} pianeti dalla Vista impero.`, 'ok');
+});
+// Importazione da una Vista impero salvata con Ctrl+S: stessi dati del pulsante, letti dal file nel browser.
+// I meta "ogame-..." della pagina danno server, giocatore e classe; l'ora del salvataggio serve per scadenze e lavori in corso.
+function importFromHtml(html) {
+  const meta = n => { const m = html.match(new RegExp('<meta name="ogame-' + n + '" content="([^"]*)"')); return m ? m[1] : ''; };
+  let r;
+  try { r = Importer.grabEmpire(html, meta); } catch (e) { r = { error: 'noempire' }; }
+  if (r.error === 'moons') return 'È la Vista impero delle Lune: apri la scheda Pianeti e salva di nuovo la pagina.';
+  if (r.error) return 'In questo file non c\'è la Vista impero: nel gioco apri la Vista impero, scheda Pianeti, e salvala con Ctrl+S.';
+  const ts = +meta('timestamp');
+  if (ts > 0) r.at = ts * 1000;
+  const raw = JSON.stringify(r);
+  try { sessionStorage.setItem('ogadv-import', raw); } catch (e) { state.importRaw = raw; }
+  openImport();
+  return '';
+}
+document.addEventListener('change', e => {
+  const input = e.target.closest('[data-imp-file]'); if (!input || !input.files || !input.files[0]) return;
+  const msg = input.closest('.imp-file').querySelector('[data-imp-msg]');
+  const f = input.files[0]; input.value = '';
+  f.text().then(html => { const err = importFromHtml(html); msg.textContent = err; msg.classList.toggle('neg', !!err); })
+    .catch(() => { msg.textContent = 'Non riesco a leggere il file.'; msg.classList.add('neg'); });
 });
 function setBookmarkletLinks() {
   $$('#bm-link, [data-bm]').forEach(a => {
