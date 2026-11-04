@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 72, date: '2026-11-05', title: 'Pulsante nei preferiti sospeso',
+    text: 'Per le regole di OGame, uno script che legge i dati dalla pagina del gioco deve essere prima approvato dal team del gioco. Finché non lo è, il pulsante "OGame Advisor" nei preferiti è sospeso: puoi eliminarlo dalla barra dei preferiti. Per importare salva la Vista impero con Ctrl+S (su Mac Cmd+S) e carica il file in Impostazioni, nella sezione "Importa dal gioco": arrivano gli stessi dati.',
+  },
+  {
     id: 71, date: '2026-11-03', title: 'Importa anche da una pagina salvata',
     text: 'Oltre al pulsante nei preferiti, ora puoi importare salvando la Vista impero del gioco con Ctrl+S (su Mac Cmd+S) e caricando il file in Impostazioni, nella sezione "Importa dal gioco". Arrivano gli stessi dati del pulsante, tranne i punti del primo in classifica e il tasso di scambio del server, che restano quelli già inseriti. Il file viene letto solo nel browser e la sessione del gioco viene scartata.',
   },

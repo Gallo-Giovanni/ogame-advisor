@@ -220,6 +220,7 @@
   .ccres .card { background: var(--bg2); padding: 10px 12px; }
   @media (max-width: 700px) { .ccres { grid-template-columns: 1fr; } }
   .btable.cc input { width: 70px; padding: 3px 6px; }
+  body:not(.bm-on) .bm-only { display: none !important; }
   .imp-pick { display: inline-block; cursor: pointer; }
   .imp-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .imp-pick span { display: inline-block; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg2); }
@@ -325,16 +326,18 @@
       <div class="choice">
         <div class="card stack opt">
           <h3 style="margin:0">Importa dal gioco <span class="tag-rec">consigliato</span></h3>
-          <p class="small" style="margin:0">Un clic e arrivano tutti i pianeti: miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, ricerche, velocità del server e punti del primo in classifica.</p>
+          <p class="small" style="margin:0">Salvi la Vista impero del gioco e la carichi qui: arrivano tutti i pianeti, con miniere, centrali, satelliti, crawler, energia, temperatura, razza, edifici e ricerche forme di vita, più classe, ricerche e velocità del server.</p>
+          <div class="bm-only stack">
           <ol class="small" style="margin:0;padding-left:20px">
             <li>Trascina questo pulsante sulla barra dei preferiti: <a class="bm" data-bm href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
             <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
             <li>Premi <b>OGame Advisor</b> nei preferiti: si apre l'app con l'elenco di cosa verrà salvato.</li>
           </ol>
-          <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: sul telefono questi preferiti non funzionano.</p>
           <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco e non legge la sessione.</p>
+          </div>
+          <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: dal telefono non si riesce a salvare la pagina del gioco.</p>
           <div class="imp-file stack">
-            <b class="small">Oppure salva la pagina (Ctrl+S)</b>
+            <b class="small">Salva la pagina (Ctrl+S)</b>
             <ol class="small" style="margin:0;padding-left:20px">
               <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
               <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
@@ -433,7 +436,7 @@
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
-      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
+      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top bm-only" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
     </header>
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
@@ -643,15 +646,18 @@
     <section data-panel="settings" class="stack hidden">
       <div class="card stack" id="import-card">
         <h2>Importa dal gioco</h2>
+        <p class="small" style="margin:0">Salva la <b>Vista impero</b> di OGame (da PC) e caricala qui sotto: l'app ne legge i numeri, cioè miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche e velocità del server. Prima di salvare ti mostra cosa cambia. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+        <div class="bm-only stack">
         <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche, velocità del server e punti del primo in classifica. Prima di salvare ti mostra cosa cambia.</p>
         <ol class="small" style="margin:0;padding-left:20px">
           <li>Trascina questo pulsante sulla barra dei preferiti: <a id="bm-link" class="bm" href="#" title="Trascinalo sulla barra dei preferiti">⬇ OGame Advisor</a></li>
           <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
           <li>Premi <b>OGame Advisor</b> nei preferiti: si apre questa app con l'anteprima dell'importazione.</li>
         </ol>
-        <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco, non clicca nulla e non legge la sessione. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+        <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco, non clicca nulla e non legge la sessione.</p>
+        </div>
         <div class="imp-file stack">
-            <b class="small">Oppure salva la pagina (Ctrl+S)</b>
+            <b class="small">Salva la pagina (Ctrl+S)</b>
             <ol class="small" style="margin:0;padding-left:20px">
               <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
               <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
@@ -717,7 +723,7 @@
       </div>
       <div class="card stack">
         <h2 style="margin:0">Account di gioco</h2>
-        <p class="small" style="margin:0">Se giochi in più universi, aggiungi un account per ognuno: ogni account ha i suoi pianeti e le sue impostazioni. Il pulsante dei preferiti carica i dati nell'account dello stesso server, e se non c'è ti chiede dove.</p>
+        <p class="small" style="margin:0">Se giochi in più universi, aggiungi un account per ognuno: ogni account ha i suoi pianeti e le sue impostazioni. L'importazione carica i dati nell'account dello stesso server, e se non c'è ti chiede dove.</p>
         <div id="acc-list" class="stack" style="gap:6px"></div>
         <div class="row"><button class="ghost" id="acc-add">Aggiungi un account</button></div>
         <div id="acc-msg" class="msg hidden"></div>
@@ -2157,6 +2163,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 72, date: '2026-11-05', title: 'Pulsante nei preferiti sospeso',
+    text: 'Per le regole di OGame, uno script che legge i dati dalla pagina del gioco deve essere prima approvato dal team del gioco. Finché non lo è, il pulsante "OGame Advisor" nei preferiti è sospeso: puoi eliminarlo dalla barra dei preferiti. Per importare salva la Vista impero con Ctrl+S (su Mac Cmd+S) e carica il file in Impostazioni, nella sezione "Importa dal gioco": arrivano gli stessi dati.',
+  },
+  {
     id: 71, date: '2026-11-03', title: 'Importa anche da una pagina salvata',
     text: 'Oltre al pulsante nei preferiti, ora puoi importare salvando la Vista impero del gioco con Ctrl+S (su Mac Cmd+S) e caricando il file in Impostazioni, nella sezione "Importa dal gioco". Arrivano gli stessi dati del pulsante, tranne i punti del primo in classifica e il tasso di scambio del server, che restano quelli già inseriti. Il file viene letto solo nel browser e la sessione del gioco viene scartata.',
   },
@@ -3430,7 +3440,7 @@ function openUpdates(onlyNew) {
       <div class="date">${day(u.date)}</div>
       <div class="title"><b>${esc(u.title)}</b></div>
       <div class="small">${esc(u.text)}</div>
-      ${u.bookmarklet ? `<details class="bm-update small"><summary><b>Usi il pulsante "OGame Advisor" nei preferiti? Va aggiornato</b></summary>
+      ${u.bookmarklet ? `<details class="bm-update bm-only small"><summary><b>Usi il pulsante "OGame Advisor" nei preferiti? Va aggiornato</b></summary>
         <ol style="margin:6px 0 0;padding-left:20px">
           <li>Elimina il vecchio "OGame Advisor" dalla barra dei preferiti (clic destro → Elimina).</li>
           <li>Trascina sulla barra questo pulsante nuovo: <a class="bm" data-bm href="#">⬇ OGame Advisor</a></li>
@@ -3456,9 +3466,19 @@ $('#open-updates').addEventListener('click', () => openUpdates(false));
 
 /* Importazione dalla Vista impero del gioco (bookmarklet) */
 // Il bookmarklet apre l'app con #import=<dati>: si tengono finché l'utente ha fatto l'accesso, poi si tolgono dall'URL
+// Il pulsante nei preferiti è uno script che legge i dati dalla pagina del gioco: per le regole di OGame va prima
+// tollerato dal team ToolDev (AGENTS.md §5). Finché non lo è resta spento: niente pulsante nell'app e i dati che
+// arrivano da un pulsante vecchio non vengono usati. L'importazione si fa salvando la pagina (Ctrl+S).
+const BOOKMARKLET_ON = false;
+document.body.classList.toggle('bm-on', BOOKMARKLET_ON);
 function captureImport() {
   const h = location.hash;
   if (!h.startsWith('#import=')) return false;
+  if (!BOOKMARKLET_ON) {
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => alert('Il pulsante "OGame Advisor" nei preferiti è sospeso: per le regole di OGame deve essere prima approvato dal team del gioco. Puoi eliminarlo dai preferiti. Per importare, salva la Vista impero con Ctrl+S e caricala in Impostazioni.'), 300);
+    return false;
+  }
   try { sessionStorage.setItem('ogadv-import', decodeURIComponent(h.slice(8))); } catch (e) { state.importRaw = decodeURIComponent(h.slice(8)); }
   history.replaceState(null, '', location.pathname + location.search);
   return true;
@@ -3732,7 +3752,7 @@ function renderItems() {
     <div class="items-wrap"><table class="items-grid"><tr><th>Item</th><th>Effetto</th><th>Scade</th><th>Tra</th><th>Pianeta</th></tr>
     ${shown.map(x => `<tr${x.until - now < 86400000 ? ' class="soon"' : ''}><td>${esc(x.name)}${x.prod ? ' <span class="tag">produzione</span>' : ''}</td><td>${esc(x.desc || '')}</td><td>${x.perm ? 'permanente' : x.until === Infinity ? '—' : whenText(x.until)}</td><td>${x.until === Infinity ? '—' : left(x.until)}</td><td class="${x.where === 'tutto l\'account' ? 'muted' : ''}"><b>${esc(x.where)}</b></td></tr>`).join('') || '<tr><td colspan="5" class="muted">Nessun item in questo filtro.</td></tr>'}</table></div>
     <p class="muted small" style="margin:0">Dall'ultima importazione dalla Vista impero. Gli item uguali su tutti i pianeti sono dell'account. In rosso quelli che scadono entro 24 ore; quando un item di produzione scade l'app smette di contarlo.</p>`
-    : '<p class="muted small" style="margin:0">Nessun item attivo. Gli item arrivano con l\'importazione dalla Vista impero (pulsante dei preferiti aggiornato), oppure si spuntano a mano nei Booster di ogni pianeta.</p>'}</div>`;
+    : '<p class="muted small" style="margin:0">Nessun item attivo. Gli item arrivano con l\'importazione dalla Vista impero oppure si spuntano a mano nei Booster di ogni pianeta.</p>'}</div>`;
 }
 $('#items-panel').addEventListener('click', e => {
   const b = e.target.closest('[data-itf]'); if (!b) return;

@@ -6,7 +6,8 @@ Web app che dice a un giocatore di OGame **cosa conviene potenziare adesso**. Og
 - Accesso con email (Supabase Auth): ogni utente vede solo i propri dati (Row Level Security)
 - **Più account**, uno per universo: ogni account ha i suoi pianeti e le sue impostazioni; l'importazione sceglie da sola l'account dello stesso server (`profiles.id`, `planets.account_id`, migrazione in `sql/piu-account.sql`)
 - Primo accesso a scelta: **importazione dalla Vista impero** del gioco oppure inserimento a mano (account, bonus, poi un pianeta alla volta)
-- **Importazione dalla Vista impero** con un pulsante da mettere nei preferiti del browser (bookmarklet): legge la pagina aperta e il file pubblico del server (`/api/serverData.xml`: velocità delle ricerche e punti del primo in classifica), senza leggere la sessione, apre l'app con i numeri e mostra ogni modifica prima di salvare. Edifici e ricerche in corso contano come già fatti. Si può importare anche dopo l'inserimento a mano, collegando ogni pianeta del gioco a uno già salvato (`src/importer.js`)
+- **Importazione dalla Vista impero salvata con Ctrl+S**: il giocatore salva la pagina e la carica nell'app, che la legge nel browser, tiene i numeri che servono, scarta il resto (compresa la sessione) e mostra ogni modifica prima di salvare. Edifici e ricerche in corso contano come già fatti. Si può importare anche dopo l'inserimento a mano, collegando ogni pianeta del gioco a uno già salvato (`src/importer.js`)
+- **Pulsante nei preferiti (bookmarklet) sospeso**: per le regole di OGame uno script che legge i dati dalla pagina del gioco va prima tollerato dal team ToolDev. Il codice resta in `src/importer.js`, ma l'app non lo mostra e ignora i dati che arrivano da un pulsante vecchio (`BOOKMARKLET_ON` in `src/app.html`)
 - **Piano dei consigli**: l'app sceglie l'upgrade migliore, lo considera fatto, ricalcola e sceglie il successivo. Un livello per riga; i livelli successivi della stessa costruzione compaiono più in basso, già calcolati, e il dettaglio dice a che numero della lista si trova il prossimo livello
 - Energia inclusa: se un upgrade richiede più energia, al costo si aggiunge la soluzione che si ripaga prima tra satelliti solari, centrale solare e centrale a fusione (con il deuterio che brucia), oppure solo satelliti se il giocatore lo sceglie. I deficit di energia vengono segnalati per primi
 - Filtri: tipi di consiglio a scelta multipla (miniere, edifici forme di vita, ricerche forme di vita, Plasma e colonia) e pianeti da includere; il piano viene calcolato solo con quello che hai scelto
@@ -70,3 +71,7 @@ Aggiungi in cima a `src/changelog.js` una voce con l'`id` successivo, la data, u
 
 ## Limiti
 L'energia consumata dagli edifici forme di vita si conosce solo dal bilancio energetico del gioco. Alcuni effetti delle forme di vita sono salvati ma non applicati finché non vengono verificati sul gioco: potenziamento dei crawler e del Collezionista (Rock'tal) e costi delle ricerche T3. Il massimale delle spedizioni è verificato solo per un primo in classifica tra 50 e 75 milioni di punti.
+
+## Regole di OGame per gli strumenti
+
+`AGENTS.md` contiene le regole del team ToolDev di OGame Origin per gli strumenti di terze parti (cosa è vietato, cosa va approvato, come usare l'API), dal repository [Rivenscryr/origin-tooldev-agents](https://github.com/Rivenscryr/origin-tooldev-agents). Ogni modifica all'app deve rispettarle; `CLAUDE.md` le richiama per l'assistente AI.
