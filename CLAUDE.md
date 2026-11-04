@@ -8,5 +8,7 @@ Stato attuale dell'app rispetto alle regole:
 - L'app web è un calcolatore esterno: dati inseriti a mano o importati da una Vista impero salvata dal giocatore (Ctrl+S).
 - Il pulsante nei preferiti (bookmarklet) è uno script che legge la pagina del gioco: va tollerato prima di poterlo
   usare. È spento con `BOOKMARKLET_ON = false` in `src/app.html`; non riattivarlo senza la tolleranza.
-- Le chiamate all'API pubblica (es. `serverData.xml`) vanno fatte tramite il proxy della community
-  `https://ogapi.faw-kes.de/`, una volta sola e tenendo il risultato in memoria.
+- L'API pubblica dell'universo (es. `https://s278-it.ogame.gameforge.com/api/serverData.xml`) si legge senza chiave,
+  solo quando serve (all'importazione) e tenendo il risultato in memoria: `serverData()` in `src/app.html`, 24 ore.
+- Il proxy della community `https://ogapi.faw-kes.de/` serve per report e statistiche (`/v1/report/...`,
+  `/v1/statistics/...`, massimo 10 richieste al minuto): usarlo per quelle API, mai una chiave privata.

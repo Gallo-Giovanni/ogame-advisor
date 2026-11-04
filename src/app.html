@@ -344,7 +344,7 @@
               <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
             </ol>
             <p class="muted small" style="margin:0" data-imp-msg></p>
-            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica e tasso di scambio del server non sono nella pagina: restano quelli già inseriti (li cambi in Impostazioni).</p>
+            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica, velocità delle ricerche e tasso di scambio non sono nella pagina: l'app li legge dai dati pubblici del server di OGame.</p>
           </div>
         </div>
         <div class="card stack opt">
@@ -664,7 +664,7 @@
               <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
             </ol>
             <p class="muted small" style="margin:0" data-imp-msg></p>
-            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica e tasso di scambio del server non sono nella pagina: restano quelli già inseriti (li cambi in Impostazioni).</p>
+            <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica, velocità delle ricerche e tasso di scambio non sono nella pagina: l'app li legge dai dati pubblici del server di OGame.</p>
           </div>
       </div>
       <div class="card stack" id="settings-form">
@@ -1988,16 +1988,44 @@ function importFromHtml(html) {
   if (r.error) return 'In questo file non c\'è la Vista impero: nel gioco apri la Vista impero, scheda Pianeti, e salvala con Ctrl+S.';
   const ts = +meta('timestamp');
   if (ts > 0) r.at = ts * 1000;
-  const raw = JSON.stringify(r);
-  try { sessionStorage.setItem('ogadv-import', raw); } catch (e) { state.importRaw = raw; }
-  openImport();
-  return '';
+  return serverData(r.srv).then(sd => {
+    if (sd) r.sd = sd;
+    const raw = JSON.stringify(r);
+    try { sessionStorage.setItem('ogadv-import', raw); } catch (e) { state.importRaw = raw; }
+    openImport();
+    return sd ? '' : 'Dati del server non raggiungibili: punti del primo in classifica e tasso di scambio restano quelli già inseriti.';
+  });
+}
+// Dati pubblici del server (serverData.xml dell'API ufficiale dell'universo, es. s278-it): velocità delle ricerche,
+// punti del primo in classifica e tasso di scambio. Regole ToolDev (AGENTS.md §6): l'API pubblica si legge senza
+// chiave, non si interroga di continuo e si tiene in memoria. Qui: una richiesta solo quando il giocatore importa
+// un file, dal browser e senza sessione del gioco, e il risultato resta in memoria 24 ore per server.
+const SD_TTL = 24 * 3600 * 1000;
+function serverData(srv) {
+  if (!/^s\d+-[a-z]{2}$/.test(srv || '')) return Promise.resolve(null);
+  const key = 'ogadv-sd-' + srv;
+  try { const c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < SD_TTL) return Promise.resolve(c.sd); } catch (e) {}
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 6000);
+  return fetch(`https://${srv}.ogame.gameforge.com/api/serverData.xml`, { credentials: 'omit', signal: ctrl.signal })
+    .then(res => res.ok ? res.text() : null)
+    .then(xml => {
+      if (!xml) return null;
+      const tag = n => { const m = xml.match(new RegExp('<' + n + '>([^<]*)</' + n + '>')); return m ? +m[1] : 0; };
+      const sd = { rd: tag('researchDurationDivisor'), top: tag('topScore'),
+        tr: [tag('marketplaceBasicTradeRatioMetal'), tag('marketplaceBasicTradeRatioCrystal'), tag('marketplaceBasicTradeRatioDeuterium')] };
+      if (!(sd.top > 0)) return null;
+      try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), sd })); } catch (e) {}
+      return sd;
+    })
+    .catch(() => null)
+    .finally(() => clearTimeout(timer));
 }
 document.addEventListener('change', e => {
   const input = e.target.closest('[data-imp-file]'); if (!input || !input.files || !input.files[0]) return;
   const msg = input.closest('.imp-file').querySelector('[data-imp-msg]');
   const f = input.files[0]; input.value = '';
-  f.text().then(html => { const err = importFromHtml(html); msg.textContent = err; msg.classList.toggle('neg', !!err); })
+  msg.textContent = 'Lettura del file…'; msg.classList.remove('neg');
+  f.text().then(html => Promise.resolve(importFromHtml(html))).then(err => { msg.textContent = err; msg.classList.toggle('neg', !!err); })
     .catch(() => { msg.textContent = 'Non riesco a leggere il file.'; msg.classList.add('neg'); });
 });
 function setBookmarkletLinks() {
