@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 75, date: '2026-11-06', title: 'Requisiti contati per tutto',
+    text: 'Quando un consiglio ha bisogno di qualcosa che non hai ancora sbloccato, l\'app controlla i requisiti del gioco (anche a catena) e ne aggiunge il costo. Esempi: per la prima colonia Laboratorio di ricerca, Tecnologia energetica, Propulsore a impulso, Tecnologia spionaggio, Fabbrica di robot e Cantiere spaziale; per i satelliti solari il Cantiere spaziale; per la Tecnologia plasma laser, ionica, energetica e laboratorio; per la Centrale a fusione Sintetizzatore 5 e Tecnologia energetica 3. Il consiglio elenca cosa serve e, quando lo segni come fatto, aggiorna anche quei livelli. I livelli che l\'app non conosce (pianeti inseriti a mano senza quel campo) contano come già fatti: con l\'importazione dalla Vista impero li conosce tutti.',
+  },
+  {
     id: 74, date: '2026-11-06', title: 'Centrale a fusione: contati anche i requisiti',
     text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti. Nella scheda del pianeta, in Risorse e strutture, ci sono ora anche Fabbrica di robot, Fabbrica di naniti e Laboratorio di ricerca, da inserire a mano se non importi dalla Vista impero. Se il primo consiglio richiede anche un upgrade per l\'energia, ora è già aperto, così vedi subito cosa fare.',
   },

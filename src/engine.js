@@ -311,38 +311,125 @@ const Engine = (() => {
   // l'ammortamento più breve, (costo + energia) / (guadagno - deuterio bruciato); altrimenti il deuterio conta per FUEL_HOURS ore.
   // profile.energy_satellites_only: il giocatore vuole solo satelliti.
   const FUEL_HOURS = 24 * 90;
-  // Requisiti della Centrale a fusione (gioco): Sintetizzatore di deuterio 5 sul pianeta e Tecnologia energetica 3,
-  // che a sua volta richiede un Laboratorio di ricerca 1 (su un pianeta qualsiasi dell'account). Quello che manca si
-  // aggiunge al costo della prima centrale. Il laboratorio si conta solo se si conoscono gli edifici dei pianeti
-  // (importazione dalla Vista impero) e nessuno ha un laboratorio; se manca, va costruito su questo pianeta.
-  const ENERGY_TECH = { base: [0, 800, 400], factor: 2 }, LAB_L1 = [200, 400, 200];
-  function fusionPrereq(profile, planet, planets) {
-    const steps = [];
+  // ---- Requisiti (albero delle tecnologie del gioco) ----
+  // Chiavi: b<id> edificio del pianeta, r<id> ricerca dell'account, s<id> nave. Quando qualcosa è a 0 e serve per un
+  // consiglio, si controllano i requisiti (anche quelli dei requisiti) e quello che manca si aggiunge al costo.
+  // Il Laboratorio di ricerca conta come il più alto dell'account; se manca, va costruito sul pianeta del consiglio.
+  // Un livello che non si conosce (pianeta inserito a mano senza quel campo, ricerca mai importata) conta come già fatto.
+  const REQ = {
+    b12: [['b3', 5], ['r113', 3]],             // Centrale a fusione
+    b15: [['b14', 10], ['r108', 10]],          // Fabbrica di naniti
+    b21: [['b14', 2]],                         // Cantiere spaziale
+    r113: [['b31', 1]],                        // Tecnologia energetica
+    r120: [['b31', 1], ['r113', 2]],           // Tecnologia laser
+    r121: [['b31', 4], ['r120', 5], ['r113', 4]], // Tecnologia ionica
+    r122: [['b31', 4], ['r113', 8], ['r120', 10], ['r121', 5]], // Tecnologia plasma
+    r106: [['b31', 3]],                        // Tecnologia spionaggio
+    r108: [['b31', 1]],                        // Tecnologia computer
+    r110: [['b31', 6], ['r113', 3]],           // Tecnologia scudi
+    r111: [['b31', 2]],                        // Tecnologia corazze
+    r114: [['b31', 7], ['r113', 5], ['r110', 5]], // Tecnologia iperspaziale
+    r115: [['b31', 1], ['r113', 1]],           // Propulsore a combustione
+    r117: [['b31', 2], ['r113', 1]],           // Propulsore a impulso
+    r124: [['b31', 3], ['r106', 4], ['r117', 3]], // Astrofisica
+    s208: [['b21', 4], ['r117', 3]],           // Nave colonizzatrice
+    s212: [['b21', 1]],                        // Satellite solare
+    s217: [['b21', 5], ['r115', 4], ['r111', 4], ['r120', 4]], // Crawler
+  };
+  const REQ_COST = {
+    b14: [[400, 120, 200], 2], b15: [[1000000, 500000, 100000], 2], b21: [[400, 200, 100], 2], b31: [[200, 400, 200], 2],
+    r106: [[200, 1000, 200], 2], r108: [[0, 400, 600], 2], r110: [[200, 600, 0], 2], r111: [[1000, 0, 0], 2],
+    r113: [[0, 800, 400], 2], r114: [[0, 4000, 2000], 2], r115: [[400, 0, 600], 2], r117: [[2000, 4000, 600], 2],
+    r120: [[200, 100, 0], 2], r121: [[1000, 300, 100], 2],
+  };
+  const REQ_NAMES = {
+    b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
+    b31: 'Laboratorio di ricerca', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
+    r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
+    r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
+  };
+  // colonne del pianeta e campi del profilo che hanno un nome proprio
+  const B_COL = { 1: 'metal_mine', 2: 'crystal_mine', 3: 'deut_synth', 4: 'solar_plant', 12: 'fusion_reactor', 14: 'robotics_factory', 15: 'nanite_factory' };
+  const R_COL = { 113: 'energy_tech', 114: 'hyperspace_tech', 122: 'plasma_tech', 124: 'astro_tech' };
+  function reqCost(key, level) {
+    if (key === 'b3') return levelCost('deut_synth', level);
+    if (key === 'b12') return levelCost('fusion_reactor', level);
+    if (key === 'r122') return levelCost('plasma', level);
+    if (key === 'r124') return levelCost('astro', level);
+    const [base, f] = REQ_COST[key];
+    return base.map(x => Math.floor(x * Math.pow(f, level - 1)));
+  }
+  function buildingLevel(planet, id) {
+    const col = B_COL[id];
+    if (col && planet[col] != null && planet[col] !== '') return +planet[col] || 0;
+    const b = planet.buildings || {};
+    if (b[id] != null) return +b[id] || 0;
+    return b[1] != null ? 0 : Infinity; // edifici importati (c'è la miniera di metallo): quello che manca è a 0
+  }
+  function researchLevel(profile, id) {
+    const r = profile.research || {};
+    if (r[id] != null) return +r[id] || 0;
+    const col = R_COL[id];
+    if (col && profile[col] != null && profile[col] !== '') return +profile[col] || 0;
+    return Object.keys(r).length ? 0 : Infinity;
+  }
+  // Requisiti mancanti di `key` (anche a catena): { cost, steps: [{ key, from, to }], levels: { key: livello dopo } }
+  function prereq(profile, planet, planets, key) {
+    const all = planets && planets.length ? planets : [planet];
+    const lv = {};
+    const cur = k => {
+      if (k in lv) return lv[k];
+      const id = +k.slice(1);
+      if (k === 'b31') { const v = all.map(p => buildingLevel(p, 31)).filter(x => x !== Infinity); return v.length ? Math.max(...v) : Infinity; }
+      return k[0] === 'b' ? buildingLevel(planet, id) : researchLevel(profile, id);
+    };
     let cost = [0, 0, 0];
-    const add = c => { cost = cost.map((x, i) => x + c[i]); };
-    const synth = +planet.deut_synth || 0;
-    if (synth < 5) {
-      for (let L = synth + 1; L <= 5; L++) add(levelCost('deut_synth', L));
-      steps.push({ key: 'deut_synth', from: synth, to: 5 });
+    const steps = [];
+    const need = (k, level) => {
+      const from = cur(k);
+      if (from >= level) return;
+      for (const [rk, rl] of REQ[k] || []) need(rk, rl);
+      for (let L = from + 1; L <= level; L++) { const c = reqCost(k, L); cost = cost.map((x, i) => x + c[i]); }
+      lv[k] = level;
+      steps.push({ key: k, from, to: level });
+    };
+    for (const k of [].concat(key)) {
+      if (Array.isArray(k)) need(k[0], k[1]); // [chiave, livello]: serve proprio quel livello (es. Astrofisica 1)
+      else for (const [rk, rl] of REQ[k] || []) need(rk, rl);
     }
-    const et = +profile.energy_tech || 0;
-    if (et < 3) {
-      const all = (planets && planets.length ? planets : [planet]);
-      const known = all.some(p => p.buildings);
-      const hasLab = !known || all.some(p => (+((p.buildings || {})[31]) || 0) >= 1);
-      if (!hasLab) { add(LAB_L1); steps.push({ key: 'research_lab', from: 0, to: 1 }); }
-      for (let L = et + 1; L <= 3; L++) add(ENERGY_TECH.base.map(x => Math.floor(x * Math.pow(ENERGY_TECH.factor, L - 1))));
-      steps.push({ key: 'energy_tech', from: et, to: 3 });
+    // stesso edificio o ricerca alzato più volte (es. Laboratorio 0 → 2 e poi 2 → 3): una riga sola, al primo posto
+    const merged = [];
+    for (const x of steps) { const m = merged.find(y => y.key === x.key); if (m) m.to = Math.max(m.to, x.to); else merged.push({ ...x }); }
+    return { cost, steps: merged, levels: lv };
+  }
+  const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
+  // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
+  function prereqPatch(profile, planet, steps, patch, prof) {
+    for (const x of steps || []) {
+      const id = +x.key.slice(1);
+      if (x.key[0] === 'b') {
+        if (B_COL[id]) patch[B_COL[id]] = x.to;
+        patch.buildings = { ...(planet.buildings || {}), ...(patch.buildings || {}), [id]: x.to };
+      } else {
+        if (R_COL[id]) prof[R_COL[id]] = x.to;
+        if (profile.research) prof.research = { ...profile.research, ...(prof.research || {}), [id]: x.to };
+      }
     }
-    return { cost, steps, energyTech: et < 3 ? 3 : et };
+  }
+  // compatibilità: requisiti della Centrale a fusione
+  function fusionPrereq(profile, planet, planets) {
+    const pr = prereq(profile, planet, planets, 'b12');
+    const et = 'r113' in pr.levels ? pr.levels.r113 : +profile.energy_tech || 0;
+    return { cost: pr.cost, steps: pr.steps, energyTech: et };
   }
   function energyFix(profile, planet, energy, ctx) {
     if (energy <= 0) return null;
     const mult = multipliers(profile, planet, profile.items_in_ranking === true);
     const perSat = Math.floor(satelliteEnergy(planet.temp_max) * mult.energy);
     const sats = Math.ceil(energy / perSat);
-    const satCost = SATELLITE_COST.map(x => x * sats);
-    const satOpt = { kind: 'satellites', count: sats, added: sats * perSat, cost: satCost, eq: toMetalEq(satCost, profile) };
+    const satPre = prereq(profile, planet, ctx && ctx.planets, 's212');
+    const satCost = SATELLITE_COST.map((x, i) => x * sats + satPre.cost[i]);
+    const satOpt = { kind: 'satellites', count: sats, added: sats * perSat, cost: satCost, eq: toMetalEq(satCost, profile), pre: satPre.steps };
 
     let lvl = planet.solar_plant, added = 0, solarCost = [0, 0, 0];
     while (added < energy && lvl < planet.solar_plant + 50) {
@@ -560,12 +647,19 @@ const Engine = (() => {
       name: 'Nuova colonia', position: 8, temp_max: Math.round(planets.reduce((s, p) => s + (+p.temp_max || 0), 0) / planets.length),
       ...target, solar_plant: 0, fusion_reactor: 0, solar_satellites: 0,
       lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0, // una colonia nuova non ha ancora edifici forme di vita
+      buildings: { 1: target.metal_mine, 2: target.crystal_mine, 3: target.deut_synth }, // niente cantiere: i satelliti lo richiedono
     };
 
     let cost = [0, 0, 0];
     const add = c => (cost = cost.map((x, i) => x + c[i]));
-    for (let n = astro + 1; n <= astro + steps; n++) add(levelCost('astro', n));
-    const astroCost = cost.slice();
+    // requisiti: Astrofisica (se serve un livello) e Nave colonizzatrice, sul pianeta dove costano meno
+    const goals = ['s208'].concat(steps ? [['r124', 1]] : []);
+    let pre = null, prePlanet = null;
+    for (const p of planets) { const x = prereq(profile, p, planets, goals); if (!pre || toMetalEq(x.cost, profile) < toMetalEq(pre.cost, profile)) { pre = x; prePlanet = p; } }
+    const preSteps = pre ? pre.steps.filter(x => x.key !== 'r124') : [];
+    if (pre) preSteps.forEach(x => { for (let L = x.from + 1; L <= x.to; L++) add(reqCost(x.key, L)); });
+    const astroCost = [0, 0, 0];
+    for (let n = astro + 1; n <= astro + steps; n++) { const c = levelCost('astro', n); add(c); c.forEach((x, i) => { astroCost[i] += x; }); }
     add(COLONY_SHIP);
     MINES.forEach(m => add(buildUpCost(m.key, target[m.key])));
     const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
@@ -585,8 +679,8 @@ const Engine = (() => {
     const astroText = steps ? `Astrofisica ${astro} → ${astro + steps}` : 'hai già uno slot libero';
     return {
       type: 'colony', planet: 'Nuovo pianeta', title: steps ? `Nuova colonia (${astroText})` : 'Colonizza lo slot libero',
-      detail: `${steps ? astroText + ' + ' : ''}nave colonizzatrice + miniere ${target.metal_mine}/${target.crystal_mine}/${target.deut_synth}${fix ? ' + ' + fixText(fix) : ''} (pianeta medio in posizione 8)`,
-      cost, astroCost, costEq: eq, gainPerHour: prod, gainEq: gain,
+      detail: `${steps ? astroText + ' + ' : ''}nave colonizzatrice + miniere ${target.metal_mine}/${target.crystal_mine}/${target.deut_synth}${fix ? ' + ' + fixText(fix) : ''} (pianeta medio in posizione 8)${preSteps.length ? `; prima servono ${prereqText(preSteps)}${prePlanet && planets.length > 1 ? ` (su ${prePlanet.name})` : ''}, già compresi nel costo` : ''}`,
+      pre: preSteps, prePlanet: prePlanet && prePlanet.id, cost, astroCost, costEq: eq, gainPerHour: prod, gainEq: gain,
       payback: gain > 0 ? eq / gain : Infinity, nextLevel: astro + steps, colony,
     };
   }
@@ -735,7 +829,8 @@ const Engine = (() => {
     const nextPlasma = (profile.plasma_tech || 0) + 1;
     const plasmaAllowed = !overCap(profile.cap_plasma, nextPlasma);
     const plasmaDisc = profile._lf ? Math.max(-0.99, profile._lf.tech.plasma_tech_cost) : 0; // es. Concentratore astrale Rock'tal
-    const plasmaCost = levelCost('plasma', nextPlasma).map(x => Math.round(x * (1 + plasmaDisc)));
+    const plasmaPre = prereq(profile, planets[0] || {}, planets, 'r122');
+    const plasmaCost = levelCost('plasma', nextPlasma).map((x, i) => Math.round(x * (1 + plasmaDisc)) + plasmaPre.cost[i]);
     const plasmaGain = [0, 0, 0];
     planets.forEach(planet => {
       const s = profile.economy_speed;
@@ -747,8 +842,8 @@ const Engine = (() => {
     const pEq = toMetalEq(plasmaCost, profile), pGain = gainEq(plasmaGain);
     if (plasmaAllowed) out.push({
       type: 'plasma', planet: 'Tutti i pianeti', title: `Tecnologia Plasma ${nextPlasma - 1} → ${nextPlasma}`,
-      detail: 'ricerca: aumenta la produzione di tutte le miniere',
-      cost: plasmaCost, costEq: pEq, gainPerHour: plasmaGain, gainEq: pGain,
+      detail: 'ricerca: aumenta la produzione di tutte le miniere' + (plasmaPre.steps.length ? `; prima servono ${prereqText(plasmaPre.steps)}, già compresi nel costo` : ''),
+      pre: plasmaPre.steps, prePlanet: (planets[0] || {}).id, cost: plasmaCost, costEq: pEq, gainPerHour: plasmaGain, gainEq: pGain,
       payback: pGain > 0 ? pEq / pGain : Infinity, nextLevel: nextPlasma,
     });
 
@@ -762,13 +857,22 @@ const Engine = (() => {
   // Modifiche da salvare dopo che il giocatore completa un consiglio.
   // Restituisce { planet: {...modifiche}, profile: {...modifiche} }
   function applyRecommendation(profile, planet, rec) {
-    if (rec.type === 'plasma') return { profile: { plasma_tech: rec.nextLevel } };
+    if (rec.type === 'plasma' || rec.type === 'colony') {
+      const prof = rec.type === 'plasma' ? { plasma_tech: rec.nextLevel } : { astro_tech: rec.nextLevel };
+      const pp = {};
+      prereqPatch(profile, planet || {}, rec.pre, pp, prof);
+      if (rec.type === 'plasma' && profile.research) prof.research = { ...(prof.research || profile.research), 122: rec.nextLevel };
+      if (rec.type === 'colony' && profile.research) prof.research = { ...(prof.research || profile.research), 124: rec.nextLevel };
+      const out = { profile: prof };
+      if (Object.keys(pp).length) out.planet = pp;
+      if (rec.type === 'colony') out.newPlanet = rec.colony;
+      return out;
+    }
     if (rec.type === 'lftech') {
       const techs = JSON.parse(JSON.stringify(planet.lf_techs || {}));
       techs[rec.slot] = { ...(techs[rec.slot] || { race: rec.race }), level: rec.nextLevel };
       return { planet: { lf_techs: techs } };
     }
-    if (rec.type === 'colony') return { profile: { astro_tech: rec.nextLevel }, newPlanet: rec.colony };
     const st = planetState(profile, planet);
     const patch = {};
     let balance = st.balance, profPatch = null;
@@ -783,16 +887,15 @@ const Engine = (() => {
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
-      else if (rec.fix.kind === 'fusion') {
-        patch.fusion_reactor = rec.fix.to;
-        for (const x of rec.fix.pre || []) {
-          if (x.key === 'deut_synth') { patch.deut_synth = x.to; balance -= Math.round((consumption.deut_synth(x.to) - consumption.deut_synth(planet.deut_synth || 0)) * consFactor(profile, planet)); }
-          if (x.key === 'research_lab') patch.buildings = { ...(planet.buildings || {}), 31: 1 };
-        }
-        profPatch = (rec.fix.pre || []).some(x => x.key === 'energy_tech')
-          ? { energy_tech: 3, ...(profile.research ? { research: { ...profile.research, 113: Math.max(3, +profile.research[113] || 0) } } : {}) } : null;
-      }
+      else if (rec.fix.kind === 'fusion') patch.fusion_reactor = rec.fix.to;
       else patch.solar_plant = rec.fix.to;
+      if (rec.fix.pre && rec.fix.pre.length) {
+        const prof = {};
+        prereqPatch(profile, planet, rec.fix.pre, patch, prof);
+        const s3 = rec.fix.pre.find(x => x.key === 'b3');
+        if (s3) balance -= Math.round((consumption.deut_synth(s3.to) - consumption.deut_synth(planet.deut_synth || 0)) * consFactor(profile, planet));
+        if (Object.keys(prof).length) profPatch = prof;
+      }
       balance += rec.fix.added;
     }
     patch.energy_balance = Math.round(balance);
@@ -815,7 +918,7 @@ const Engine = (() => {
       const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
       if (!r) break;
       out.push({ ...r, group: recKey(r), step: i });
-      const planet = pls.find(p => p.id === r.planetId);
+      const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
       const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
       if (patch.profile) prof = { ...prof, ...patch.profile };
       if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
@@ -836,14 +939,13 @@ const Engine = (() => {
     }));
   }
 
-  const PRE_NAMES = { deut_synth: 'Sintetizzatore di deuterio', research_lab: 'Laboratorio di ricerca', energy_tech: 'Tecnologia energetica' };
   function fixText(fix) {
     if (!fix) return '';
     const one = f => f.kind === 'satellites'
-      ? `${fmt(f.count)} satelliti solari`
+      ? `${fmt(f.count)} satelliti solari` + (f.pre && f.pre.length ? ` (prima servono ${prereqText(f.pre)}, già compresi nel costo)` : '')
       : f.kind === 'fusion'
         ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)` + (f.pre && f.pre.length
-          ? `; prima servono ${f.pre.map(x => `${PRE_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo` : '')
+          ? `; prima servono ${prereqText(f.pre)}, già compresi nel costo` : '')
         : `Centrale solare ${f.from} → ${f.to}`;
     return one(fix);
   }
@@ -860,7 +962,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, fusionPrereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, fusionPrereq, prereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();

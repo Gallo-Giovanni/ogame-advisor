@@ -123,7 +123,7 @@ assert.ok(Math.abs(E.techEffect(profile, kae, 2, kae.lf_techs[2]).deut - 0.0008 
 assert.ok(Math.abs(E.techEffect(profile, kae, 8, kae.lf_techs[8]).metal - 0.0006 * 10) < 1e-12);
 // Il Concentratore astrale Rock'tal riduce il costo del Plasma
 const stel = { ...planets[0], id: 's', lf_race: null, lf_techs: { 9: { race: 'rocktal', level: 10 } } };
-const plasmaRec = E.recommendations(profile, [stel]).find(r => r.type === 'plasma');
+const plasmaRec = E.recommendations({ ...profile, energy_tech: 12 }, [stel]).find(r => r.type === 'plasma'); // requisiti del Plasma già fatti
 assert.deepStrictEqual(plasmaRec.cost, E.levelCost('plasma', 1).map(x => Math.round(x * (1 - 0.015))));
 
 // Il bonus dei crawler si ferma a +50% (guida ufficiale)
@@ -150,10 +150,30 @@ console.log('Tutti i test superati');
   const pl = { id: 'n', deut_synth: 2, fusion_reactor: 0, buildings: { 1: 5, 2: 3, 3: 2 } };
   const pre = E.fusionPrereq({ energy_tech: 0 }, pl, [pl]);
   assert.deepStrictEqual(pre.cost, [2404 + 200, 800 + 400 + 5600, 200 + 2800]);
-  assert.deepStrictEqual(pre.steps.map(x => x.key), ['deut_synth', 'research_lab', 'energy_tech']);
+  assert.deepStrictEqual(pre.steps.map(x => x.key), ['b3', 'b31', 'r113']);
   // con un laboratorio su un altro pianeta il laboratorio non si conta; con Tecnologia energetica 3 restano solo i livelli mancanti del sintetizzatore
   const other = { id: 'o', buildings: { 31: 1 } };
-  assert.deepStrictEqual(E.fusionPrereq({ energy_tech: 0 }, pl, [pl, other]).steps.map(x => x.key), ['deut_synth', 'energy_tech']);
+  assert.deepStrictEqual(E.fusionPrereq({ energy_tech: 0 }, pl, [pl, other]).steps.map(x => x.key), ['b3', 'r113']);
   assert.deepStrictEqual(E.fusionPrereq({ energy_tech: 3 }, { ...pl, deut_synth: 5 }, [pl]).steps, []);
   console.log('ok requisiti centrale a fusione');
+}
+
+// Requisiti a catena: prima colonia su un server nuovo (Astrofisica 0, niente laboratorio né cantiere)
+{
+  const pl = { id: 'a', name: 'Home', metal_mine: 10, crystal_mine: 8, deut_synth: 5, solar_plant: 10, fusion_reactor: 0, robotics_factory: 0,
+    buildings: { 1: 10, 2: 8, 3: 5, 4: 10, 14: 0, 21: 0, 31: 0 } };
+  const prof = { energy_tech: 0, research: { 113: 0, 106: 0, 117: 0, 124: 0 } };
+  const pre = E.prereq(prof, pl, [pl], ['s208', ['r124', 1]]);
+  const keys = Object.fromEntries(pre.steps.map(x => [x.key, x.to]));
+  assert.deepStrictEqual(keys, { b14: 2, b21: 4, b31: 3, r113: 1, r117: 3, r106: 4, r124: 1 });
+  // costo dei requisiti senza l'Astrofisica: 25.600 / 49.960 / 11.100
+  const only = E.prereq(prof, pl, [pl], ['s208', ['r106', 4]]);
+  assert.deepStrictEqual(only.cost, [25600, 49960, 11100]);
+  // la colonia li conta e li elenca
+  const col = E.recommendations({ ...prof, economy_speed: 1, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 3 }, [pl]).find(r => r.type === 'colony');
+  assert.ok(col.pre.some(x => x.key === 'r117') && /Propulsore a impulso 0 → 3/.test(col.detail));
+  // satelliti senza cantiere: il cantiere (e la Fabbrica di robot 2) entrano nel costo
+  const sat = E.prereq(prof, pl, [pl], 's212');
+  assert.deepStrictEqual(sat.steps.map(x => x.key), ['b14', 'b21']);
+  console.log('ok requisiti a catena');
 }

@@ -1204,7 +1204,8 @@ $('#filter-type').addEventListener('click', e => {
 
 async function completeRec(rec, btn) {
   const profile = numericProfile(state.profile);
-  const planet = state.planets.find(p => p.id === rec.planetId);
+  // colonia e Plasma: i requisiti (edifici) si fanno sul pianeta indicato dal consiglio
+  const planet = state.planets.find(p => p.id === (rec.planetId || rec.prePlanet));
   const patch = Engine.applyRecommendation(profile, planet, rec);
   btn.disabled = true;
   let r;
