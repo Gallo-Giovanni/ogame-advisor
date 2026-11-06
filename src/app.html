@@ -335,13 +335,12 @@
           </ol>
           <p class="muted small" style="margin:0">Il pulsante legge la pagina che hai aperto e il file pubblico con i dati del server: non compie azioni nel gioco e non legge la sessione.</p>
           </div>
-          <p class="muted small" style="margin:0" id="wiz-mobile-note">Serve un PC: dal telefono non si riesce a salvare la pagina del gioco.</p>
           <div class="imp-file stack">
             <b class="small">Salva la pagina (Ctrl+S)</b>
             <ol class="small" style="margin:0;padding-left:20px">
               <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
-              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
-              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
+              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina. Da telefono Android, con Chrome: menu <b>⋮</b> → icona <b>Scarica</b> (↓); con Samsung Internet: menu → <b>Salva pagina</b>. Il file finisce nei Download.</li>
+              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,.mhtml,.mht,text/html,multipart/related,message/rfc822" data-imp-file><span>Scegli il file…</span></label></li>
             </ol>
             <p class="muted small" style="margin:0" data-imp-msg></p>
             <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica, velocità delle ricerche e tasso di scambio non sono nella pagina: l'app li legge dai dati pubblici del server di OGame.</p>
@@ -646,7 +645,7 @@
     <section data-panel="settings" class="stack hidden">
       <div class="card stack" id="import-card">
         <h2>Importa dal gioco</h2>
-        <p class="small" style="margin:0">Salva la <b>Vista impero</b> di OGame (da PC) e caricala qui sotto: l'app ne legge i numeri, cioè miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche e velocità del server. Prima di salvare ti mostra cosa cambia. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
+        <p class="small" style="margin:0">Salva la <b>Vista impero</b> di OGame (da PC o da telefono Android) e caricala qui sotto: l'app ne legge i numeri, cioè miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche e velocità del server. Prima di salvare ti mostra cosa cambia. Percentuale dei crawler, ufficiali e livelli delle razze non sono nella Vista impero: restano quelli che hai inserito.</p>
         <div class="bm-only stack">
         <p class="small" style="margin:0">Un pulsante da mettere nei preferiti del browser (da PC). Quando lo premi sulla <b>Vista impero</b> di OGame, legge i numeri della pagina e li porta qui: miniere, centrali, satelliti, crawler, energia, temperatura, item attivi, razza, edifici e ricerche forme di vita di tutti i pianeti, più classe, ricerche, velocità del server e punti del primo in classifica. Prima di salvare ti mostra cosa cambia.</p>
         <ol class="small" style="margin:0;padding-left:20px">
@@ -660,8 +659,8 @@
             <b class="small">Salva la pagina (Ctrl+S)</b>
             <ol class="small" style="margin:0;padding-left:20px">
               <li>Nel gioco apri la <b>Vista impero</b>, scheda Pianeti.</li>
-              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina.</li>
-              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,text/html" data-imp-file><span>Scegli il file…</span></label></li>
+              <li>Premi <b>Ctrl+S</b> (su Mac <b>Cmd+S</b>) e salva la pagina. Da telefono Android, con Chrome: menu <b>⋮</b> → icona <b>Scarica</b> (↓); con Samsung Internet: menu → <b>Salva pagina</b>. Il file finisce nei Download.</li>
+              <li>Carica qui il file salvato: <label class="imp-pick"><input type="file" accept=".html,.htm,.mhtml,.mht,text/html,multipart/related,message/rfc822" data-imp-file><span>Scegli il file…</span></label></li>
             </ol>
             <p class="muted small" style="margin:0" data-imp-msg></p>
             <p class="muted small" style="margin:0">Il file viene letto solo qui nel browser: l'app tiene i numeri che servono e scarta il resto della pagina, compresa la sessione. Dopo l'importazione puoi cancellare il file. Punti del primo in classifica, velocità delle ricerche e tasso di scambio non sono nella pagina: l'app li legge dai dati pubblici del server di OGame.</p>
@@ -1978,6 +1977,36 @@ $('#import-ok').addEventListener('click', async () => {
   await loadUserData();
   message($('#planets-msg'), `Importati ${m.planets.length} pianeti dalla Vista impero.`, 'ok');
 });
+// Pagina salvata dal telefono: Chrome e Samsung Internet per Android salvano un file .mhtml (formato MIME), con
+// l'HTML codificato (quoted-printable o base64). Qui si estrae la parte text/html; un file .html normale passa così com'è.
+function mhtmlToHtml(text) {
+  const head = text.slice(0, 4000);
+  const b = head.match(/boundary="?([^";\r\n]+)"?/i);
+  if (!/multipart\/related/i.test(head) || !b) return text;
+  const utf8 = bytes => new TextDecoder('utf-8').decode(bytes);
+  for (const part of text.split('--' + b[1])) {
+    const sep = part.search(/\r?\n\r?\n/);
+    if (sep < 0) continue;
+    const hdr = part.slice(0, sep), body = part.slice(sep).replace(/^\r?\n\r?\n/, '');
+    if (!/content-type:\s*text\/html/i.test(hdr)) continue;
+    const enc = (hdr.match(/content-transfer-encoding:\s*([\w-]+)/i) || [])[1] || '';
+    if (/quoted-printable/i.test(enc)) {
+      const raw = body.replace(/=\r?\n/g, '');
+      const bytes = [];
+      for (let i = 0; i < raw.length; i++) {
+        if (raw[i] === '=' && /^[0-9A-F]{2}$/i.test(raw.substr(i + 1, 2))) { bytes.push(parseInt(raw.substr(i + 1, 2), 16)); i += 2; }
+        else { const c = raw.charCodeAt(i); if (c < 128) bytes.push(c); else bytes.push(...new TextEncoder().encode(raw[i])); }
+      }
+      return utf8(new Uint8Array(bytes));
+    }
+    if (/base64/i.test(enc)) {
+      const bin = atob(body.replace(/\s+/g, ''));
+      return utf8(Uint8Array.from(bin, c => c.charCodeAt(0)));
+    }
+    return body;
+  }
+  return text;
+}
 // Importazione da una Vista impero salvata con Ctrl+S: stessi dati del pulsante, letti dal file nel browser.
 // I meta "ogame-..." della pagina danno server, giocatore e classe; l'ora del salvataggio serve per scadenze e lavori in corso.
 function importFromHtml(html) {
@@ -2025,7 +2054,7 @@ document.addEventListener('change', e => {
   const msg = input.closest('.imp-file').querySelector('[data-imp-msg]');
   const f = input.files[0]; input.value = '';
   msg.textContent = 'Lettura del file…'; msg.classList.remove('neg');
-  f.text().then(html => Promise.resolve(importFromHtml(html))).then(err => { msg.textContent = err; msg.classList.toggle('neg', !!err); })
+  f.text().then(text => Promise.resolve(importFromHtml(mhtmlToHtml(text)))).then(err => { msg.textContent = err; msg.classList.toggle('neg', !!err); })
     .catch(() => { msg.textContent = 'Non riesco a leggere il file.'; msg.classList.add('neg'); });
 });
 function setBookmarkletLinks() {
@@ -2038,7 +2067,6 @@ function setBookmarkletLinks() {
 }
 setBookmarkletLinks();
 // telefoni e tablet: il bookmarklet non si può usare, lo diciamo
-$('#wiz-mobile-note').classList.toggle('hidden', !matchMedia('(pointer: coarse)').matches);
 $('#wiz4-finish').addEventListener('click', async () => {
   const patch = {};
   $$('[data-q]').forEach(el => { patch[el.dataset.q] = el.type === 'checkbox' ? el.checked : el.value.trim() === '' && el.dataset.q === 'top1_points' ? null : Math.max(0, Number(el.value) || 0); });

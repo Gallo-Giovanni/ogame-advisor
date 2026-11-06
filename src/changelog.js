@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 73, date: '2026-11-06', title: 'Importa anche dal telefono',
+    text: 'Ora puoi importare anche da un telefono Android. Apri la Vista impero nel browser e salva la pagina: con Chrome dal menu ⋮ e l\'icona Scarica (↓), con Samsung Internet dal menu e Salva pagina. Poi carica il file dai Download in Impostazioni, nella sezione "Importa dal gioco".',
+  },
+  {
     id: 72, date: '2026-11-05', title: 'Pulsante nei preferiti sospeso',
     text: 'Per le regole di OGame, uno script che legge i dati dalla pagina del gioco deve essere prima approvato dal team del gioco. Finché non lo è, il pulsante "OGame Advisor" nei preferiti è sospeso: puoi eliminarlo dalla barra dei preferiti. Per importare salva la Vista impero con Ctrl+S (su Mac Cmd+S) e carica il file in Impostazioni, nella sezione "Importa dal gioco": arrivano gli stessi dati: punti del primo in classifica, velocità delle ricerche e tasso di scambio l\'app li legge dai dati pubblici del server di OGame.',
   },
