@@ -315,7 +315,8 @@ const Engine = (() => {
   // Chiavi: b<id> edificio del pianeta, r<id> ricerca dell'account, s<id> nave. Quando qualcosa è a 0 e serve per un
   // consiglio, si controllano i requisiti (anche quelli dei requisiti) e quello che manca si aggiunge al costo.
   // Il Laboratorio di ricerca conta come il più alto dell'account; se manca, va costruito sul pianeta del consiglio.
-  // Un livello che non si conosce (pianeta inserito a mano senza quel campo, ricerca mai importata) conta come già fatto.
+  // Un livello non inserito conta come 0: i campi si chiedono a mano (account e scheda del pianeta) o arrivano
+  // con l'importazione dalla Vista impero.
   const REQ = {
     b12: [['b3', 5], ['r113', 3]],             // Centrale a fusione
     b15: [['b14', 10], ['r108', 10]],          // Fabbrica di naniti
@@ -363,15 +364,12 @@ const Engine = (() => {
     const col = B_COL[id];
     if (col && planet[col] != null && planet[col] !== '') return +planet[col] || 0;
     const b = planet.buildings || {};
-    if (b[id] != null) return +b[id] || 0;
-    return b[1] != null ? 0 : Infinity; // edifici importati (c'è la miniera di metallo): quello che manca è a 0
+    return +b[id] || 0;
   }
   function researchLevel(profile, id) {
-    const r = profile.research || {};
-    if (r[id] != null) return +r[id] || 0;
     const col = R_COL[id];
-    if (col && profile[col] != null && profile[col] !== '') return +profile[col] || 0;
-    return Object.keys(r).length ? 0 : Infinity;
+    if (col && profile[col] != null && profile[col] !== '') return +profile[col] || 0; // campo proprio, si modifica a mano
+    return +((profile.research || {})[id]) || 0;
   }
   // Requisiti mancanti di `key` (anche a catena): { cost, steps: [{ key, from, to }], levels: { key: livello dopo } }
   function prereq(profile, planet, planets, key) {
@@ -380,7 +378,7 @@ const Engine = (() => {
     const cur = k => {
       if (k in lv) return lv[k];
       const id = +k.slice(1);
-      if (k === 'b31') { const v = all.map(p => buildingLevel(p, 31)).filter(x => x !== Infinity); return v.length ? Math.max(...v) : Infinity; }
+      if (k === 'b31') return Math.max(0, ...all.map(p => buildingLevel(p, 31)));
       return k[0] === 'b' ? buildingLevel(planet, id) : researchLevel(profile, id);
     };
     let cost = [0, 0, 0];

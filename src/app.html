@@ -185,6 +185,7 @@
   .emp-ic { width: 26px; height: 26px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
   .emp-ic svg { width: 20px; height: 20px; }
   .slot-lock { flex-basis: 100%; color: var(--warn); }
+  .note { border: 1px solid var(--warn); border-radius: 8px; padding: 8px 10px; background: rgba(255,181,71,.07); }
   .slot-open { flex-basis: 100%; }
   .trow.locked .slot { color: var(--warn); }
   .ul-combo { text-align: left; white-space: normal; }
@@ -390,6 +391,15 @@
         <div><label>Tecnologia Energetica</label><input data-p="energy_tech" type="number" min="0" value="0"></div>
         <div><label>Astrofisica</label><input data-p="astro_tech" type="number" min="0" value="0"></div>
         <div><label>Tecnologia iperspaziale</label><input data-p="hyperspace_tech" type="number" min="0" value="0"></div>
+        <p class="muted small" style="grid-column:1/-1;margin:0">Queste ricerche servono come requisiti (colonie, satelliti, Plasma, Centrale a fusione): con l'importazione dalla Vista impero arrivano da sole.</p>
+        <div><label>Propulsore a combustione</label><input placeholder="da inserire" data-r="115" type="number" min="0"></div>
+        <div><label>Propulsore a impulso</label><input placeholder="da inserire" data-r="117" type="number" min="0"></div>
+        <div><label>Tecnologia laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
+        <div><label>Tecnologia ionica</label><input placeholder="da inserire" data-r="121" type="number" min="0"></div>
+        <div><label>Tecnologia spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
+        <div><label>Tecnologia computer</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
+        <div><label>Tecnologia scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
+        <div><label>Tecnologia corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
         <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-p="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
       </div>
       <div class="row">
@@ -472,6 +482,7 @@
           <summary style="cursor:pointer">Come leggere la classifica</summary>
           <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci mette la produzione in più a ripagare la spesa. Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
         </details>
+        <div id="req-note" class="note small hidden" style="margin-top:6px"></div>
         <div id="recs" style="margin-top:6px"></div>
       </div>
     </section>
@@ -544,9 +555,10 @@
             <div class="grid">
               <div><label>Fabbrica di robot</label><input data-f="robotics_factory" type="number" min="0"></div>
               <div><label>Fabbrica di naniti</label><input data-f="nanite_factory" type="number" min="0"></div>
-              <div><label>Laboratorio di ricerca</label><input data-b="31" type="number" min="0"></div>
+              <div><label>Laboratorio di ricerca</label><input data-b="31" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Cantiere spaziale</label><input data-b="21" type="number" min="0" placeholder="da inserire"></div>
             </div>
-            <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e per i requisiti della Centrale a fusione (Tecnologia energetica richiede un laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
+            <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e come requisiti (satelliti e colonizzatrice richiedono il cantiere, le ricerche il laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
           </div>
           <div class="card stack pe-wide" data-pecard="res">
             <h3>Booster attivi</h3>
@@ -686,6 +698,14 @@
           <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
           <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
+          <div><label>Propulsore a combustione</label><input placeholder="da inserire" data-r="115" type="number" min="0"></div>
+          <div><label>Propulsore a impulso</label><input placeholder="da inserire" data-r="117" type="number" min="0"></div>
+          <div><label>Tecnologia laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
+          <div><label>Tecnologia ionica</label><input placeholder="da inserire" data-r="121" type="number" min="0"></div>
+          <div><label>Tecnologia spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
+          <div><label>Tecnologia computer</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
+          <div><label>Tecnologia scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
+          <div><label>Tecnologia corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
           <div><label>Velocità di ricerca (arriva con l'importazione)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
@@ -984,12 +1004,21 @@ function validatePlanet(p) {
   return null;
 }
 
+// Livelli delle ricerche per id del gioco (servono come requisiti): campi data-r, più le quattro ricerche con un campo
+// proprio, tenute allineate. Le altre ricerche importate restano come sono.
+function researchFromInputs(inputs, prof) {
+  const r = { ...((state.profile && state.profile.research) || {}) };
+  inputs.forEach(el => { const v = el.value.trim(); if (v === '') delete r[el.dataset.r]; else r[el.dataset.r] = Math.max(0, parseInt(v, 10) || 0); });
+  for (const [id, k] of [[113, 'energy_tech'], [122, 'plasma_tech'], [124, 'astro_tech'], [114, 'hyperspace_tech']]) if (prof[k] !== '' && prof[k] != null) r[id] = +prof[k] || 0;
+  return r;
+}
 /* ---------------- PRIMO ACCESSO ---------------- */
 function startOnboarding() {
   const p = { ...PROFILE_DEFAULTS, ...(state.profile || {}) };
   $$('[data-p]').forEach(el => {
     if (el.type === 'checkbox') el.checked = !!p[el.dataset.p]; else el.value = p[el.dataset.p] ?? '';
   });
+  $$('[data-r]').forEach(el => { el.value = (p.research || {})[el.dataset.r] ?? ''; });
   goStep(0);
   paintTop1();
   $('#onb-back').classList.toggle('hidden', !(state.newAccount && state.accounts.length));
@@ -1011,6 +1040,8 @@ $('#wiz-finish').addEventListener('click', async () => {
   $$('[data-p]').forEach(el => { profile[el.dataset.p] = el.type === 'checkbox' ? el.checked : el.value.trim(); });
   NUM_FIELDS.forEach(k => { if (k in profile) profile[k] = Number(profile[k]) || PROFILE_DEFAULTS[k]; });
   profile.top1_points = profile.top1_points === '' ? null : Math.max(0, Math.round(Number(profile.top1_points) || 0));
+  // livelli delle ricerche per id del gioco (requisiti); le quattro con un campo proprio restano allineate
+  profile.research = researchFromInputs($$('#view-onboarding [data-r]'), profile);
   const btn = $('#wiz-finish'); btn.disabled = true; message(msgEl, 'Salvataggio…', 'ok');
   const r = await sb.from('profiles').upsert(profile).select().single();
   btn.disabled = false;
@@ -1066,8 +1097,22 @@ function paybackText(h) {
   return (h / 24).toFixed(1).replace('.', ',') + ' giorni';
 }
 
+// Livelli che servono per i requisiti (cantiere, laboratorio, ricerche): se non sono mai stati inseriti o importati
+// contano come 0, quindi lo si dice e si spiega dove inserirli.
+function renderReqNote() {
+  const p = state.profile || {}, r = p.research || {};
+  const missR = ['115', '117', '120', '121', '106', '108', '110', '111'].filter(id => r[id] == null);
+  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null; });
+  const el = $('#req-note');
+  if (!missR.length && !missP.length) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma e fusione possono costare più del vero:
+    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale e Laboratorio di ricerca di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
+    Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
+}
 function renderAdvice() {
   paintTypeChips();
+  renderReqNote();
   const profile = numericProfile(state.profile);
   const planets = state.planets;
   // i pianeti spuntati nella riga sotto i filtri: un pianeta = i suoi numeri, più pianeti = i loro totali
@@ -1561,7 +1606,7 @@ function editorPlanet() {
   // edifici classici senza colonna propria (laboratorio): vanno in buildings, insieme a quelli importati
   const orig = (state.editing?.id && state.planets.find(x => x.id === state.editing.id)) || {};
   p.buildings = { ...(orig.buildings || {}) };
-  $$('#pe-form [data-b]').forEach(el => { const v = el.value.trim(); p.buildings[el.dataset.b] = v === '' ? 0 : Math.max(0, parseInt(v, 10) || 0); });
+  $$('#pe-form [data-b]').forEach(el => { const v = el.value.trim(); if (v === '') delete p.buildings[el.dataset.b]; else p.buildings[el.dataset.b] = Math.max(0, parseInt(v, 10) || 0); });
   if (p.robotics_factory != null) p.buildings[14] = p.robotics_factory;
   if (p.nanite_factory != null) p.buildings[15] = p.nanite_factory;
   if (p.lf_race !== 'rocktal') p.mrc_level = null; // il Centro di Mineralogia è un edificio Rock'tal
@@ -2811,6 +2856,7 @@ $('#cc-have-all').addEventListener('click', () => {
 function renderSettings() {
   const p = state.profile;
   $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
+  $$('[data-panel="settings"] [data-r]').forEach(el => { el.value = (p.research || {})[el.dataset.r] ?? ''; });
   paintTop1(); syncRatioInputs();
 }
 // Valore delle risorse: valori del server, massimi del mercante (3 : 2 : 1) o personalizzato (nessuna spunta)
@@ -2837,6 +2883,7 @@ $('#save-settings').addEventListener('click', async () => {
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
   patch.ratio_mode = ['server', 'merchant', 'custom'].includes(patch.ratio_mode) ? patch.ratio_mode : 'server';
   patch.research_speed = patch.research_speed === '' ? null : Math.max(0.1, Number(patch.research_speed) || 0) || null;
+  patch.research = researchFromInputs($$('[data-panel="settings"] [data-r]'), patch);
   const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
   state.profile = r.data;

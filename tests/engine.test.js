@@ -123,7 +123,7 @@ assert.ok(Math.abs(E.techEffect(profile, kae, 2, kae.lf_techs[2]).deut - 0.0008 
 assert.ok(Math.abs(E.techEffect(profile, kae, 8, kae.lf_techs[8]).metal - 0.0006 * 10) < 1e-12);
 // Il Concentratore astrale Rock'tal riduce il costo del Plasma
 const stel = { ...planets[0], id: 's', lf_race: null, lf_techs: { 9: { race: 'rocktal', level: 10 } } };
-const plasmaRec = E.recommendations({ ...profile, energy_tech: 12 }, [stel]).find(r => r.type === 'plasma'); // requisiti del Plasma già fatti
+const plasmaRec = E.recommendations({ ...profile, energy_tech: 12, research: { 120: 12, 121: 5 } }, [{ ...stel, buildings: { 31: 10 } }]).find(r => r.type === 'plasma'); // requisiti del Plasma già fatti
 assert.deepStrictEqual(plasmaRec.cost, E.levelCost('plasma', 1).map(x => Math.round(x * (1 - 0.015))));
 
 // Il bonus dei crawler si ferma a +50% (guida ufficiale)
