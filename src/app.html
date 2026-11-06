@@ -1130,8 +1130,10 @@ function renderAdvice() {
     : ftype === 'lfb' ? 'Nessun edificio da suggerire: scegli la razza e inserisci i livelli degli edifici nella scheda dei pianeti (per ora solo Rock\'tal).'
     : !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id)) ? 'Scegli uno o più pianeti qui sopra.'
     : types.size ? 'Nessun consiglio per i tipi scelti.' : 'Nessun consiglio: aggiungi almeno un pianeta.';
+  // il primo consiglio (e il primo numerato, dopo le righe urgenti) si apre da solo se richiede anche energia
+  const firstNum = (rows.find(x => !x.r.urgent) || {}).r;
   $('#recs').innerHTML = rows.length ? rows.map(({ r, prev }, i) => `
-    <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}">
+    <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}"${r.fix && (i === 0 || r === firstNum) ? ' open' : ''}>
       <summary>
         <span class="rank">${r.urgent ? '!' : ++n}</span>
         ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
