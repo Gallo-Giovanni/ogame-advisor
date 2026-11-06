@@ -539,6 +539,15 @@
             </div>
             <p class="muted small" style="margin:0">L'energia in gioco è il numero mostrato sotto il pianeta nella Vista impero, anche negativo, e arriva con l'importazione. È il valore più preciso, perché comprende anche l'energia usata dagli edifici delle forme di vita. Se cambi satelliti, centrali, miniere o crawler, l'app la aggiorna da sola.</p>
           </div>
+          <div class="card stack" data-pecard="res">
+            <h3>Strutture</h3>
+            <div class="grid">
+              <div><label>Fabbrica di robot</label><input data-f="robotics_factory" type="number" min="0"></div>
+              <div><label>Fabbrica di naniti</label><input data-f="nanite_factory" type="number" min="0"></div>
+              <div><label>Laboratorio di ricerca</label><input data-b="31" type="number" min="0"></div>
+            </div>
+            <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e per i requisiti della Centrale a fusione (Tecnologia energetica richiede un laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
+          </div>
           <div class="card stack pe-wide" data-pecard="res">
             <h3>Booster attivi</h3>
             <p class="muted small" style="margin:0">Spunta i booster attivi su questo pianeta. Se ne spunti un altro nella stessa riga, sostituisce il precedente; tocca di nuovo per toglierlo.</p>
@@ -2200,7 +2209,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 74, date: '2026-11-06', title: 'Centrale a fusione: contati anche i requisiti',
-    text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti.',
+    text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti. Nella scheda del pianeta, in Risorse e strutture, ci sono ora anche Fabbrica di robot, Fabbrica di naniti e Laboratorio di ricerca, da inserire a mano se non importi dalla Vista impero.',
   },
   {
     id: 73, date: '2026-11-06', title: 'Importa anche dal telefono',
@@ -2537,7 +2546,7 @@ const PROFILE_DEFAULTS = {
 };
 const CAP_FIELDS = ['cap_metal', 'cap_crystal', 'cap_deut', 'cap_plasma', 'cap_astro']; // vuoto = nessun limite
 const NUM_FIELDS = ['economy_speed', 'plasma_tech', 'energy_tech', 'astro_tech', 'hyperspace_tech', 'energy_consumption_reduction', 'lf_level_humans', 'lf_level_rocktal', 'lf_level_mechas', 'lf_level_kaelesh', 'ratio_metal', 'ratio_crystal', 'ratio_deut'];
-const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'lf_race', 'energy_balance', 'included'];
+const PLANET_FIELDS = ['name', 'galaxy', 'system', 'position', 'temp_max', 'metal_mine', 'crystal_mine', 'deut_synth', 'solar_plant', 'fusion_reactor', 'solar_satellites', 'item_metal', 'item_crystal', 'item_deut', 'item_all', 'item_energy', 'lf_metal', 'lf_crystal', 'lf_deut', 'lf_energy', 'crawlers', 'crawler_pct', 'mrc_level', 'lf_race', 'energy_balance', 'included', 'robotics_factory', 'nanite_factory'];
 
 // Valori consentiti per ogni campo del pianeta. In OGame temperatura ed energia possono essere negative.
 const FIELD_LIMITS = {
@@ -3025,7 +3034,7 @@ const NEW_PLANET = {
   name: '', galaxy: null, system: null, position: 8, temp_max: 40, metal_mine: 0, crystal_mine: 0, deut_synth: 0,
   solar_plant: 0, fusion_reactor: 0, solar_satellites: 0, energy_balance: null,
   item_metal: 0, item_crystal: 0, item_deut: 0, item_all: 0, item_energy: 0, lf_metal: 0, lf_crystal: 0, lf_deut: 0, lf_energy: 0,
-  crawlers: 0, crawler_pct: 100, mrc_level: null, lf_race: null, lf_buildings: {}, lf_techs: {}, buildings: {}, included: true,
+  crawlers: 0, crawler_pct: 100, robotics_factory: 0, nanite_factory: 0, mrc_level: null, lf_race: null, lf_buildings: {}, lf_techs: {}, buildings: {}, included: true,
 };
 const coordsText = p => (p.galaxy || p.system ? `[${p.galaxy ?? '?'}:${p.system ?? '?'}:${p.position}]` : `posizione ${p.position}`);
 
@@ -3082,6 +3091,7 @@ function fillPlanetForm(p) {
       el.insertAdjacentHTML('beforeend', `<option value="${+v}">+${+v}%</option>`); // valore insolito mantenuto
     el.value = v ?? (el.tagName === 'SELECT' || el.type === 'hidden' ? '0' : '');
   });
+  $$('#pe-form [data-b]').forEach(el => { const v = (p.buildings || {})[el.dataset.b]; el.value = v == null ? '' : v; });
   $('#pe-form [data-f="lf_race"]').value = p.lf_race || '';
   $$('#lf-calc input').forEach(el => (el.value = ''));
   if (state.editing) state.editing.lf = { buildings: { ...(p.lf_buildings || {}) }, techs: JSON.parse(JSON.stringify(p.lf_techs || {})) };
@@ -3279,6 +3289,12 @@ function editorPlanet() {
   const lf = state.editing?.lf || { buildings: {}, techs: {} };
   p.lf_buildings = { ...lf.buildings };
   p.lf_techs = JSON.parse(JSON.stringify(lf.techs));
+  // edifici classici senza colonna propria (laboratorio): vanno in buildings, insieme a quelli importati
+  const orig = (state.editing?.id && state.planets.find(x => x.id === state.editing.id)) || {};
+  p.buildings = { ...(orig.buildings || {}) };
+  $$('#pe-form [data-b]').forEach(el => { const v = el.value.trim(); p.buildings[el.dataset.b] = v === '' ? 0 : Math.max(0, parseInt(v, 10) || 0); });
+  if (p.robotics_factory != null) p.buildings[14] = p.robotics_factory;
+  if (p.nanite_factory != null) p.buildings[15] = p.nanite_factory;
   if (p.lf_race !== 'rocktal') p.mrc_level = null; // il Centro di Mineralogia è un edificio Rock'tal
   return p;
 }

@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 74, date: '2026-11-06', title: 'Centrale a fusione: contati anche i requisiti',
-    text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti.',
+    text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti. Nella scheda del pianeta, in Risorse e strutture, ci sono ora anche Fabbrica di robot, Fabbrica di naniti e Laboratorio di ricerca, da inserire a mano se non importi dalla Vista impero.',
   },
   {
     id: 73, date: '2026-11-06', title: 'Importa anche dal telefono',
