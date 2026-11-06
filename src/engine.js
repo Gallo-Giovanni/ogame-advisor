@@ -311,6 +311,31 @@ const Engine = (() => {
   // l'ammortamento più breve, (costo + energia) / (guadagno - deuterio bruciato); altrimenti il deuterio conta per FUEL_HOURS ore.
   // profile.energy_satellites_only: il giocatore vuole solo satelliti.
   const FUEL_HOURS = 24 * 90;
+  // Requisiti della Centrale a fusione (gioco): Sintetizzatore di deuterio 5 sul pianeta e Tecnologia energetica 3,
+  // che a sua volta richiede un Laboratorio di ricerca 1 (su un pianeta qualsiasi dell'account). Quello che manca si
+  // aggiunge al costo della prima centrale. Il laboratorio si conta solo se si conoscono gli edifici dei pianeti
+  // (importazione dalla Vista impero) e nessuno ha un laboratorio; se manca, va costruito su questo pianeta.
+  const ENERGY_TECH = { base: [0, 800, 400], factor: 2 }, LAB_L1 = [200, 400, 200];
+  function fusionPrereq(profile, planet, planets) {
+    const steps = [];
+    let cost = [0, 0, 0];
+    const add = c => { cost = cost.map((x, i) => x + c[i]); };
+    const synth = +planet.deut_synth || 0;
+    if (synth < 5) {
+      for (let L = synth + 1; L <= 5; L++) add(levelCost('deut_synth', L));
+      steps.push({ key: 'deut_synth', from: synth, to: 5 });
+    }
+    const et = +profile.energy_tech || 0;
+    if (et < 3) {
+      const all = (planets && planets.length ? planets : [planet]);
+      const known = all.some(p => p.buildings);
+      const hasLab = !known || all.some(p => (+((p.buildings || {})[31]) || 0) >= 1);
+      if (!hasLab) { add(LAB_L1); steps.push({ key: 'research_lab', from: 0, to: 1 }); }
+      for (let L = et + 1; L <= 3; L++) add(ENERGY_TECH.base.map(x => Math.floor(x * Math.pow(ENERGY_TECH.factor, L - 1))));
+      steps.push({ key: 'energy_tech', from: et, to: 3 });
+    }
+    return { cost, steps, energyTech: et < 3 ? 3 : et };
+  }
   function energyFix(profile, planet, energy, ctx) {
     if (energy <= 0) return null;
     const mult = multipliers(profile, planet, profile.items_in_ranking === true);
@@ -332,8 +357,10 @@ const Engine = (() => {
     if (profile.energy_satellites_only) return satOpt;
     if (ctx && ctx.noFusion) return solarOpt && solarOpt.eq < satOpt.eq ? solarOpt : satOpt;
 
-    const f0 = +planet.fusion_reactor || 0, et = +profile.energy_tech || 0;
-    let fl = f0, fAdded = 0, fCost = [0, 0, 0];
+    const f0 = +planet.fusion_reactor || 0;
+    const pre = fusionPrereq(profile, planet, ctx && ctx.planets);
+    const et = Math.max(+profile.energy_tech || 0, pre.energyTech);
+    let fl = f0, fAdded = 0, fCost = pre.cost.slice();
     while (fAdded < energy && fl < f0 + 30) {
       fl++;
       fCost = fCost.map((x, i) => x + levelCost('fusion_reactor', fl)[i]);
@@ -342,7 +369,7 @@ const Engine = (() => {
     let fusionOpt = null;
     if (fAdded >= energy) {
       const fuel = (fusionDeut(fl) - fusionDeut(f0)) * profile.economy_speed;
-      fusionOpt = { kind: 'fusion', from: f0, to: fl, added: fAdded, cost: fCost, eq: toMetalEq(fCost, profile), fuel, fuelEq: toMetalEq([0, 0, fuel], profile) };
+      fusionOpt = { kind: 'fusion', from: f0, to: fl, added: fAdded, cost: fCost, eq: toMetalEq(fCost, profile), fuel, fuelEq: toMetalEq([0, 0, fuel], profile), pre: pre.steps };
     }
     const opts = [satOpt, solarOpt, fusionOpt].filter(Boolean);
     const score = o => ctx && ctx.gainEq > 0
@@ -581,7 +608,7 @@ const Engine = (() => {
       // 1) Deficit di energia adesso: si sta perdendo produzione
       if (st.balance < 0) {
         const lost = st.full.map(x => x * (1 - st.factor));
-        const fix = energyFix(profile, planet, -st.balance, { costEq: 0, gainEq: gainEq(lost) });
+        const fix = energyFix(profile, planet, -st.balance, { costEq: 0, gainEq: gainEq(lost), planets: allPlanets });
         if (fix.fuel) lost[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(lost);
         out.push({
@@ -607,7 +634,7 @@ const Engine = (() => {
           ? Math.max(0, baseProd.deut_synth(next, planet.temp_max)) - Math.max(0, baseProd.deut_synth(L, planet.temp_max))
           : baseProd[m.key](next) - baseProd[m.key](L);
         prodDelta[m.res] = base * mult * profile.economy_speed;
-        const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta) }) : null;
+        const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
         const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
         if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(prodDelta);
@@ -656,7 +683,7 @@ const Engine = (() => {
             Math.max(0, baseProd.deut_synth(planet.deut_synth, planet.temp_max)) * s,
           ];
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
-          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta) }) : null;
+          const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
           const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
           if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
@@ -744,7 +771,7 @@ const Engine = (() => {
     if (rec.type === 'colony') return { profile: { astro_tech: rec.nextLevel }, newPlanet: rec.colony };
     const st = planetState(profile, planet);
     const patch = {};
-    let balance = st.balance;
+    let balance = st.balance, profPatch = null;
     if (rec.type === 'lfbuilding') {
       patch.lf_buildings = { ...(planet.lf_buildings || {}), [rec.key]: rec.nextLevel };
       balance -= rec.extraNeed;
@@ -756,12 +783,20 @@ const Engine = (() => {
     }
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
-      else if (rec.fix.kind === 'fusion') patch.fusion_reactor = rec.fix.to;
+      else if (rec.fix.kind === 'fusion') {
+        patch.fusion_reactor = rec.fix.to;
+        for (const x of rec.fix.pre || []) {
+          if (x.key === 'deut_synth') { patch.deut_synth = x.to; balance -= Math.round((consumption.deut_synth(x.to) - consumption.deut_synth(planet.deut_synth || 0)) * consFactor(profile, planet)); }
+          if (x.key === 'research_lab') patch.buildings = { ...(planet.buildings || {}), 31: 1 };
+        }
+        profPatch = (rec.fix.pre || []).some(x => x.key === 'energy_tech')
+          ? { energy_tech: 3, ...(profile.research ? { research: { ...profile.research, 113: Math.max(3, +profile.research[113] || 0) } } : {}) } : null;
+      }
       else patch.solar_plant = rec.fix.to;
       balance += rec.fix.added;
     }
     patch.energy_balance = Math.round(balance);
-    return { planet: patch };
+    return profPatch ? { planet: patch, profile: profPatch } : { planet: patch };
   }
 
   // Piano dei prossimi upgrade: prende il consiglio migliore, lo applica, ricalcola la classifica, e così via.
@@ -801,12 +836,14 @@ const Engine = (() => {
     }));
   }
 
+  const PRE_NAMES = { deut_synth: 'Sintetizzatore di deuterio', research_lab: 'Laboratorio di ricerca', energy_tech: 'Tecnologia energetica' };
   function fixText(fix) {
     if (!fix) return '';
     const one = f => f.kind === 'satellites'
       ? `${fmt(f.count)} satelliti solari`
       : f.kind === 'fusion'
-        ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)`
+        ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)` + (f.pre && f.pre.length
+          ? `; prima servono ${f.pre.map(x => `${PRE_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo` : '')
         : `Centrale solare ${f.from} → ${f.to}`;
     return one(fix);
   }
@@ -823,7 +860,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, fusionPrereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
   };
 })();

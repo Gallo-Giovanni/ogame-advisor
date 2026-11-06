@@ -1200,7 +1200,8 @@ async function completeRec(rec, btn) {
   if (patch.profile) {
     r = await sb.from('profiles').update(patch.profile).eq('id', state.profile.id).select().single();
     if (!r.error) state.profile = r.data;
-  } else {
+  }
+  if (patch.planet && !(r && r.error)) {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
     if (!r.error) {
       Object.assign(planet, r.data);

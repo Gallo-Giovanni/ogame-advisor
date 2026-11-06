@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 74, date: '2026-11-06', title: 'Centrale a fusione: contati anche i requisiti',
+    text: 'Per costruire la prima Centrale a fusione servono il Sintetizzatore di deuterio al livello 5 e la Tecnologia energetica al livello 3, che a sua volta richiede un Laboratorio di ricerca. Se mancano, ora il loro costo è compreso in quello della centrale, il consiglio li elenca e, quando segni il consiglio come fatto, vengono aggiornati anche loro. Su un server nuovo spesso conviene restare su centrale solare o satelliti.',
+  },
+  {
     id: 73, date: '2026-11-06', title: 'Importa anche dal telefono',
     text: 'Ora puoi importare anche da un telefono Android. Apri la Vista impero nel browser e salva la pagina: con Chrome dal menu ⋮ e l\'icona Scarica (↓), con Samsung Internet dal menu e Salva pagina. Poi carica il file dai Download in Impostazioni, nella sezione "Importa dal gioco".',
   },

@@ -143,3 +143,17 @@ assert.ok(groups.some(g => g.count > 1), 'qualche voce resta la scelta migliore 
 assert.ok(groups.every(g => g.steps.every((x, i) => i === 0 || x.nextLevel === g.steps[i - 1].nextLevel + 1 || x.type === 'energy')));
 
 console.log('Tutti i test superati');
+
+// Centrale a fusione su un server nuovo: i requisiti mancanti (Sintetizzatore 5, Laboratorio 1, Tecnologia energetica 3)
+// entrano nel costo della prima centrale
+{
+  const pl = { id: 'n', deut_synth: 2, fusion_reactor: 0, buildings: { 1: 5, 2: 3, 3: 2 } };
+  const pre = E.fusionPrereq({ energy_tech: 0 }, pl, [pl]);
+  assert.deepStrictEqual(pre.cost, [2404 + 200, 800 + 400 + 5600, 200 + 2800]);
+  assert.deepStrictEqual(pre.steps.map(x => x.key), ['deut_synth', 'research_lab', 'energy_tech']);
+  // con un laboratorio su un altro pianeta il laboratorio non si conta; con Tecnologia energetica 3 restano solo i livelli mancanti del sintetizzatore
+  const other = { id: 'o', buildings: { 31: 1 } };
+  assert.deepStrictEqual(E.fusionPrereq({ energy_tech: 0 }, pl, [pl, other]).steps.map(x => x.key), ['deut_synth', 'energy_tech']);
+  assert.deepStrictEqual(E.fusionPrereq({ energy_tech: 3 }, { ...pl, deut_synth: 5 }, [pl]).steps, []);
+  console.log('ok requisiti centrale a fusione');
+}
