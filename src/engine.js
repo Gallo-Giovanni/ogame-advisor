@@ -704,7 +704,9 @@ const Engine = (() => {
       return v.length % 2 ? v[m] : Math.floor((v[m - 1] + v[m]) / 2);
     };
     const cap = (k, v) => (overCap(profile[k], v) ? +profile[k] : v);
-    const target = {
+    // nel piano la colonia resta quella di partenza (profile._colonyFix): non cresce mentre il piano alza le altre miniere
+    const fixed = profile._colonyFix || null;
+    const target = fixed ? { metal_mine: fixed.metal_mine, crystal_mine: fixed.crystal_mine, deut_synth: fixed.deut_synth } : {
       metal_mine: cap('cap_metal', avg('metal_mine')),
       crystal_mine: cap('cap_crystal', avg('crystal_mine')),
       deut_synth: cap('cap_deut', avg('deut_synth')),
@@ -740,7 +742,9 @@ const Engine = (() => {
     const shipyard = Math.max(buildingLevel(shipPlanet, 21), ...preB.filter(x => x.key === 'b21').map(x => x.to));
     // sulla colonia si costruiscono prima Fabbrica di robot e Fabbrica di naniti ai livelli mediani dell'impero (come le
     // miniere: una colonia media), con il loro costo; poi miniere ed energia con quei livelli
-    const robT = Math.max(Math.min(10, avg('robotics_factory')), avg('nanite_factory') > 0 ? 10 : 0), naniT = avg('nanite_factory');
+    const robT = fixed ? fixed.robotics_factory : Math.max(Math.min(10, avg('robotics_factory')), avg('nanite_factory') > 0 ? 10 : 0);
+    const naniT = fixed ? fixed.nanite_factory : avg('nanite_factory');
+    if (fixed) colony.temp_max = fixed.temp_max;
     let robotH = 0;
     for (let L = 1; L <= robT; L++) { add(reqCost('b14', L)); robotH += T.build({ ...colony, robotics_factory: L - 1 }, reqCost('b14', L), L); }
     for (let L = 1; L <= naniT; L++) { add(reqCost('b15', L)); robotH += T.build({ ...colony, robotics_factory: robT, nanite_factory: L - 1 }, reqCost('b15', L), L, true); }
@@ -765,7 +769,10 @@ const Engine = (() => {
       type: 'colony', planet: 'Nuovo pianeta', title: steps ? `Nuova colonia (${astroText})` : 'Colonizza lo slot libero',
       detail: `${steps ? astroText + ' + ' : ''}nave colonizzatrice + miniere ${target.metal_mine}/${target.crystal_mine}/${target.deut_synth}${fix ? ' + ' + fixText(fix) : ''} (pianeta medio in posizione 8)${preSteps.length ? `; prima servono ${prereqText(preSteps)}${prePlanet && planets.length > 1 ? ` (su ${prePlanet.name})` : ''}, già compresi nel costo` : ''}`,
       pre: preSteps, prePlanet: prePlanet && prePlanet.id, cost, astroCost, costEq: eq, gainPerHour: prod, gainEq: gain,
-      wait, payback: gain > 0 ? eq / gain + wait : Infinity, nextLevel: astro + steps, colony,
+      wait, payback: gain > 0 ? eq / gain + wait : Infinity, nextLevel: astro + steps,
+      // il pianeta come sarà dopo la colonia (miniere, robot, naniti, energia): nel piano entra tra i pianeti
+      colony: { ...built, solar_plant: fix && fix.kind === 'solar' ? fix.to : 0, solar_satellites: fix && fix.kind === 'satellites' ? fix.count : 0,
+        buildings: { ...colony.buildings, 4: fix && fix.kind === 'solar' ? fix.to : 0, 14: robT, 15: naniT } },
     };
   }
 
@@ -1007,10 +1014,12 @@ const Engine = (() => {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
     let colonyDone = false; // una nuova colonia si pianifica una volta sola: i suoi dati li inserisce il giocatore dopo la colonizzazione
+    let colonyFix = null;   // la colonia del primo passo: nel piano resta quella
     let i = 0;
     return {
       next() {
-        const recs = recommendations(withLifeforms(prof, pls), pls);
+        const recs = recommendations({ ...withLifeforms(prof, pls), _colonyFix: colonyFix }, pls);
+        if (!colonyFix) { const c = recs.find(x => x.type === 'colony'); if (c) colonyFix = c.colony; }
         const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
         if (!r) return null;
         const step = { ...r, group: recKey(r), step: i++ };
@@ -1018,7 +1027,11 @@ const Engine = (() => {
         const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
         if (patch.profile) prof = { ...prof, ...patch.profile };
         if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
-        if (r.type === 'colony') colonyDone = true;
+        if (r.type === 'colony') {
+          colonyDone = true;
+          // da qui le miniere della nuova colonia sono consigli come gli altri (si faranno dopo averla colonizzata)
+          if (patch.newPlanet) pls = pls.concat({ ...patch.newPlanet, id: 'nuova-colonia', name: 'Nuova colonia', included: true, lf_buildings: {}, lf_techs: {} });
+        }
         return step;
       },
     };
