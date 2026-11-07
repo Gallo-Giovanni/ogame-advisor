@@ -177,3 +177,18 @@ console.log('Tutti i test superati');
   assert.deepStrictEqual(sat.steps.map(x => x.key), ['b14', 'b21']);
   console.log('ok requisiti a catena');
 }
+
+// Ammortamento con i tempi: la miniera somma il suo tempo di costruzione, la colonia anche colonizzatrice, volo e miniere
+{
+  const pl = { id: 'h', name: 'Home', position: 8, temp_max: 40, metal_mine: 13, crystal_mine: 10, deut_synth: 6, solar_plant: 30,
+    robotics_factory: 2, nanite_factory: 0, buildings: { 1: 13, 2: 10, 3: 6, 4: 30, 14: 2, 21: 4, 31: 3 }, lf_buildings: {}, lf_techs: {} };
+  const prof = { economy_speed: 8, research_speed: 8, player_class: 'explorer', energy_tech: 2, astro_tech: 1,
+    research: { 106: 4, 117: 3, 124: 1 }, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const recs = E.recommendations(prof, [pl]);
+  const m = recs.find(r => r.title === 'Miniera di metallo 13 → 14');
+  const t = E.buildTime(E.levelCost('metal_mine', 14), 14, 2, 0, 8) / 3600;
+  assert.ok(Math.abs(m.wait - t) < 1e-9 && Math.abs(m.payback - (m.costEq / m.gainEq + t)) < 1e-9);
+  const c = recs.find(r => r.type === 'colony');
+  assert.ok(c.wait > 0.75 && Math.abs(c.payback - (c.costEq / c.gainEq + c.wait)) < 1e-9);
+  console.log('ok tempi nell\'ammortamento');
+}

@@ -480,7 +480,7 @@
         <div class="chips" id="filter-planets" role="group" aria-label="Pianeti nei consigli" style="margin-top:6px"></div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
-          <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci mette la produzione in più a ripagare la spesa. Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
+          <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci vuole, da adesso, perché la produzione in più ripaghi la spesa, compreso il tempo per costruirlo o ricercarlo (e per i requisiti e l'energia che servono). Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
         </details>
         <div id="req-note" class="note small hidden" style="margin-top:6px"></div>
         <div id="recs" style="margin-top:6px"></div>
@@ -1091,6 +1091,11 @@ function shortTitle(r) {
   if (r.type === 'colony') return r.astroCost.some(x => x > 0) ? `Nuova colonia (Astrofisica ${r.nextLevel})` : 'Colonizza lo slot libero';
   return r.title;
 }
+// tempo di costruzione o ricerca in giorni, ore e minuti
+function waitText(h) {
+  const m = Math.max(1, Math.round(h * 60)), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60;
+  return [d ? d + 'g' : '', hh ? hh + 'o' : '', !d && mm ? mm + 'm' : ''].filter(Boolean).join(' ') || '1m';
+}
 function paybackText(h) {
   if (!isFinite(h)) return 'mai';
   if (h < 48) return h.toFixed(1).replace('.', ',') + ' ore';
@@ -1189,6 +1194,7 @@ function renderAdvice() {
         <div>${esc(r.title)}: ${esc(r.detail)}</div>
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
+        ${r.wait ? `<div class="muted">Tempo prima che produca: ${waitText(r.wait)}${r.type === 'colony' ? ' (requisiti e Astrofisica, colonizzatrice, volo di circa 45 minuti, miniere ed energia sul pianeta nuovo)' : ''}, già compreso nell'ammortamento.</div>` : ''}
         ${prev ? '<div class="muted">Calcolato come se avessi già fatto i consigli che vengono prima in lista.</div>' : ''}
         ${(() => { const nx = nextOf(r); return r.type === 'energy' ? '' : nx
           ? `<div class="muted">Livello successivo (${nx.nextLevel}): <b>n° ${posOf.get(nx)}</b> della lista, ${paybackText(nx.payback)}.</div>`

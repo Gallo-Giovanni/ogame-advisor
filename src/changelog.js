@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 76, date: '2026-11-07', title: 'Ammortamento con i tempi di costruzione',
+    text: 'Il tempo di ammortamento ora parte da adesso: oltre a quanto ci mette la produzione in più a ripagare la spesa, comprende il tempo per costruire o ricercare l\'upgrade, l\'energia che gli serve e i requisiti mancanti. Per una nuova colonia conta Astrofisica e requisiti, la colonizzatrice, il volo (circa 45 minuti) e la costruzione di miniere ed energia sul pianeta nuovo. Aprendo un consiglio vedi il "Tempo prima che produca".',
+  },
+  {
     id: 75, date: '2026-11-06', title: 'Requisiti contati per tutto',
     text: 'Quando un consiglio ha bisogno di qualcosa che non hai ancora sbloccato, l\'app controlla i requisiti del gioco (anche a catena) e ne aggiunge il costo. Esempi: per la prima colonia Laboratorio di ricerca, Tecnologia energetica, Propulsore a impulso, Tecnologia spionaggio, Fabbrica di robot e Cantiere spaziale; per i satelliti solari il Cantiere spaziale; per la Tecnologia plasma laser, ionica, energetica e laboratorio; per la Centrale a fusione Sintetizzatore 5 e Tecnologia energetica 3. Il consiglio elenca cosa serve e, quando lo segni come fatto, aggiorna anche quei livelli. I livelli che servono arrivano con l\'importazione dalla Vista impero, oppure si inseriscono a mano: le ricerche in Impostazioni → Account (Propulsore a combustione e a impulso, laser, ionica, spionaggio, computer, scudi, corazze), il Cantiere spaziale nella scheda del pianeta → Strutture. Finché mancano contano come 0, e nei Consigli un avviso dice quali sono.',
   },
