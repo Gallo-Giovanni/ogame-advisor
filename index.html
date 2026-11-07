@@ -485,6 +485,7 @@
         </details>
         <div id="req-note" class="note small hidden" style="margin-top:6px"></div>
         <div id="recs" style="margin-top:6px"></div>
+        <div id="colony-next" class="muted small hidden" style="margin-top:8px"></div>
       </div>
     </section>
 
@@ -1867,9 +1868,17 @@ const Engine = (() => {
     for (let n = astro + 1; n <= astro + steps; n++) astroH += T.research(levelCost('astro', n));
     const preB = preSteps.filter(x => x.key[0] === 'b'), preR = preSteps.filter(x => x.key[0] === 'r');
     const shipyard = Math.max(buildingLevel(shipPlanet, 21), ...preB.filter(x => x.key === 'b21').map(x => x.to));
-    const colonyH = MINES.reduce((h, m) => h + T.levels(colony, m.key, 0, target[m.key]), 0) + T.fix(colony, fix);
+    // sulla colonia si costruiscono prima Fabbrica di robot e Fabbrica di naniti ai livelli mediani dell'impero (come le
+    // miniere: una colonia media), con il loro costo; poi miniere ed energia con quei livelli
+    const robT = Math.max(Math.min(10, avg('robotics_factory')), avg('nanite_factory') > 0 ? 10 : 0), naniT = avg('nanite_factory');
+    let robotH = 0;
+    for (let L = 1; L <= robT; L++) { add(reqCost('b14', L)); robotH += T.build({ ...colony, robotics_factory: L - 1 }, reqCost('b14', L), L); }
+    for (let L = 1; L <= naniT; L++) { add(reqCost('b15', L)); robotH += T.build({ ...colony, robotics_factory: robT, nanite_factory: L - 1 }, reqCost('b15', L), L, true); }
+    const built = { ...colony, robotics_factory: robT, nanite_factory: naniT };
+    const colonyH = robotH + MINES.reduce((h, m) => h + T.levels(built, m.key, 0, target[m.key]), 0) + T.fix(built, fix);
+    // le miniere della colonia producono già mentre si costruiscono le successive: della loro costruzione conta la metà
     const wait = Math.max(T.pre(shipPlanet, preB), T.pre(shipPlanet, preR) + astroH)
-      + T.ships(shipPlanet, 's208', 1, shipyard) + COLONY_FLIGHT_H + colonyH;
+      + T.ships(shipPlanet, 's208', 1, shipyard) + COLONY_FLIGHT_H + colonyH / 2;
 
     // Produzione del nuovo pianeta al 100% (senza item: un pianeta nuovo non ne ha attivi)
     const mult = multipliers(profile, colony, false);
@@ -2122,22 +2131,32 @@ const Engine = (() => {
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
   // skip: id dei pianeti per cui il giocatore non vuole consigli (già in costruzione); contano comunque per i guadagni di tutto l'account
   // allow: controllo facoltativo su un consiglio (il filtro per tipo): il piano prende solo gli upgrade che accetta
-  function plan(profile, planets, steps = 100, skip = [], allow = null) {
+  // Piano passo per passo: ogni next() fa il consiglio migliore e restituisce il passo (null quando non c'è altro).
+  // Serve anche per continuare il piano oltre quelli mostrati senza rifarlo da capo (es. per trovare la prossima colonia).
+  function planIter(profile, planets, skip = [], allow = null) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
-    const out = [];
     let colonyDone = false; // una nuova colonia si pianifica una volta sola: i suoi dati li inserisce il giocatore dopo la colonizzazione
-    for (let i = 0; i < steps; i++) {
-      const recs = recommendations(withLifeforms(prof, pls), pls);
-      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
-      if (!r) break;
-      out.push({ ...r, group: recKey(r), step: i });
-      const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
-      const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
-      if (patch.profile) prof = { ...prof, ...patch.profile };
-      if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
-      if (r.type === 'colony') colonyDone = true;
-    }
+    let i = 0;
+    return {
+      next() {
+        const recs = recommendations(withLifeforms(prof, pls), pls);
+        const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
+        if (!r) return null;
+        const step = { ...r, group: recKey(r), step: i++ };
+        const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
+        const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
+        if (patch.profile) prof = { ...prof, ...patch.profile };
+        if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
+        if (r.type === 'colony') colonyDone = true;
+        return step;
+      },
+    };
+  }
+  function plan(profile, planets, steps = 100, skip = [], allow = null, iter = null) {
+    const it = iter || planIter(profile, planets, skip, allow);
+    const out = [];
+    for (let i = 0; i < steps; i++) { const st = it.next(); if (!st) break; out.push(st); }
     return out;
   }
   // Raggruppa il piano: una riga per edificio o ricerca, con tutti i livelli che il piano fa
@@ -2177,7 +2196,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, fusionPrereq, prereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
 
@@ -2430,6 +2449,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 78, date: '2026-11-07', title: 'Prossima colonia',
+    text: 'Sotto i consigli c\'è ora la riga "Prossima colonia": dice in che posizione della lista arriva la nuova colonia, anche quando è oltre i consigli mostrati (es. n° 163), con il suo ammortamento e quanto costano gli upgrade che vengono prima. Il calcolo continua il piano in sottofondo senza mostrare quei passi. Anche il calcolo della colonia è più realistico: sulla colonia si costruiscono Fabbrica di robot e di naniti ai livelli medi dell\'impero (con il loro costo), e del tempo per costruire le miniere conta la metà, perché i primi livelli producono già mentre si fanno i successivi.',
+  },
   {
     id: 77, date: '2026-11-07', title: 'Requisiti degli edifici forme di vita (Umani)',
     text: 'Gli edifici forme di vita Umani ora contano anche gli edifici da sbloccare prima, secondo l\'Albero tecnologico del gioco: per esempio Fusione ad alta energia richiede il Centro di Ricerca 5, che richiede Zona residenziale 21 e Fattoria della Biosfera 22. Costo, tempo di costruzione ed energia di quei livelli entrano nel consiglio, che li elenca; quando lo segni come fatto, si aggiornano anche loro. Le altre razze arriveranno appena avremo i loro requisiti. Nei Consigli, in alto, c\'è ora anche il pulsante "Importa Vista impero" per caricare subito la pagina salvata.',
@@ -3064,6 +3087,43 @@ function renderReqNote() {
     ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale e Laboratorio di ricerca di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
     Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
 }
+// Prossima colonia: se non è tra i consigli calcolati, il piano continua in sottofondo (a blocchi, senza bloccare la
+// pagina e senza mostrare quei passi) finché non la trova, fino a COLONY_MAX passi.
+const COLONY_MAX = 3000;
+function findNextColony(key, types) {
+  const el = $('#colony-next');
+  if (types.size && !types.has('other')) { state.colonyNext = null; el.classList.add('hidden'); return; }
+  const pos = st => st.filter(x => !x.urgent).length;
+  const steps = state.planSteps;
+  const i = steps.findIndex(x => x.type === 'colony');
+  const show = info => {
+    if (state.planKey !== key) return;
+    state.colonyNext = info;
+    el.classList.remove('hidden');
+    el.innerHTML = info.searching ? `Prossima colonia: calcolo in corso… (${fmt(info.count)} consigli finora)`
+      : info.none ? `Prossima colonia: non entra nei primi ${fmt(COLONY_MAX)} consigli${info.end ? ' (non ci sono altri consigli)' : ''}.`
+      : `Prossima colonia: <b>n° ${fmt(info.pos)}</b> della lista · ${esc(info.title)} · ammortamento ${paybackText(info.payback)}${info.costBefore ? ` · prima ci sono ${fmt(info.pos - 1)} upgrade per circa ${fmt(info.costBefore)} eq. metallo` : ''}.`;
+  };
+  const eqOf = st => st.reduce((t, x) => t + (x.costEq || 0), 0);
+  if (i >= 0) { const before = steps.slice(0, i); return show({ pos: pos(before) + 1, title: steps[i].title, payback: steps[i].payback, costBefore: eqOf(before) }); }
+  const it = state.planIt, extra = [];
+  let count = steps.length;
+  show({ searching: true, count });
+  const chunk = () => {
+    if (state.planKey !== key) return; // dati o filtri cambiati: ricomincia il nuovo piano
+    for (let n = 0; n < 15; n++) {
+      const st = it.next();
+      if (!st) return show({ none: true, end: true });
+      count++;
+      if (st.type === 'colony') { const before = steps.concat(extra); return show({ pos: pos(before) + 1, title: st.title, payback: st.payback, costBefore: eqOf(before) }); }
+      extra.push(st);
+      if (count >= COLONY_MAX) return show({ none: true });
+    }
+    show({ searching: true, count });
+    setTimeout(chunk, 0);
+  };
+  setTimeout(chunk, 0);
+}
 function renderAdvice() {
   paintTypeChips();
   renderReqNote();
@@ -3109,7 +3169,9 @@ function renderAdvice() {
   const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow); // sempre 100: il livello successivo si cerca lì
+    state.planIt = Engine.planIter(profile, planets, skip, allow);
+    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow, state.planIt); // sempre 100: il livello successivo si cerca lì
+    findNextColony(planKey, types);
   }
   const noneChosen = !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id));
   const steps = noneChosen ? [] : state.planSteps.slice(0, limit);

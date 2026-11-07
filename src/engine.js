@@ -738,9 +738,17 @@ const Engine = (() => {
     for (let n = astro + 1; n <= astro + steps; n++) astroH += T.research(levelCost('astro', n));
     const preB = preSteps.filter(x => x.key[0] === 'b'), preR = preSteps.filter(x => x.key[0] === 'r');
     const shipyard = Math.max(buildingLevel(shipPlanet, 21), ...preB.filter(x => x.key === 'b21').map(x => x.to));
-    const colonyH = MINES.reduce((h, m) => h + T.levels(colony, m.key, 0, target[m.key]), 0) + T.fix(colony, fix);
+    // sulla colonia si costruiscono prima Fabbrica di robot e Fabbrica di naniti ai livelli mediani dell'impero (come le
+    // miniere: una colonia media), con il loro costo; poi miniere ed energia con quei livelli
+    const robT = Math.max(Math.min(10, avg('robotics_factory')), avg('nanite_factory') > 0 ? 10 : 0), naniT = avg('nanite_factory');
+    let robotH = 0;
+    for (let L = 1; L <= robT; L++) { add(reqCost('b14', L)); robotH += T.build({ ...colony, robotics_factory: L - 1 }, reqCost('b14', L), L); }
+    for (let L = 1; L <= naniT; L++) { add(reqCost('b15', L)); robotH += T.build({ ...colony, robotics_factory: robT, nanite_factory: L - 1 }, reqCost('b15', L), L, true); }
+    const built = { ...colony, robotics_factory: robT, nanite_factory: naniT };
+    const colonyH = robotH + MINES.reduce((h, m) => h + T.levels(built, m.key, 0, target[m.key]), 0) + T.fix(built, fix);
+    // le miniere della colonia producono già mentre si costruiscono le successive: della loro costruzione conta la metà
     const wait = Math.max(T.pre(shipPlanet, preB), T.pre(shipPlanet, preR) + astroH)
-      + T.ships(shipPlanet, 's208', 1, shipyard) + COLONY_FLIGHT_H + colonyH;
+      + T.ships(shipPlanet, 's208', 1, shipyard) + COLONY_FLIGHT_H + colonyH / 2;
 
     // Produzione del nuovo pianeta al 100% (senza item: un pianeta nuovo non ne ha attivi)
     const mult = multipliers(profile, colony, false);
@@ -993,22 +1001,32 @@ const Engine = (() => {
     : r.type === 'plasma' || r.type === 'colony' ? r.type : `${r.type}:${r.planetId}:${r.key || ''}`;
   // skip: id dei pianeti per cui il giocatore non vuole consigli (già in costruzione); contano comunque per i guadagni di tutto l'account
   // allow: controllo facoltativo su un consiglio (il filtro per tipo): il piano prende solo gli upgrade che accetta
-  function plan(profile, planets, steps = 100, skip = [], allow = null) {
+  // Piano passo per passo: ogni next() fa il consiglio migliore e restituisce il passo (null quando non c'è altro).
+  // Serve anche per continuare il piano oltre quelli mostrati senza rifarlo da capo (es. per trovare la prossima colonia).
+  function planIter(profile, planets, skip = [], allow = null) {
     let prof = { ...profile }; delete prof._lf;
     let pls = planets.map(p => ({ ...p, lf_buildings: { ...(p.lf_buildings || {}) }, lf_techs: JSON.parse(JSON.stringify(p.lf_techs || {})) }));
-    const out = [];
     let colonyDone = false; // una nuova colonia si pianifica una volta sola: i suoi dati li inserisce il giocatore dopo la colonizzazione
-    for (let i = 0; i < steps; i++) {
-      const recs = recommendations(withLifeforms(prof, pls), pls);
-      const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
-      if (!r) break;
-      out.push({ ...r, group: recKey(r), step: i });
-      const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
-      const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
-      if (patch.profile) prof = { ...prof, ...patch.profile };
-      if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
-      if (r.type === 'colony') colonyDone = true;
-    }
+    let i = 0;
+    return {
+      next() {
+        const recs = recommendations(withLifeforms(prof, pls), pls);
+        const r = recs.find(x => x.payback < Infinity && !(x.type === 'colony' && colonyDone) && !(x.planetId && skip.includes(x.planetId)) && (!allow || allow(x)));
+        if (!r) return null;
+        const step = { ...r, group: recKey(r), step: i++ };
+        const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
+        const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
+        if (patch.profile) prof = { ...prof, ...patch.profile };
+        if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
+        if (r.type === 'colony') colonyDone = true;
+        return step;
+      },
+    };
+  }
+  function plan(profile, planets, steps = 100, skip = [], allow = null, iter = null) {
+    const it = iter || planIter(profile, planets, skip, allow);
+    const out = [];
+    for (let i = 0; i < steps; i++) { const st = it.next(); if (!st) break; out.push(st); }
     return out;
   }
   // Raggruppa il piano: una riga per edificio o ricerca, con tutti i livelli che il piano fa
@@ -1048,7 +1066,7 @@ const Engine = (() => {
 
   return {
     RES, levelCost, fusionPrereq, prereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
-    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planGroups, totals, toMetalEq, fmt,
+    positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
 

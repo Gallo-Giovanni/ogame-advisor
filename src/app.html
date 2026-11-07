@@ -485,6 +485,7 @@
         </details>
         <div id="req-note" class="note small hidden" style="margin-top:6px"></div>
         <div id="recs" style="margin-top:6px"></div>
+        <div id="colony-next" class="muted small hidden" style="margin-top:8px"></div>
       </div>
     </section>
 
@@ -1116,6 +1117,43 @@ function renderReqNote() {
     ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale e Laboratorio di ricerca di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
     Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
 }
+// Prossima colonia: se non è tra i consigli calcolati, il piano continua in sottofondo (a blocchi, senza bloccare la
+// pagina e senza mostrare quei passi) finché non la trova, fino a COLONY_MAX passi.
+const COLONY_MAX = 3000;
+function findNextColony(key, types) {
+  const el = $('#colony-next');
+  if (types.size && !types.has('other')) { state.colonyNext = null; el.classList.add('hidden'); return; }
+  const pos = st => st.filter(x => !x.urgent).length;
+  const steps = state.planSteps;
+  const i = steps.findIndex(x => x.type === 'colony');
+  const show = info => {
+    if (state.planKey !== key) return;
+    state.colonyNext = info;
+    el.classList.remove('hidden');
+    el.innerHTML = info.searching ? `Prossima colonia: calcolo in corso… (${fmt(info.count)} consigli finora)`
+      : info.none ? `Prossima colonia: non entra nei primi ${fmt(COLONY_MAX)} consigli${info.end ? ' (non ci sono altri consigli)' : ''}.`
+      : `Prossima colonia: <b>n° ${fmt(info.pos)}</b> della lista · ${esc(info.title)} · ammortamento ${paybackText(info.payback)}${info.costBefore ? ` · prima ci sono ${fmt(info.pos - 1)} upgrade per circa ${fmt(info.costBefore)} eq. metallo` : ''}.`;
+  };
+  const eqOf = st => st.reduce((t, x) => t + (x.costEq || 0), 0);
+  if (i >= 0) { const before = steps.slice(0, i); return show({ pos: pos(before) + 1, title: steps[i].title, payback: steps[i].payback, costBefore: eqOf(before) }); }
+  const it = state.planIt, extra = [];
+  let count = steps.length;
+  show({ searching: true, count });
+  const chunk = () => {
+    if (state.planKey !== key) return; // dati o filtri cambiati: ricomincia il nuovo piano
+    for (let n = 0; n < 15; n++) {
+      const st = it.next();
+      if (!st) return show({ none: true, end: true });
+      count++;
+      if (st.type === 'colony') { const before = steps.concat(extra); return show({ pos: pos(before) + 1, title: st.title, payback: st.payback, costBefore: eqOf(before) }); }
+      extra.push(st);
+      if (count >= COLONY_MAX) return show({ none: true });
+    }
+    show({ searching: true, count });
+    setTimeout(chunk, 0);
+  };
+  setTimeout(chunk, 0);
+}
 function renderAdvice() {
   paintTypeChips();
   renderReqNote();
@@ -1161,7 +1199,9 @@ function renderAdvice() {
   const planKey = JSON.stringify([state.profile, planets, limit, skip, [...types].sort()]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow); // sempre 100: il livello successivo si cerca lì
+    state.planIt = Engine.planIter(profile, planets, skip, allow);
+    state.planSteps = Engine.plan(profile, planets, Math.max(limit, 100) + 5, skip, allow, state.planIt); // sempre 100: il livello successivo si cerca lì
+    findNextColony(planKey, types);
   }
   const noneChosen = !filter && planets.length && planets.every(pl => state.hiddenPlanets.has(pl.id));
   const steps = noneChosen ? [] : state.planSteps.slice(0, limit);

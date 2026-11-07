@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 78, date: '2026-11-07', title: 'Prossima colonia',
+    text: 'Sotto i consigli c\'è ora la riga "Prossima colonia": dice in che posizione della lista arriva la nuova colonia, anche quando è oltre i consigli mostrati (es. n° 163), con il suo ammortamento e quanto costano gli upgrade che vengono prima. Il calcolo continua il piano in sottofondo senza mostrare quei passi. Anche il calcolo della colonia è più realistico: sulla colonia si costruiscono Fabbrica di robot e di naniti ai livelli medi dell\'impero (con il loro costo), e del tempo per costruire le miniere conta la metà, perché i primi livelli producono già mentre si fanno i successivi.',
+  },
+  {
     id: 77, date: '2026-11-07', title: 'Requisiti degli edifici forme di vita (Umani)',
     text: 'Gli edifici forme di vita Umani ora contano anche gli edifici da sbloccare prima, secondo l\'Albero tecnologico del gioco: per esempio Fusione ad alta energia richiede il Centro di Ricerca 5, che richiede Zona residenziale 21 e Fattoria della Biosfera 22. Costo, tempo di costruzione ed energia di quei livelli entrano nel consiglio, che li elenca; quando lo segni come fatto, si aggiornano anche loro. Le altre razze arriveranno appena avremo i loro requisiti. Nei Consigli, in alto, c\'è ora anche il pulsante "Importa Vista impero" per caricare subito la pagina salvata.',
   },
