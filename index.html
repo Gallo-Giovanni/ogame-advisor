@@ -473,7 +473,10 @@
           <h2 style="margin:0">Cosa fare adesso</h2>
           <div class="row" style="gap:8px">
             <span class="imp-file imp-quick" title="Carica la Vista impero salvata con Ctrl+S (da telefono: Scarica / Salva pagina)"><label class="imp-pick"><input type="file" accept=".html,.htm,.mhtml,.mht,text/html,multipart/related,message/rfc822" data-imp-file><span>⬆ Importa Vista impero</span></label><span class="small" data-imp-msg></span></span>
+<span class="stack" style="gap:4px;align-items:flex-end">
             <select id="filter-count" style="width:auto"><option value="25" selected>Primi 25</option><option value="50">Primi 50</option><option value="100">Primi 100</option></select>
+            <label class="check small muted" title="Spuntato: con le spunte dei tipi e dei pianeti la classifica viene rifatta solo con quelli scelti (numeri da 1). Senza spunta: la classifica resta quella di tutto l'impero e le spunte nascondono solo le righe."><input type="checkbox" id="replan"> Le spunte rifanno la classifica</label>
+            </span>
           </div>
         </div>
         <div class="chips" id="filter-type" role="group" aria-label="Tipo di consiglio" style="margin-top:10px">
@@ -2469,7 +2472,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 78, date: '2026-11-07', title: 'Prossima colonia',
-    text: 'Sotto i consigli c\'è ora la riga "Prossima colonia": dice in che posizione della lista arriva la nuova colonia, anche quando è oltre i consigli mostrati (es. n° 163), con il suo ammortamento e quanto costano gli upgrade che vengono prima. Il calcolo continua il piano in sottofondo senza mostrare quei passi. Anche il calcolo della colonia è più realistico: sulla colonia si costruiscono Fabbrica di robot e di naniti ai livelli medi dell\'impero (con il loro costo), e del tempo per costruire le miniere conta la metà, perché i primi livelli producono già mentre si fanno i successivi. Nel piano la colonia resta quella di partenza (non cresce mentre il piano alza le altre miniere) e, dopo averla consigliata, le miniere della nuova colonia compaiono come consigli normali ("dopo la colonia"). Le spunte dei tipi e dei pianeti non rifanno più la classifica: nascondono solo le righe, che tengono il loro numero della lista completa.',
+    text: 'Sotto i consigli c\'è ora la riga "Prossima colonia": dice in che posizione della lista arriva la nuova colonia, anche quando è oltre i consigli mostrati (es. n° 163), con il suo ammortamento e quanto costano gli upgrade che vengono prima. Il calcolo continua il piano in sottofondo senza mostrare quei passi. Anche il calcolo della colonia è più realistico: sulla colonia si costruiscono Fabbrica di robot e di naniti ai livelli medi dell\'impero (con il loro costo), e del tempo per costruire le miniere conta la metà, perché i primi livelli producono già mentre si fanno i successivi. Nel piano la colonia resta quella di partenza (non cresce mentre il piano alza le altre miniere) e, dopo averla consigliata, le miniere della nuova colonia compaiono come consigli normali ("dopo la colonia"). Le spunte dei tipi e dei pianeti non rifanno più la classifica: nascondono solo le righe, che tengono il loro numero della lista completa. Se preferisci il comportamento di prima, spunta "Le spunte rifanno la classifica" sotto "Primi 25": la classifica viene rifatta solo con i tipi e i pianeti scelti.',
   },
   {
     id: 77, date: '2026-11-07', title: 'Requisiti degli edifici forme di vita (Umani)',
@@ -3139,6 +3142,13 @@ function renderColonyNext(types) {
   const eq = before.reduce((t, x) => t + (x.costEq || 0), 0);
   el.innerHTML = `Prossima colonia: <b>n° ${fmt(before.filter(x => !x.urgent).length + 1)}</b> della lista · ${esc(c.title)} · ammortamento ${paybackText(c.payback)}${before.length ? ` · prima ci sono ${fmt(before.length)} upgrade per circa ${fmt(eq)} eq. metallo` : ''}.`;
 }
+state.replan = (() => { try { return localStorage.getItem('ogadv-replan') === '1'; } catch (e) { return false; } })();
+$('#replan').checked = state.replan;
+$('#replan').addEventListener('change', e => {
+  state.replan = e.target.checked;
+  try { localStorage.setItem('ogadv-replan', state.replan ? '1' : '0'); } catch (err) {}
+  renderAdvice();
+});
 function renderAdvice() {
   paintTypeChips();
   renderReqNote();
@@ -3177,10 +3187,14 @@ function renderAdvice() {
   const types = state.ftypes;
   const TYPE_OF = { mine: 'mines', energy: 'mines', lfbuilding: 'lfb', lftech: 'lft', plasma: 'other', colony: 'other' };
   const shown = r => (!types.size || types.has(TYPE_OF[r.type])) && !(r.planetId && state.hiddenPlanets.has(r.planetId));
-  const planKey = JSON.stringify([state.profile, planets]);
+  // con "Le spunte rifanno la classifica" il piano si fa solo con i tipi e i pianeti scelti (come prima)
+  const replan = !!state.replan;
+  const skip = replan ? planets.filter(pl => state.hiddenPlanets.has(pl.id)).map(pl => pl.id) : [];
+  const allow = replan && types.size ? r => types.has(TYPE_OF[r.type]) : null;
+  const planKey = JSON.stringify([state.profile, planets, replan ? [skip, [...types].sort()] : null]);
   if (state.planKey !== planKey) {
     state.planKey = planKey;
-    state.planIt = Engine.planIter(profile, planets);
+    state.planIt = Engine.planIter(profile, planets, skip, allow);
     state.planSteps = Engine.plan(profile, planets, 105, [], null, state.planIt);
     state.planEnd = state.planSteps.length < 105;
   }
