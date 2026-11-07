@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 77, date: '2026-11-07', title: 'Requisiti degli edifici forme di vita (Umani)',
-    text: 'Gli edifici forme di vita Umani ora contano anche gli edifici da sbloccare prima, secondo l\'Albero tecnologico del gioco: per esempio Fusione ad alta energia richiede il Centro di Ricerca 5, che richiede Zona residenziale 21 e Fattoria della Biosfera 22. Costo, tempo di costruzione ed energia di quei livelli entrano nel consiglio, che li elenca; quando lo segni come fatto, si aggiornano anche loro. Le altre razze arriveranno appena avremo i loro requisiti.',
+    text: 'Gli edifici forme di vita Umani ora contano anche gli edifici da sbloccare prima, secondo l\'Albero tecnologico del gioco: per esempio Fusione ad alta energia richiede il Centro di Ricerca 5, che richiede Zona residenziale 21 e Fattoria della Biosfera 22. Costo, tempo di costruzione ed energia di quei livelli entrano nel consiglio, che li elenca; quando lo segni come fatto, si aggiornano anche loro. Le altre razze arriveranno appena avremo i loro requisiti. Nei Consigli, in alto, c\'è ora anche il pulsante "Importa Vista impero" per caricare subito la pagina salvata.',
   },
   {
     id: 76, date: '2026-11-07', title: 'Ammortamento con i tempi di costruzione',
