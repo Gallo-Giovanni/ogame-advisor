@@ -223,6 +223,11 @@
   .btable.cc input { width: 70px; padding: 3px 6px; }
   body:not(.bm-on) .bm-only { display: none !important; }
   .imp-pick { display: inline-block; cursor: pointer; }
+  .imp-quick { position: relative; }
+  .imp-quick [data-imp-msg] { position: absolute; right: 0; top: calc(100% + 6px); width: max-content; max-width: min(360px, 80vw); z-index: 5;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--muted); }
+  .imp-quick [data-imp-msg]:empty { display: none; }
+  .imp-quick [data-imp-msg].neg { color: var(--bad); }
   .imp-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .imp-pick span { display: inline-block; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg2); }
   .imp-pick:hover span { border-color: var(--accent); }
@@ -4136,8 +4141,15 @@ document.addEventListener('change', e => {
   const msg = input.closest('.imp-file').querySelector('[data-imp-msg]');
   const f = input.files[0]; input.value = '';
   msg.textContent = 'Lettura del file…'; msg.classList.remove('neg');
-  f.text().then(text => Promise.resolve(importFromHtml(mhtmlToHtml(text)))).then(err => { msg.textContent = err; msg.classList.toggle('neg', !!err); })
-    .catch(() => { msg.textContent = 'Non riesco a leggere il file.'; msg.classList.add('neg'); });
+  // nel pulsante dei Consigli il messaggio sta in un fumetto sotto il pulsante e sparisce da solo
+  const quick = !!input.closest('.imp-quick');
+  const say = (text, bad) => {
+    msg.textContent = text; msg.classList.toggle('neg', !!bad);
+    clearTimeout(msg._t); if (quick && text) msg._t = setTimeout(() => { msg.textContent = ''; }, 8000);
+  };
+  f.text().then(text => Promise.resolve(importFromHtml(mhtmlToHtml(text))))
+    .then(err => say(quick && /^Dati del server/.test(err || '') ? 'Punti del primo e tasso di scambio non aggiornati (dati del server non raggiungibili).' : err, err && !/^Dati del server/.test(err)))
+    .catch(() => say('Non riesco a leggere il file.', true));
 });
 function setBookmarkletLinks() {
   $$('#bm-link, [data-bm]').forEach(a => {
