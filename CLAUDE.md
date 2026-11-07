@@ -9,6 +9,8 @@ Stato attuale dell'app rispetto alle regole:
 - Il pulsante nei preferiti (bookmarklet) è uno script che legge la pagina del gioco: va tollerato prima di poterlo
   usare. È spento con `BOOKMARKLET_ON = false` in `src/app.html`; non riattivarlo senza la tolleranza.
 - L'API pubblica dell'universo (es. `https://s278-it.ogame.gameforge.com/api/serverData.xml`) si legge senza chiave,
-  solo quando serve (all'importazione) e tenendo il risultato in memoria: `serverData()` in `src/app.html`, 24 ore.
+  solo quando serve (all'importazione) e tenendo il risultato in memoria. Il browser non può leggerla (niente CORS):
+  la legge la funzione Supabase `server-data` (`supabase/functions/server-data/index.ts`), con cache di 24 ore per
+  universo nella tabella `server_data_cache`; l'app la chiama da `serverData()` in `src/app.html`.
 - Il proxy della community `https://ogapi.faw-kes.de/` serve per report e statistiche (`/v1/report/...`,
   `/v1/statistics/...`, massimo 10 richieste al minuto): usarlo per quelle API, mai una chiave privata.

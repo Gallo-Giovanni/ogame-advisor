@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 79, date: '2026-11-07', title: 'Dati del server anche importando la pagina salvata',
+    text: 'Importando la Vista impero salvata, punti del primo in classifica, velocità delle ricerche e tasso di scambio arrivano di nuovo da soli: li legge il server dell\'app dall\'API pubblica di OGame, una volta al giorno per universo.',
+  },
+  {
     id: 78, date: '2026-11-07', title: 'Prossima colonia',
     text: 'Sotto i consigli c\'è ora la riga "Prossima colonia": dice in che posizione della lista arriva la nuova colonia, anche quando è oltre i consigli mostrati (es. n° 163), con il suo ammortamento e quanto costano gli upgrade che vengono prima. Il calcolo continua il piano in sottofondo senza mostrare quei passi. Anche il calcolo della colonia è più realistico: sulla colonia si costruiscono Fabbrica di robot e di naniti ai livelli medi dell\'impero (con il loro costo), e del tempo per costruire le miniere conta la metà, perché i primi livelli producono già mentre si fanno i successivi. Nel piano la colonia resta quella di partenza (non cresce mentre il piano alza le altre miniere) e, dopo averla consigliata, le miniere della nuova colonia compaiono come consigli normali ("dopo la colonia"). Le spunte dei tipi e dei pianeti non rifanno più la classifica: nascondono solo le righe, che tengono il loro numero della lista completa. Se preferisci il comportamento di prima, spunta "Le spunte rifanno la classifica" sotto "Primi 25": la classifica viene rifatta solo con i tipi e i pianeti scelti.',
   },
