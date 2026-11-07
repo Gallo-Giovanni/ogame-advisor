@@ -266,6 +266,21 @@ const LIFEFORMS = {
   },
 };
 
+// Requisiti degli edifici forme di vita: dall'Albero tecnologico del gioco (screenshot del giocatore, Umani).
+// { edificio: { edificio richiesto: livello } }; i requisiti dei requisiti sono nelle loro righe.
+// Mancano: Scudo planetario Umani e le altre razze (da inserire quando abbiamo l'Albero tecnologico).
+LIFEFORMS.races.humans.requires = {
+  research_centre: { residential_sector: 21, biosphere_farm: 22 },
+  academy_of_sciences: { residential_sector: 41 },
+  high_energy_smelting: { research_centre: 5 },
+  food_silo: { high_energy_smelting: 3 },
+  fusion_production: { academy_of_sciences: 1 },
+  skyscraper: { fusion_production: 1 },
+  biotech_lab: { fusion_production: 2 },
+  neuro_calibration_centre: { skyscraper: 5 },
+  metropolis: { skyscraper: 6, neuro_calibration_centre: 1 },
+};
+
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che
 // non è ancora stato verificato sul gioco. I valori verificati sul gioco hanno la precedenza e coincidono con i fogli
 // (14 ricerche e 7 edifici Rock'tal confrontati). Edifici: nello stesso ordine di buildingOrder. Ricerche: slot 1-18.

@@ -66,3 +66,17 @@ for (const [race, arr] of Object.entries(DU)) arr.forEach(([t1, t2], i) => {
   [[1, t1], [2, t2]].forEach(([L, t]) => { const got = E2.lfBuildingTime(b, L, 0, 0, 0, 1); assert.ok(got - t >= 0 && got - t < (t > 3600 ? 60 : 1), race + ' ' + b.it + ' livello ' + L + ': ' + got + ' invece di ' + t); });
 });
 console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durate di tutti gli edifici forme di vita coerenti');
+// Requisiti degli edifici forme di vita (Albero tecnologico del gioco, Umani): Fusione ad alta energia 1 richiede il
+// Centro di Ricerca 5, che richiede Zona residenziale 21 e Fattoria della Biosfera 22; costo e livelli entrano nel consiglio
+{
+  const h2 = { ...hum, lf_buildings: { residential_sector: 10, biosphere_farm: 12 } };
+  const r2 = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [h2]).find(r => r.key === 'high_energy_smelting');
+  assert.deepStrictEqual(r2.lfPre.map(x => [x.key, x.from, x.to]), [['residential_sector', 10, 21], ['biosphere_farm', 12, 22], ['research_centre', 0, 5]]);
+  const H = LF.races.humans.buildings, sum = (b, a, z) => { let c = [0, 0, 0]; for (let L = a + 1; L <= z; L++) c = c.map((x, i) => x + E2.lfBuildingCost(b, L)[i]); return c; };
+  const pre = [sum(H.residential_sector, 10, 21), sum(H.biosphere_farm, 12, 22), sum(H.research_centre, 0, 5)].reduce((a, c) => a.map((x, i) => x + c[i]));
+  const own = E2.lfBuildingCost(H.high_energy_smelting, 1);
+  assert.deepStrictEqual(r2.cost.map((x, i) => x - (r2.fix ? r2.fix.cost[i] : 0)), own.map((x, i) => x + pre[i]));
+  const done = E2.applyRecommendation({ economy_speed: 5 }, h2, r2).planet.lf_buildings;
+  assert.deepStrictEqual([done.residential_sector, done.biosphere_farm, done.research_centre, done.high_energy_smelting], [21, 22, 5, 1]);
+  console.log('ok requisiti edifici forme di vita (Umani)');
+}

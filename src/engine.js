@@ -664,7 +664,31 @@ const Engine = (() => {
     };
     return T;
   }
-  const COLONY_FLIGHT_H = 0.75; // volo della colonizzatrice: da 30 minuti a 1 ora
+  const COLONY_FLIGHT_H = 0.75;
+  // Requisiti di un edificio forme di vita sul suo pianeta (a catena): costo, energia in più, tempo (stessa coda) e
+  // livelli da raggiungere. Solo per le razze di cui conosciamo l'Albero tecnologico (LF.races[race].requires).
+  function lfPrereq(profile, planet, race, key, T) {
+    const R = LF && LF.races[race], req = (R && R.requires) || {};
+    const levels = planet.lf_buildings || {}, lv = {}, steps = [];
+    const disc = monolithDisc(planet);
+    let cost = [0, 0, 0], energy = 0, time = 0;
+    const cur = k => (k in lv ? lv[k] : +levels[k] || 0);
+    const need = (k, level) => {
+      const from = cur(k);
+      if (from >= level) return;
+      for (const [rk, rl] of Object.entries(req[k] || {})) need(rk, rl);
+      const b = R.buildings[k];
+      if (b && b.cost) for (let L = from + 1; L <= level; L++) {
+        const c = lfBuildingCost(b, L, disc); cost = cost.map((x, i) => x + c[i]);
+        if (T) time += T.lfBuilding(planet, b, L, disc);
+      }
+      if (b && b.energyCons) energy += Math.ceil((lfBuildingEnergy(b, level) - lfBuildingEnergy(b, from)) * (1 - disc));
+      lv[k] = level;
+      steps.push({ key: k, it: (b && b.it) || k, from, to: level });
+    };
+    for (const [rk, rl] of Object.entries(req[key] || {})) need(rk, rl);
+    return { cost, energy, time, steps };
+  } // volo della colonizzatrice: da 30 minuti a 1 ora
 
   function colonyRecommendation(profile, planets, gainEq) {
     if (!planets.length) return null;
@@ -823,8 +847,9 @@ const Engine = (() => {
           const res = ['metal', 'crystal', 'deut'].filter(r => b.effect[r]);
           if (!res.length) continue;
           const L = +levels[key] || 0, next = L + 1;
+          const lp = lfPrereq(profile, planet, planet.lf_race, key, T); // edifici forme di vita da sbloccare prima
           const cost = lfBuildingCost(b, next, disc);
-          const extraNeed = Math.ceil((lfBuildingEnergy(b, next) - lfBuildingEnergy(b, L)) * (1 - disc));
+          const extraNeed = Math.ceil((lfBuildingEnergy(b, next) - lfBuildingEnergy(b, L)) * (1 - disc)) + lp.energy;
           const marginAfter = Math.max(0, st.balance) - extraNeed;
           const pos = positionBonus(planet.position), s = profile.economy_speed;
           const row = [
@@ -834,14 +859,15 @@ const Engine = (() => {
           ];
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
           const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
-          const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+          const totalCost = cost.map((x, i) => x + lp.cost[i] + (fix ? fix.cost[i] : 0));
           if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
-          const wait = T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
+          const wait = lp.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
           out.push({
             type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
             title: `${b.it} ${L} → ${next}`,
-            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)`,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}`,
+            lfPre: lp.steps,
             cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, extraNeed,
           });
@@ -936,7 +962,7 @@ const Engine = (() => {
     const patch = {};
     let balance = st.balance, profPatch = null;
     if (rec.type === 'lfbuilding') {
-      patch.lf_buildings = { ...(planet.lf_buildings || {}), [rec.key]: rec.nextLevel };
+      patch.lf_buildings = { ...(planet.lf_buildings || {}), ...Object.fromEntries((rec.lfPre || []).map(x => [x.key, x.to])), [rec.key]: rec.nextLevel };
       balance -= rec.extraNeed;
     }
     if (rec.type === 'mine') {
