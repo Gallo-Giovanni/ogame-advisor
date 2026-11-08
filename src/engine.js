@@ -328,9 +328,9 @@ const Engine = (() => {
     r121: [['b31', 4], ['r120', 5], ['r113', 4]], // Tecnologia ionica
     r122: [['b31', 4], ['r113', 8], ['r120', 10], ['r121', 5]], // Tecnologia plasma
     r106: [['b31', 3]],                        // Tecnologia spionaggio
-    r108: [['b31', 1]],                        // Tecnologia computer
-    r110: [['b31', 6], ['r113', 3]],           // Tecnologia scudi
-    r111: [['b31', 2]],                        // Tecnologia corazze
+    r108: [['b31', 1]],                        // Tecnologia informatica
+    r110: [['b31', 6], ['r113', 3]],           // Tecnologia degli scudi
+    r111: [['b31', 2]],                        // Tecnologia delle corazze
     r114: [['b31', 7], ['r113', 5], ['r110', 5]], // Tecnologia iperspaziale
     r115: [['b31', 1], ['r113', 1]],           // Propulsore a combustione
     r117: [['b31', 2], ['r113', 1]],           // Propulsore a impulso
@@ -350,9 +350,9 @@ const Engine = (() => {
   };
   const REQ_NAMES = {
     b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
-    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', b33: 'Terraformer', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
-    r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
-    r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
+    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', b33: 'Terraformer', r106: 'Tecnologia per lo spionaggio', r108: 'Tecnologia informatica', r110: 'Tecnologia degli scudi',
+    r111: 'Tecnologia delle corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
+    r117: 'Propulsore a impulso', r120: 'Tecnologia dei laser', r121: 'Tecnologia ionica', r122: 'Tecnologia del plasma', r124: 'Astrofisica',
   };
   // colonne del pianeta e campi del profilo che hanno un nome proprio
   const B_COL = { 1: 'metal_mine', 2: 'crystal_mine', 3: 'deut_synth', 4: 'solar_plant', 12: 'fusion_reactor', 14: 'robotics_factory', 15: 'nanite_factory' };

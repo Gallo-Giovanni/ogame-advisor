@@ -399,12 +399,12 @@
         <p class="muted small" style="grid-column:1/-1;margin:0">Queste ricerche servono come requisiti (colonie, satelliti, Plasma, Centrale a fusione): con l'importazione dalla Vista impero arrivano da sole.</p>
         <div><label>Propulsore a combustione</label><input placeholder="da inserire" data-r="115" type="number" min="0"></div>
         <div><label>Propulsore a impulso</label><input placeholder="da inserire" data-r="117" type="number" min="0"></div>
-        <div><label>Tecnologia laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
+        <div><label>Tecnologia dei laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
         <div><label>Tecnologia ionica</label><input placeholder="da inserire" data-r="121" type="number" min="0"></div>
-        <div><label>Tecnologia spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
-        <div><label>Tecnologia computer</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
-        <div><label>Tecnologia scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
-        <div><label>Tecnologia corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
+        <div><label>Tecnologia per lo spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
+        <div><label>Tecnologia informatica</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
+        <div><label>Tecnologia degli scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
+        <div><label>Tecnologia delle corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
         <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-p="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
       </div>
       <div class="row">
@@ -715,12 +715,12 @@
           <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
           <div><label>Propulsore a combustione</label><input placeholder="da inserire" data-r="115" type="number" min="0"></div>
           <div><label>Propulsore a impulso</label><input placeholder="da inserire" data-r="117" type="number" min="0"></div>
-          <div><label>Tecnologia laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
+          <div><label>Tecnologia dei laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
           <div><label>Tecnologia ionica</label><input placeholder="da inserire" data-r="121" type="number" min="0"></div>
-          <div><label>Tecnologia spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
-          <div><label>Tecnologia computer</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
-          <div><label>Tecnologia scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
-          <div><label>Tecnologia corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
+          <div><label>Tecnologia per lo spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
+          <div><label>Tecnologia informatica</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
+          <div><label>Tecnologia degli scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
+          <div><label>Tecnologia delle corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
           <div><label>Velocità di ricerca (arriva con l'importazione)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
@@ -1522,9 +1522,9 @@ const Engine = (() => {
     r121: [['b31', 4], ['r120', 5], ['r113', 4]], // Tecnologia ionica
     r122: [['b31', 4], ['r113', 8], ['r120', 10], ['r121', 5]], // Tecnologia plasma
     r106: [['b31', 3]],                        // Tecnologia spionaggio
-    r108: [['b31', 1]],                        // Tecnologia computer
-    r110: [['b31', 6], ['r113', 3]],           // Tecnologia scudi
-    r111: [['b31', 2]],                        // Tecnologia corazze
+    r108: [['b31', 1]],                        // Tecnologia informatica
+    r110: [['b31', 6], ['r113', 3]],           // Tecnologia degli scudi
+    r111: [['b31', 2]],                        // Tecnologia delle corazze
     r114: [['b31', 7], ['r113', 5], ['r110', 5]], // Tecnologia iperspaziale
     r115: [['b31', 1], ['r113', 1]],           // Propulsore a combustione
     r117: [['b31', 2], ['r113', 1]],           // Propulsore a impulso
@@ -1544,9 +1544,9 @@ const Engine = (() => {
   };
   const REQ_NAMES = {
     b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
-    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', b33: 'Terraformer', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
-    r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
-    r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
+    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', b33: 'Terraformer', r106: 'Tecnologia per lo spionaggio', r108: 'Tecnologia informatica', r110: 'Tecnologia degli scudi',
+    r111: 'Tecnologia delle corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
+    r117: 'Propulsore a impulso', r120: 'Tecnologia dei laser', r121: 'Tecnologia ionica', r122: 'Tecnologia del plasma', r124: 'Astrofisica',
   };
   // colonne del pianeta e campi del profilo che hanno un nome proprio
   const B_COL = { 1: 'metal_mine', 2: 'crystal_mine', 3: 'deut_synth', 4: 'solar_plant', 12: 'fusion_reactor', 14: 'robotics_factory', 15: 'nanite_factory' };
@@ -2817,7 +2817,7 @@ const CHANGELOG = [
   },
   {
     id: 75, date: '2026-11-06', title: 'Requisiti contati per tutto',
-    text: 'Quando un consiglio ha bisogno di qualcosa che non hai ancora sbloccato, l\'app controlla i requisiti del gioco (anche a catena) e ne aggiunge il costo. Esempi: per la prima colonia Laboratorio di ricerca, Tecnologia energetica, Propulsore a impulso, Tecnologia spionaggio, Fabbrica di robot e Cantiere spaziale; per i satelliti solari il Cantiere spaziale; per la Tecnologia plasma laser, ionica, energetica e laboratorio; per la Centrale a fusione Sintetizzatore 5 e Tecnologia energetica 3. Il consiglio elenca cosa serve e, quando lo segni come fatto, aggiorna anche quei livelli. I livelli che servono arrivano con l\'importazione dalla Vista impero, oppure si inseriscono a mano: le ricerche in Impostazioni → Account (Propulsore a combustione e a impulso, laser, ionica, spionaggio, computer, scudi, corazze), il Cantiere spaziale nella scheda del pianeta → Strutture. Finché mancano contano come 0, e nei Consigli un avviso dice quali sono.',
+    text: 'Quando un consiglio ha bisogno di qualcosa che non hai ancora sbloccato, l\'app controlla i requisiti del gioco (anche a catena) e ne aggiunge il costo. Esempi: per la prima colonia Laboratorio di ricerca, Tecnologia energetica, Propulsore a impulso, Tecnologia spionaggio, Fabbrica di robot e Cantiere spaziale; per i satelliti solari il Cantiere spaziale; per la Tecnologia plasma laser, ionica, energetica e laboratorio; per la Centrale a fusione Sintetizzatore 5 e Tecnologia energetica 3. Il consiglio elenca cosa serve e, quando lo segni come fatto, aggiorna anche quei livelli. I livelli che servono arrivano con l\'importazione dalla Vista impero, oppure si inseriscono a mano: le ricerche in Impostazioni → Account (Propulsore a combustione e a impulso, laser, ionica, spionaggio, informatica, scudi, corazze), il Cantiere spaziale nella scheda del pianeta → Strutture. Finché mancano contano come 0, e nei Consigli un avviso dice quali sono.',
   },
   {
     id: 74, date: '2026-11-06', title: 'Centrale a fusione: contati anche i requisiti',
