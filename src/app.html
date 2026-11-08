@@ -570,8 +570,10 @@
               <div><label>Deposito di metallo</label><input data-b="22" type="number" min="0" placeholder="da inserire"></div>
               <div><label>Deposito di cristallo</label><input data-b="23" type="number" min="0" placeholder="da inserire"></div>
               <div><label>Cisterna di deuterio</label><input data-b="24" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Terraformer</label><input data-b="33" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Campi usati / totali</label><div class="row" style="gap:6px;flex-wrap:nowrap"><input data-fld="used" type="number" min="0" placeholder="usati"><input data-fld="max" type="number" min="0" placeholder="totali"></div></div>
             </div>
-            <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e come requisiti (satelliti e colonizzatrice richiedono il cantiere, le ricerche il laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
+            <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e come requisiti (satelliti e colonizzatrice richiedono il cantiere, le ricerche il laboratorio). I campi servono per sapere quando un pianeta è pieno e serve il Terraformer. Arrivano anche con l'importazione dalla Vista impero.</p>
           </div>
           <div class="card stack pe-wide" data-pecard="res">
             <h3>Booster attivi</h3>
@@ -1475,6 +1477,7 @@ function fillPlanetForm(p) {
     el.value = v ?? (el.tagName === 'SELECT' || el.type === 'hidden' ? '0' : '');
   });
   $$('#pe-form [data-b]').forEach(el => { const v = (p.buildings || {})[el.dataset.b]; el.value = v == null ? '' : v; });
+  $$('#pe-form [data-fld]').forEach(el => { const v = (p.fields || {})[el.dataset.fld]; el.value = v == null ? '' : v; });
   $('#pe-form [data-f="lf_race"]').value = p.lf_race || '';
   $$('#lf-calc input').forEach(el => (el.value = ''));
   if (state.editing) state.editing.lf = { buildings: { ...(p.lf_buildings || {}) }, techs: JSON.parse(JSON.stringify(p.lf_techs || {})) };
@@ -1676,6 +1679,9 @@ function editorPlanet() {
   const orig = (state.editing?.id && state.planets.find(x => x.id === state.editing.id)) || {};
   p.buildings = { ...(orig.buildings || {}) };
   $$('#pe-form [data-b]').forEach(el => { const v = el.value.trim(); if (v === '') delete p.buildings[el.dataset.b]; else p.buildings[el.dataset.b] = Math.max(0, parseInt(v, 10) || 0); });
+  // campi del pianeta (Vista impero: usati / totali); vuoti = nessun limite di campi nei consigli
+  const fu = $('#pe-form [data-fld="used"]').value.trim(), fm = $('#pe-form [data-fld="max"]').value.trim();
+  p.fields = fu !== '' && fm !== '' ? { used: Math.max(0, parseInt(fu, 10) || 0), max: Math.max(0, parseInt(fm, 10) || 0) } : null;
   if (p.robotics_factory != null) p.buildings[14] = p.robotics_factory;
   if (p.nanite_factory != null) p.buildings[15] = p.nanite_factory;
   if (p.lf_race !== 'rocktal') p.mrc_level = null; // il Centro di Mineralogia è un edificio Rock'tal
@@ -1952,7 +1958,7 @@ const showVal = (k, v) => v === null || v === undefined || v === '' ? '—'
 function importChanges(oldObj, data) {
   const out = [];
   for (const [k, v] of Object.entries(data)) {
-    if (k === 'lf_buildings' || k === 'lf_techs' || k === 'buildings' || k === 'research' || k === 'resources' || k === 'item_expiry' || k === 'items') continue;
+    if (k === 'lf_buildings' || k === 'lf_techs' || k === 'buildings' || k === 'research' || k === 'resources' || k === 'item_expiry' || k === 'items' || k === 'fields') continue;
     const o = oldObj ? oldObj[k] : undefined;
     if (oldObj && (o === v || (o !== null && o !== undefined && v !== null && String(o) === String(v)))) continue;
     out.push(oldObj ? `${IMPORT_LABELS[k] || k}: ${showVal(k, o)} → <b>${showVal(k, v)}</b>` : `${IMPORT_LABELS[k] || k}: <b>${showVal(k, v)}</b>`);

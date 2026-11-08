@@ -334,6 +334,7 @@ const Engine = (() => {
     r117: [['b31', 2], ['r113', 1]],           // Propulsore a impulso
     r124: [['b31', 3], ['r106', 4], ['r117', 3]], // Astrofisica
     s208: [['b21', 4], ['r117', 3]],           // Nave colonizzatrice
+    b33: [['b15', 1], ['r113', 12]],           // Terraformer
     s212: [['b21', 1]],                        // Satellite solare
     s217: [['b21', 5], ['r115', 4], ['r111', 4], ['r120', 4]], // Crawler
   };
@@ -343,10 +344,11 @@ const Engine = (() => {
     r113: [[0, 800, 400], 2], r114: [[0, 4000, 2000], 2], r115: [[400, 0, 600], 2], r117: [[2000, 4000, 600], 2],
     r120: [[200, 100, 0], 2], r121: [[1000, 300, 100], 2],
     b22: [[1000, 0, 0], 2], b23: [[1000, 500, 0], 2], b24: [[1000, 1000, 0], 2], // depositi
+    b33: [[0, 50000, 100000], 2], // Terraformer
   };
   const REQ_NAMES = {
     b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
-    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
+    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', b33: 'Terraformer', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
     r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
     r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
   };
@@ -422,6 +424,30 @@ const Engine = (() => {
     });
     return out;
   }
+  // Campi del pianeta (Vista impero: usati e totali). Ogni livello di edificio classico occupa un campo (non il
+  // Porto spaziale né gli edifici forme di vita: verificato sulla Vista impero). Il Terraformer al livello L dà
+  // floor(5,5 x L) campi in più (verificato: 1 = +5, 2 = +11, 3 = +16, 5 = +27) e occupa anche lui un campo per livello.
+  // Campi non noti: nessun limite.
+  const terraFields = L => Math.floor(5.5 * L);
+  function fieldsNeed(profile, planet, n, T, planets) {
+    const out = { cost: [0, 0, 0], time: 0, steps: [], used: n, gain: 0 };
+    const f = planet && planet.fields;
+    if (!f || !(f.max > 0) || n <= 0) return out;
+    const free = f.max - f.used;
+    if (free >= n) return out;
+    const t0 = buildingLevel(planet, 33);
+    let t = t0;
+    while (free + terraFields(t) - terraFields(t0) - (t - t0) < n && t < t0 + 40) t++;
+    const pre = prereq(profile, planet, planets, 'b33'); // Fabbrica di naniti 1, Tecnologia energetica 12 e i loro requisiti
+    out.cost = pre.cost.slice();
+    if (T) out.time = T.pre(planet, pre.steps);
+    for (let L = t0 + 1; L <= t; L++) { const c = reqCost('b33', L); out.cost = out.cost.map((x, i) => x + c[i]); if (T) out.time += T.build(planet, c, L); }
+    out.steps = pre.steps.concat({ key: 'b33', from: t0, to: t });
+    out.used = n + (t - t0) + pre.steps.filter(x => x.key[0] === 'b').reduce((a, x) => a + x.to - x.from, 0);
+    out.gain = terraFields(t) - terraFields(t0);
+    return out;
+  }
+  const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo` : '');
   const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
   const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
   // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
@@ -913,15 +939,21 @@ const Engine = (() => {
         const gain = gainEq(prodDelta);
         const eq = toMetalEq(totalCost, profile);
 
-        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn);
-        // depositi, energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
-        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time;
+        // campi: la miniera, i depositi, la centrale e gli edifici richiesti occupano un campo per livello
+        const newLevels = 1 + sn.steps.reduce((a, x) => a + x.to - x.from, 0)
+          + (fix && fix.kind !== 'satellites' ? fix.to - fix.from : 0) + ((fix && fix.pre) || []).filter(x => x.key[0] === 'b').reduce((a, x) => a + x.to - x.from, 0);
+        const fn = fieldsNeed(profile, planet, newLevels, T, allPlanets);
+        fn.cost.forEach((x, i) => { totalCost[i] += x; });
+        const eq2 = toMetalEq(totalCost, profile);
+        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn) + fieldsText(fn);
+        // campi, depositi, energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
+        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time + fn.time;
         const wait = fix && fix.kind === 'satellites' ? Math.max(mineH, fixH) : mineH + fixH;
         let rec = {
           type: 'mine', key: m.key, planetId: planet.id, planet: planet.name,
           title: `${m.label} ${L} → ${next}`, detail: energyText,
-          cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
-          wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps,
+          cost: totalCost, buildCost: cost, costEq: eq2, gainPerHour: prodDelta, gainEq: gain,
+          wait, payback: gain > 0 ? eq2 / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps, terra: fn.steps.length ? fn : null, newFields: fn.used,
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
@@ -929,7 +961,7 @@ const Engine = (() => {
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2, { noFusion: true }) : null;
           const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
-          const bCost = mc.map((x, i) => x + mrc1[i] + sn.cost[i] + (fix2 ? fix2.cost[i] : 0));
+          const bCost = mc.map((x, i) => x + mrc1[i] + sn.cost[i] + fn.cost[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
@@ -1073,6 +1105,9 @@ const Engine = (() => {
       balance -= rec.extraNeed;
     }
     if (rec.store && rec.store.length) prereqPatch(profile, planet, rec.store, patch, {});
+    if (rec.terra) { const pp = {}; prereqPatch(profile, planet, rec.terra.steps, patch, pp); if (Object.keys(pp).length) profPatch = { ...(profPatch || {}), ...pp }; }
+    if (rec.newFields && planet.fields && planet.fields.max > 0)
+      patch.fields = { used: planet.fields.used + rec.newFields, max: planet.fields.max + (rec.terra ? rec.terra.gain : 0) };
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
       if (rec.withMrc) { patch.mrc_level = 1; balance -= Math.ceil(MRC_ENERGY_L1 * (1 - monolithDisc(planet))); }

@@ -87,6 +87,7 @@ function grabEmpire(html, meta) {
         r: [+p.metal || 0, +p.crystal || 0, +p.deuterium || 0],
         it: items(p.equipment_html),
         po: [+p.population || 0, +p.populationStorage || 0, +p.food || 0, +p.foodStorage || 0],
+        f: [+p.fieldUsed || 0, +p.fieldMax || 0],
       };
     }),
   };
@@ -187,6 +188,11 @@ function mapImport(snap, existing, LF) {
     // tutti i livelli degli edifici classici del pianeta (id del gioco sotto 100), per il calcolatore dei costi
     if (ip.r) data.resources = { m: ip.r[0], c: ip.r[1], d: ip.r[2], at: snap.at || null };
     // popolazione e cibo della Vista impero (dalla versione 6 del pulsante)
+    // campi del pianeta: gli edifici in costruzione contano già come fatti, quindi anche il loro campo
+    if (ip.f && ip.f[1] > 0) {
+      const going = Object.keys(q).filter(id => +id < 100 && +id !== 36).length; // un livello in costruzione per edificio
+      data.fields = { used: ip.f[0] + going, max: ip.f[1] };
+    }
     if (ip.po && data.resources) Object.assign(data.resources, { pop: ip.po[0], popMax: ip.po[1], food: ip.po[2], foodMax: ip.po[3] });
     // costruzioni in corso al momento dell'importazione (id del gioco -> livello in arrivo), per mostrarle nella scheda Impero
     if (data.resources) data.resources.q = Object.fromEntries(Object.entries(q).map(([k, v]) => [k, +v]));

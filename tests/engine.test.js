@@ -212,3 +212,20 @@ console.log('Tutti i test superati');
   assert.deepStrictEqual(m2.store, []);
   console.log('ok depositi');
 }
+
+// Campi: un pianeta pieno aggiunge il Terraformer (5,5 campi per livello, uno lo occupa lui)
+{
+  const pl = { id: 't', name: 'T', position: 8, temp_max: 40, metal_mine: 30, crystal_mine: 20, deut_synth: 10, solar_plant: 40, robotics_factory: 10, nanite_factory: 2,
+    buildings: { 14: 10, 15: 2, 21: 5, 31: 10, 22: 20, 23: 20, 24: 20, 33: 2 }, fields: { used: 200, max: 200 }, lf_buildings: {}, lf_techs: {} };
+  const prof = { economy_speed: 5, research_speed: 5, energy_tech: 12, research: { 108: 10 }, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const m = E.recommendations(prof, [pl]).find(r => r.title === 'Miniera di metallo 30 → 31');
+  // serve 1 campo: Terraformer 2 -> 3 dà 16 - 11 = 5 campi, ne usa 1
+  assert.ok(m.terra && m.terra.steps.some(x => x.key === 'b33' && x.from === 2 && x.to === 3) && /Terraformer 2 → 3/.test(m.detail));
+  const done = E.applyRecommendation(prof, pl, m).planet;
+  assert.deepStrictEqual(done.fields, { used: 202, max: 205 });
+  assert.strictEqual(done.buildings[33], 3);
+  // con campi liberi niente Terraformer
+  const m2 = E.recommendations(prof, [{ ...pl, fields: { used: 150, max: 200 } }]).find(r => r.title === 'Miniera di metallo 30 → 31');
+  assert.strictEqual(m2.terra, null);
+  console.log('ok campi e Terraformer');
+}

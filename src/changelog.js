@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 83, date: '2026-11-08', title: 'Campi del pianeta e Terraformer',
+    text: 'L\'importazione legge anche i campi usati e totali di ogni pianeta. Se un upgrade (con depositi ed energia) non ci sta nei campi liberi, il consiglio aggiunge i livelli di Terraformer che servono, con i suoi requisiti (Fabbrica di naniti 1 e Tecnologia energetica 12), costo e tempo. Il Terraformer dà 5,5 campi per livello e ne occupa uno. Senza importazione si inseriscono nella scheda del pianeta → Strutture.',
+  },
+  {
     id: 82, date: '2026-11-08', title: 'Ricerche forme di vita in slot ancora chiusi',
     text: 'Se consigli una ricerca forme di vita in uno slot che il pianeta non ha ancora aperto, ora il consiglio aggiunge gli edifici che servono per avere la popolazione (abitazioni, cibo, scuola, liceo e gli altri edifici della popolazione), con i loro requisiti, costo e tempo di costruzione. Non è compreso il tempo perché la popolazione cresca. Il consiglio indica anche i manufatti per scegliere la ricerca dello slot (200, 400 o 600). Anche la scheda Sblocco slot ora tiene conto dei requisiti degli edifici nella scelta della combinazione più economica, li mostra nella tabella e indica i manufatti.',
   },
