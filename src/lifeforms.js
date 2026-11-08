@@ -323,6 +323,8 @@ LIFEFORMS.races.kaelesh.requires = {
 // Energia richiesta per costruire (non consumata dopo): serve energia libera sul pianeta al momento della costruzione.
 // floor(livello x base x fattore^livello). Condensatore Antimateria (gioco): livelli 1-5 = 9, 18, 28, 38, 49.
 LIFEFORMS.races.kaelesh.buildings.antimatter_condenser.buildEnergy = { base: 9, factor: 1.02 };
+// Fabbrica Celle a fusione (Mecha, gioco): livelli 1-3 = 8, 16, 25. Gli altri edifici forme di vita non la richiedono (giocatore).
+LIFEFORMS.races.mechas.buildings.fusion_cell_factory.buildEnergy = { base: 8, factor: 1.02 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che
 // non è ancora stato verificato sul gioco. I valori verificati sul gioco hanno la precedenza e coincidono con i fogli
