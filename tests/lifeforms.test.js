@@ -109,3 +109,14 @@ console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durat
   assert.deepStrictEqual(pre.steps.map(x => [x.key, x.to]), [['sanctuary', 42], ['halls_of_realisation', 1], ['chrysalis_accelerator', 1], ['bio_modifier', 6], ['forum_of_transcendence', 1]]);
   console.log('ok requisiti Kaelesh');
 }
+// Energia richiesta per costruire l'edificio del cibo di ogni razza (riquadri dei costi del gioco)
+{
+  const e = (r, k, L) => E2.lfBuildEnergy(LF.races[r].buildings[k], L);
+  assert.deepStrictEqual([1, 2, 3, 13].map(L => e('humans', 'biosphere_farm', L)), [8, 16, 25, 134]);
+  assert.deepStrictEqual([1, 2, 3, 11].map(L => e('mechas', 'fusion_cell_factory', L)), [8, 16, 25, 109]);
+  assert.deepStrictEqual([1, 2, 3, 4, 5].map(L => e('kaelesh', 'antimatter_condenser', L)), [9, 18, 28, 38, 49]);
+  assert.ok(Math.round(e('kaelesh', 'antimatter_condenser', 50) / 100) === 12); // 1,2k
+  assert.deepStrictEqual([1, 2, 3].map(L => e('rocktal', 'crystal_farm', L)), [9, 19, 30]);
+  assert.ok(Math.round(e('rocktal', 'crystal_farm', 56) / 100) === 28); // 2,8k
+  console.log('ok energia per costruire (edifici del cibo)');
+}
