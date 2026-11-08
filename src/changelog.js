@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 82, date: '2026-11-08', title: 'Ricerche forme di vita in slot ancora chiusi',
+    text: 'Se consigli una ricerca forme di vita in uno slot che il pianeta non ha ancora aperto, ora il consiglio aggiunge gli edifici che servono per avere la popolazione (abitazioni, cibo, scuola, liceo e gli altri edifici della popolazione), con i loro requisiti, costo e tempo di costruzione. Non è compreso il tempo perché la popolazione cresca.',
+  },
+  {
     id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',
     text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni. Corretto anche l\'avviso "Mancano alcuni livelli" sui pianeti nuovi: gli edifici non ancora costruiti (es. cantiere e laboratorio a 0) ora vengono importati come 0.',
   },

@@ -688,6 +688,40 @@ const Engine = (() => {
     return T;
   }
   const COLONY_FLIGHT_H = 0.75;
+  // Slot di ricerca forme di vita ancora chiuso: edifici (abitazioni, cibo, scuola, liceo, extra, Monolite) per avere la
+  // popolazione che lo apre, con costo e tempo di costruzione. Popolazione: quella importata se c'è, altrimenti stimata.
+  function slotUnlock(profile, planet, slot, T) {
+    const race = planet.lf_race;
+    if (!race || !POP[race]) return null;
+    const lv = popLevels(race, planet); if (!lv) return null;
+    const res = planet.resources || {};
+    const st = population(race, lv, profile.economy_speed, res.popMax ? +res.pop : null);
+    if (st.open >= slot) return null;
+    const plan = popPlan(race, planet, slot, profile.economy_speed, profile);
+    if (!plan) return null;
+    const R = LF.races[race], disc = plan.disc || 0;
+    const steps = [];
+    const add = (key, from, to) => { if (to > from) steps.push({ key, it: (R.buildings[key] || {}).it || key, from, to }); };
+    if (race === 'rocktal') add('monolith', plan.monolithFrom, plan.monolith);
+    add(lv.keys[0], lv.quarters, plan.quarters); add(lv.keys[1], lv.farm, plan.farm);
+    add(lv.keys[2], lv.school, plan.school); add(lv.keys[3], lv.high, plan.high);
+    plan.extra.forEach(e => add(e.key, e.from, e.to));
+    let time = 0, cost = plan.cost.slice();
+    for (const x of steps) for (let L = x.from + 1; L <= x.to; L++) time += T ? T.lfBuilding(planet, R.buildings[x.key], L, disc) : 0;
+    // requisiti degli edifici da alzare (es. Accademia delle Scienze -> Zona residenziale 41): costo e tempo in più
+    let virt = { ...planet, lf_buildings: { ...(planet.lf_buildings || {}) } };
+    const all = [];
+    for (const x of steps) {
+      const lp = lfPrereq(profile, virt, race, x.key, T);
+      lp.steps.forEach(y => { virt.lf_buildings[y.key] = y.to; all.push(y); });
+      cost = cost.map((c, i) => c + lp.cost[i]); time += lp.time;
+      virt.lf_buildings[x.key] = Math.max(+virt.lf_buildings[x.key] || 0, x.to);
+    }
+    // una riga per edificio, dal livello di partenza al più alto
+    const merged = [];
+    for (const y of all.concat(steps)) { const m = merged.find(z => z.key === y.key); if (m) { m.from = Math.min(m.from, y.from); m.to = Math.max(m.to, y.to); } else merged.push({ ...y }); }
+    return { cost, time, steps: merged };
+  }
   // Requisiti di un edificio forme di vita sul suo pianeta (a catena): costo, energia in più, tempo (stessa coda) e
   // livelli da raggiungere. Solo per le razze di cui conosciamo l'Albero tecnologico (LF.races[race].requires).
   function lfPrereq(profile, planet, race, key, T) {
@@ -935,14 +969,16 @@ const Engine = (() => {
           const now = techEffect(profile, planet, +slot, { race: entry.race, level: L });
           const after = techEffect(profile, planet, +slot, { race: entry.race, level: next });
           const prodDelta = [0, 1, 2].map(i => { const k = ['metal', 'crystal', 'deut'][i]; return sumRow[i] * ((after[k] || 0) - (now[k] || 0)); });
-          const cost = lfTechCost(tech, next, disc);
+          // slot ancora chiuso (livello 0 e popolazione insufficiente): si aggiungono gli edifici per aprirlo (popPlan)
+          const un = L === 0 ? slotUnlock(profile, planet, +slot, T) : null;
+          const cost = lfTechCost(tech, next, disc).map((x, i) => x + (un ? un.cost[i] : 0));
           const gain = gainEq(prodDelta), eq = toMetalEq(cost, profile);
-          const wait = T.lfTech(planet, tech, next);
+          const wait = T.lfTech(planet, tech, next) + (un ? un.time : 0);
           out.push({
             type: 'lftech', key: tech.key, race: entry.race, slot: +slot, planetId: planet.id, planet: planet.name,
             title: `${tech.it} ${L} → ${next}`,
-            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}`,
-            cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
+            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}${un ? `; lo slot è ancora chiuso: per aprirlo servono ${un.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo (più il tempo perché la popolazione cresca)` : ''}`,
+            unlock: un && un.steps, cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, nextLevel: next,
           });
         }
@@ -996,6 +1032,8 @@ const Engine = (() => {
     if (rec.type === 'lftech') {
       const techs = JSON.parse(JSON.stringify(planet.lf_techs || {}));
       techs[rec.slot] = { ...(techs[rec.slot] || { race: rec.race }), level: rec.nextLevel };
+      if (rec.unlock && rec.unlock.length)
+        return { planet: { lf_techs: techs, lf_buildings: { ...(planet.lf_buildings || {}), ...Object.fromEntries(rec.unlock.map(x => [x.key, x.to])) } } };
       return { planet: { lf_techs: techs } };
     }
     const st = planetState(profile, planet);

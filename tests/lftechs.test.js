@@ -157,3 +157,18 @@ console.log('Costi e durate delle ricerche forme di vita uguali al gioco');
   assert.ok(plan && plan.t3 >= plan.needAfter, 'il piano raggiunge la popolazione richiesta');
   console.log('Modulatore psionico contato');
 }
+// Slot di ricerca ancora chiuso: il consiglio della ricerca aggiunge gli edifici per aprirlo
+{
+  const E3 = require('../src/engine.js');
+  const pl = { id: 'u', name: 'U', position: 8, temp_max: 40, metal_mine: 25, crystal_mine: 20, deut_synth: 15, solar_plant: 30,
+    lf_race: 'humans', lf_buildings: { residential_sector: 20, biosphere_farm: 20, academy_of_sciences: 0 },
+    lf_techs: { 8: { race: 'humans', level: 0 } } };
+  const prof = { player_class: 'explorer', economy_speed: 5, research_speed: 15, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const r = E3.recommendations(prof, [pl]).find(x => x.type === 'lftech' && x.slot === 8);
+  assert.ok(r && r.unlock && r.unlock.length && /slot è ancora chiuso/.test(r.detail), 'slot 8 chiuso: servono edifici');
+  const own = E3.lfTechCost(require('../src/lifeforms.js').races.humans.techs[7], 1, 0);
+  assert.ok(r.cost[0] > own[0]);
+  const done = E3.applyRecommendation(prof, pl, r).planet;
+  assert.ok(done.lf_buildings.academy_of_sciences >= 1 && done.lf_techs[8].level === 1);
+  console.log('ok slot chiusi nei consigli');
+}
