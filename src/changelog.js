@@ -4,8 +4,8 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
-    id: 84, date: '2026-11-08', title: 'Quando è pronto ogni consiglio',
-    text: 'Ogni consiglio dice ora tra quanto è pronto, seguendo la lista: aspetta le risorse (quelle dell\'ultima importazione più la produzione di tutto l\'impero, che cresce man mano che i consigli sono finiti) e che la sua coda sia libera (edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Aprendo un consiglio vedi risorse pronte tra, coda libera tra e la data in cui è finito.',
+    id: 84, date: '2026-11-08', title: 'Code libere nei consigli',
+    text: 'Seguendo la lista, ogni consiglio dice se la sua coda è libera e si può fare subito, oppure tra quanto si libera dopo i consigli che vengono prima (code separate: edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Il volo della colonizzatrice non è più stimato nel tempo della colonia: dipende dall\'universo e dalla distanza.',
   },
   {
     id: 83, date: '2026-11-08', title: 'Campi del pianeta e Terraformer',

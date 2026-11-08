@@ -1928,7 +1928,7 @@ const Engine = (() => {
     };
     return T;
   }
-  const COLONY_FLIGHT_H = 0.75;
+  const COLONY_FLIGHT_H = 0; // il volo della colonizzatrice dipende da universo e distanza: non si stima
   // Slot di ricerca forme di vita ancora chiuso: edifici (abitazioni, cibo, scuola, liceo, extra, Monolite) per avere la
   // popolazione che lo apre, con costo e tempo di costruzione. Popolazione: quella importata se c'è, altrimenti stimata.
   function slotUnlock(profile, planet, slot, T) {
@@ -1984,7 +1984,7 @@ const Engine = (() => {
     };
     for (const [rk, rl] of Object.entries(req[key] || {})) need(rk, rl);
     return { cost, energy, time, steps };
-  } // volo della colonizzatrice: da 30 minuti a 1 ora
+  }
 
   function colonyRecommendation(profile, planets, gainEq) {
     if (!planets.length) return null;
@@ -2029,7 +2029,7 @@ const Engine = (() => {
     const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
     const fix = energyFix(profile, colony, needEnergy, { noFusion: true }); // colonia nuova: solare o satelliti
     if (fix) add(fix.cost);
-    // tempo: requisiti e Astrofisica (ricerca) insieme ai requisiti edifici, poi la colonizzatrice, il volo e le miniere
+    // tempo: requisiti e Astrofisica (ricerca) insieme ai requisiti edifici, poi la colonizzatrice e le miniere (il volo non si stima)
     // sul pianeta nuovo (senza Fabbrica di robot), una dopo l'altra
     const T = timing(profile, planets), shipPlanet = prePlanet || planets[0];
     let astroH = 0;
@@ -2653,8 +2653,8 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
-    id: 84, date: '2026-11-08', title: 'Quando è pronto ogni consiglio',
-    text: 'Ogni consiglio dice ora tra quanto è pronto, seguendo la lista: aspetta le risorse (quelle dell\'ultima importazione più la produzione di tutto l\'impero, che cresce man mano che i consigli sono finiti) e che la sua coda sia libera (edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Aprendo un consiglio vedi risorse pronte tra, coda libera tra e la data in cui è finito.',
+    id: 84, date: '2026-11-08', title: 'Code libere nei consigli',
+    text: 'Seguendo la lista, ogni consiglio dice se la sua coda è libera e si può fare subito, oppure tra quanto si libera dopo i consigli che vengono prima (code separate: edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Il volo della colonizzatrice non è più stimato nel tempo della colonia: dipende dall\'universo e dalla distanza.',
   },
   {
     id: 83, date: '2026-11-08', title: 'Campi del pianeta e Terraformer',
@@ -3356,35 +3356,22 @@ $('#replan').addEventListener('change', e => {
   try { localStorage.setItem('ogadv-replan', state.replan ? '1' : '0'); } catch (err) {}
   renderAdvice();
 });
-// Calendario della lista: ogni consiglio parte quando ci sono le risorse (tutto l'impero, in metallo equivalente,
-// come se si potessero spostare con le flotte e scambiare) e quando la sua coda è libera. Code: edifici di ogni pianeta,
-// edifici forme di vita di ogni pianeta, ricerche forme di vita di ogni pianeta, ricerche dell'account.
-// Le risorse partono da quelle dell'ultima importazione; la produzione cresce quando un consiglio è finito.
+// Code della lista: seguendo i consigli in ordine, ogni consiglio aspetta che la sua coda sia libera (edifici di ogni
+// pianeta, edifici forme di vita di ogni pianeta, ricerche forme di vita di ogni pianeta, ricerche dell'account).
+// Le risorse non si stimano: con spedizioni e scambi non dipendono solo dalla produzione.
 const QUEUE_NAMES = { b: 'coda edifici del pianeta', f: 'coda edifici forme di vita', t: 'coda ricerche forme di vita', r: 'coda ricerche' };
 function schedule(profile, planets, steps) {
-  const out = new Map();
-  const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(x => (+x || 1) / (+profile.ratio_metal || 1));
-  const eqOf = a => a.reduce((t, x, i) => t + (x || 0) * ratio[i], 0);
-  let rate = eqOf(Engine.totals(profile, planets));
-  let pool = planets.reduce((t, p) => t + (p.resources ? eqOf([+p.resources.m || 0, +p.resources.c || 0, +p.resources.d || 0]) : 0), 0);
-  let tRes = 0; // quando sono pronte le risorse dell'ultimo consiglio (ore da adesso)
-  const queue = {}, pending = []; // consigli finiti più avanti: aumentano la produzione quando sono pronti
+  const out = new Map(), queue = {};
   let colonyDone = null;
   for (const r of steps) {
-    if (!(rate > 0)) break;
-    const cost = r.costEq || 0;
-    // la produzione aumenta con i consigli già finiti a questo punto
-    for (let i = pending.length - 1; i >= 0; i--) if (pending[i].at <= tRes) { rate += pending[i].gain; pending.splice(i, 1); }
-    if (pool >= cost) pool -= cost; else { tRes += (cost - pool) / rate; pool = 0; }
     const q = r.type === 'mine' || r.type === 'energy' ? 'b:' + r.planetId : r.type === 'lfbuilding' ? 'f:' + r.planetId
       : r.type === 'lftech' ? 't:' + r.planetId : 'r';
     let free = queue[q] || 0;
     if (r.planetId === 'nuova-colonia' && colonyDone != null) free = Math.max(free, colonyDone);
-    const start = Math.max(tRes, free), done = start + (r.wait || 0);
+    const done = free + (r.wait || 0);
     queue[q] = done;
     if (r.type === 'colony') colonyDone = done;
-    if (r.gainEq > 0) pending.push({ at: done, gain: r.gainEq });
-    out.set(r, { res: tRes, free, done, q });
+    out.set(r, { free, q });
   }
   return out;
 }
@@ -3467,7 +3454,7 @@ function renderAdvice() {
     <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}"${r.fix && (i === 0 || r === firstNum) ? ' open' : ''}>
       <summary>
         <span class="rank">${r.urgent ? '!' : posOf.get(r)}</span>
-        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}${sched.get(r) ? ` · pronto tra ${waitText(sched.get(r).done)}` : ''}</span></span>
+        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}${sched.get(r) && sched.get(r).free > 0.01 ? ` · coda libera tra ${waitText(sched.get(r).free)}` : ''}</span></span>
         <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
         ${r.planetId === 'nuova-colonia' ? '<span class="muted small after" title="Si fa sulla nuova colonia, dopo averla colonizzata">dopo la colonia</span>' : prev ? `<span class="muted small after" title="Si fa dopo il livello precedente della stessa costruzione">dopo il ${prev.nextLevel}</span>` : `<button class="secondary done" data-done="${i}">Fatto</button>`}
       </summary>
@@ -3475,9 +3462,9 @@ function renderAdvice() {
         <div>${esc(r.title)}: ${esc(r.detail)}</div>
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
-        ${r.wait ? `<div class="muted">Tempo prima che produca: ${waitText(r.wait)}${r.type === 'colony' ? ' (requisiti e Astrofisica, colonizzatrice, volo di circa 45 minuti, miniere ed energia sul pianeta nuovo)' : ''}, già compreso nell'ammortamento.</div>` : ''}
-        ${(() => { const sc = sched.get(r); if (!sc) return ''; const when = new Date(Date.now() + sc.done * 3600e3);
-          return `<div class="muted">Seguendo la lista: risorse pronte ${sc.res > 0.01 ? 'tra ' + waitText(sc.res) : 'adesso'} · ${QUEUE_NAMES[sc.q[0]] || 'coda'} libera ${sc.free > 0.01 ? 'tra ' + waitText(sc.free) : 'adesso'} · pronto tra <b>${waitText(sc.done)}</b> (${when.toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}).</div>`; })()}
+        ${r.wait ? `<div class="muted">Tempo prima che produca: ${waitText(r.wait)}${r.type === 'colony' ? ' (requisiti e Astrofisica, colonizzatrice, miniere ed energia sul pianeta nuovo; il volo della colonizzatrice non è compreso perché dipende dall\'universo e dalla distanza)' : ''}, già compreso nell'ammortamento.</div>` : ''}
+        ${(() => { const sc = sched.get(r); if (!sc) return '';
+          return `<div class="muted">${(QUEUE_NAMES[sc.q[0]] || 'coda').replace(/^c/, 'C')} ${sc.free > 0.01 ? `libera tra <b>${waitText(sc.free)}</b>, dopo i consigli che vengono prima in lista` : 'libera: si può fare subito'}.</div>`; })()}
         ${prev ? '<div class="muted">Calcolato come se avessi già fatto i consigli che vengono prima in lista.</div>' : ''}
         ${(() => { const nx = nextOf(r); return r.type === 'energy' ? '' : nx
           ? `<div class="muted">Livello successivo (${nx.nextLevel}): <b>n° ${posOf.get(nx)}</b> della lista, ${paybackText(nx.payback)}.</div>`

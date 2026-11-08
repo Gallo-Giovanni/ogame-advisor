@@ -745,7 +745,7 @@ const Engine = (() => {
     };
     return T;
   }
-  const COLONY_FLIGHT_H = 0.75;
+  const COLONY_FLIGHT_H = 0; // il volo della colonizzatrice dipende da universo e distanza: non si stima
   // Slot di ricerca forme di vita ancora chiuso: edifici (abitazioni, cibo, scuola, liceo, extra, Monolite) per avere la
   // popolazione che lo apre, con costo e tempo di costruzione. Popolazione: quella importata se c'è, altrimenti stimata.
   function slotUnlock(profile, planet, slot, T) {
@@ -801,7 +801,7 @@ const Engine = (() => {
     };
     for (const [rk, rl] of Object.entries(req[key] || {})) need(rk, rl);
     return { cost, energy, time, steps };
-  } // volo della colonizzatrice: da 30 minuti a 1 ora
+  }
 
   function colonyRecommendation(profile, planets, gainEq) {
     if (!planets.length) return null;
@@ -846,7 +846,7 @@ const Engine = (() => {
     const needEnergy = Math.round((consumption.metal_mine(target.metal_mine) + consumption.crystal_mine(target.crystal_mine) + consumption.deut_synth(target.deut_synth)) * consFactor(profile, colony));
     const fix = energyFix(profile, colony, needEnergy, { noFusion: true }); // colonia nuova: solare o satelliti
     if (fix) add(fix.cost);
-    // tempo: requisiti e Astrofisica (ricerca) insieme ai requisiti edifici, poi la colonizzatrice, il volo e le miniere
+    // tempo: requisiti e Astrofisica (ricerca) insieme ai requisiti edifici, poi la colonizzatrice e le miniere (il volo non si stima)
     // sul pianeta nuovo (senza Fabbrica di robot), una dopo l'altra
     const T = timing(profile, planets), shipPlanet = prePlanet || planets[0];
     let astroH = 0;
