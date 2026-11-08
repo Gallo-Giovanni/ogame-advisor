@@ -268,7 +268,7 @@ const LIFEFORMS = {
 
 // Requisiti degli edifici forme di vita: dall'Albero tecnologico del gioco (screenshot del giocatore, Umani).
 // { edificio: { edificio richiesto: livello } }; i requisiti dei requisiti sono nelle loro righe.
-// Mancano: Scudo planetario Umani, Mecha e Kaelesh (da inserire quando abbiamo l'Albero tecnologico).
+// Mancano: Scudo planetario Umani e i Kaelesh (da inserire quando abbiamo l'Albero tecnologico).
 LIFEFORMS.races.humans.requires = {
   research_centre: { residential_sector: 21, biosphere_farm: 22 },
   academy_of_sciences: { residential_sector: 41 },
@@ -292,6 +292,19 @@ LIFEFORMS.races.rocktal.requires = {
   mineral_centre: { crystal_refinery: 6, oriktorium: 1 },
   magma_forge: { tecnologicus_runarum: 5 },
   disruption_chamber: { magma_forge: 3 },
+};
+
+// Mecha (Albero tecnologico del gioco). Manca solo Nanobot Riparazione, che nessun altro edificio richiede.
+LIFEFORMS.races.mechas.requires = {
+  robotics_research_centre: { assembly_line: 17, fusion_cell_factory: 20 },
+  update_network: { assembly_line: 41 },
+  microchip_assembly_line: { update_network: 1 },
+  production_assembly_hall: { microchip_assembly_line: 1 },
+  high_performance_synthesizer: { microchip_assembly_line: 2 },
+  quantum_computer_centre: { production_assembly_hall: 5 },
+  chip_mass_production: { production_assembly_hall: 6, quantum_computer_centre: 1 },
+  automatised_assembly_centre: { robotics_research_centre: 5 },
+  high_performance_transformer: { automatised_assembly_centre: 3 },
 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che

@@ -91,3 +91,11 @@ console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durat
   assert.ok(!tr || tr.lfPre.length === 0, 'Enclave 30 e Produzione di cristalli 25 bastano per il Tecnologicus Runarum');
   console.log('ok requisiti Rock\'tal');
 }
+// Requisiti Mecha: Sintetizzatore Alte prestazioni su un pianeta nuovo
+{
+  const pl = { id: 'm', name: 'M', position: 8, temp_max: 40, metal_mine: 20, crystal_mine: 16, deut_synth: 12, solar_plant: 25, lf_race: 'mechas', lf_buildings: { assembly_line: 20, fusion_cell_factory: 20 }, lf_techs: {} };
+  const recs = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [pl]);
+  const hs = recs.find(r => r.key === 'high_performance_synthesizer');
+  assert.deepStrictEqual(hs.lfPre.map(x => [x.key, x.to]), [['assembly_line', 41], ['update_network', 1], ['microchip_assembly_line', 2]]);
+  console.log('ok requisiti Mecha');
+}
