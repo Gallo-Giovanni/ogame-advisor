@@ -222,6 +222,13 @@
   @media (max-width: 700px) { .ccres { grid-template-columns: 1fr; } }
   .btable.cc input { width: 70px; padding: 3px 6px; }
   body:not(.bm-on) .bm-only { display: none !important; }
+  button.ghost.miss-chip { color: var(--warn); border: 1px solid var(--warn); }
+  table.lv-grid { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  table.lv-grid th, table.lv-grid td { border-top: 1px solid var(--line); padding: 4px 5px; text-align: center; white-space: nowrap; }
+  table.lv-grid th { color: var(--muted); font-weight: 500; font-size: .78rem; }
+  table.lv-grid td:first-child, table.lv-grid th:first-child { text-align: left; }
+  table.lv-grid input { width: 64px; padding: 3px 5px; text-align: right; }
+  .lv-miss { border-color: var(--warn) !important; background: rgba(255,181,71,.08) !important; }
   .imp-pick { display: inline-block; cursor: pointer; }
   .imp-quick { position: relative; }
   .imp-quick [data-imp-msg] { position: absolute; right: 0; top: calc(100% + 6px); width: max-content; max-width: min(360px, 80vw); z-index: 5;
@@ -450,11 +457,12 @@
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
-      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top bm-only" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
+      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top bm-only" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><button class="ghost hidden miss-chip" id="miss-chip" title="Alcuni livelli non sono inseriti: contano come 0 e i consigli possono essere meno precisi">⚠ Dati da completare</button><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
     </header>
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
       <button class="tab" data-tab="planets">Pianeti</button>
+      <button class="tab" data-tab="levels">Ricerche e strutture</button>
       <button class="tab" data-tab="empire">Impero</button>
       <button class="tab" data-tab="bonus">Bonus</button>
       <button class="tab" data-tab="expo">Spedizioni</button>
@@ -497,6 +505,7 @@
       </div>
     </section>
 
+    <section data-panel="levels" class="stack hidden" id="levels-panel"></section>
     <section data-panel="planets" class="stack hidden">
       <div id="planets-list-view" class="stack">
         <div class="row" style="justify-content:space-between">
@@ -709,18 +718,6 @@
           <div><label>Universo</label><input data-s="universe"></div>
           <div><label>Classe</label><select data-s="player_class"><option value="explorer">Esploratore</option><option value="collector">Collezionista</option><option value="general">Generale</option></select></div>
           <div><label>Velocità di sviluppo</label><input data-s="economy_speed" type="number" min="1" max="20"></div>
-          <div><label>Tecnologia Plasma</label><input data-s="plasma_tech" type="number" min="0"></div>
-          <div><label>Tecnologia Energetica</label><input data-s="energy_tech" type="number" min="0"></div>
-          <div><label>Astrofisica</label><input data-s="astro_tech" type="number" min="0"></div>
-          <div><label>Tecnologia iperspaziale</label><input data-s="hyperspace_tech" type="number" min="0"></div>
-          <div><label>Propulsore a combustione</label><input placeholder="da inserire" data-r="115" type="number" min="0"></div>
-          <div><label>Propulsore a impulso</label><input placeholder="da inserire" data-r="117" type="number" min="0"></div>
-          <div><label>Tecnologia dei laser</label><input placeholder="da inserire" data-r="120" type="number" min="0"></div>
-          <div><label>Tecnologia ionica</label><input placeholder="da inserire" data-r="121" type="number" min="0"></div>
-          <div><label>Tecnologia per lo spionaggio</label><input placeholder="da inserire" data-r="106" type="number" min="0"></div>
-          <div><label>Tecnologia informatica</label><input placeholder="da inserire" data-r="108" type="number" min="0"></div>
-          <div><label>Tecnologia degli scudi</label><input placeholder="da inserire" data-r="110" type="number" min="0"></div>
-          <div><label>Tecnologia delle corazze</label><input placeholder="da inserire" data-r="111" type="number" min="0"></div>
           <div><label>Velocità di ricerca (arriva con l'importazione)</label><input data-s="research_speed" type="number" min="0.1" step="0.1" placeholder="es. 15"></div>
           <div style="grid-column:1/-1"><label>Punti del 1° in classifica (universo)</label><input data-s="top1_points" type="hidden"><div class="chips top1-chips"></div></div>
         </div>
@@ -1083,7 +1080,7 @@ function renderApp() {
   const sw = $('#acc-switch');
   sw.innerHTML = state.accounts.map(a => `<option value="${a.id}">${esc(accountName(a))}</option>`).join('');
   sw.value = p.id; sw.classList.toggle('hidden', state.accounts.length < 2);
-  renderAdvice(); renderPlanetCards(); renderBonus(); renderExpeditions(); renderItems(); renderEmpire(); renderUnlock(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
+  renderAdvice(); renderPlanetCards(); renderLevels(); renderBonus(); renderExpeditions(); renderItems(); renderEmpire(); renderUnlock(); renderCosts(); renderSettings(); renderUpdatesBadge(); renderAccounts();
   show('app');
 }
 
@@ -1118,20 +1115,80 @@ function paybackText(h) {
   return (h / 24).toFixed(1).replace('.', ',') + ' giorni';
 }
 
-// Livelli che servono per i requisiti (cantiere, laboratorio, ricerche): se non sono mai stati inseriti o importati
-// contano come 0, quindi lo si dice e si spiega dove inserirli.
-function renderReqNote() {
+// Livelli che servono per requisiti, tempi, depositi e campi. Se mancano contano come 0: un avviso fisso in alto
+// ("Dati da completare") porta alla scheda Ricerche e strutture, dove si inseriscono tutti in un posto solo.
+const LV_RESEARCH = [[122, 'plasma_tech', 'Tecnologia del plasma'], [113, 'energy_tech', 'Tecnologia energetica'], [124, 'astro_tech', 'Astrofisica'],
+  [114, 'hyperspace_tech', 'Tecnologia iperspaziale'], [115, null, 'Propulsore a combustione'], [117, null, 'Propulsore a impulso'],
+  [120, null, 'Tecnologia dei laser'], [121, null, 'Tecnologia ionica'], [106, null, 'Tecnologia per lo spionaggio'],
+  [108, null, 'Tecnologia informatica'], [110, null, 'Tecnologia degli scudi'], [111, null, 'Tecnologia delle corazze'], [123, null, 'Rete interplanetaria di ricerca']];
+const LV_BUILD = [[14, 'Robot'], [15, 'Naniti'], [31, 'Laboratorio'], [21, 'Cantiere'], [22, 'Dep. metallo'], [23, 'Dep. cristallo'], [24, 'Cisterna deut.'], [33, 'Terraformer']];
+function missingData() {
   const p = state.profile || {}, r = p.research || {};
-  const missR = ['115', '117', '120', '121', '106', '108', '110', '111'].filter(id => r[id] == null);
-  const storeOn = p.count_storage !== false;
-  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null || (storeOn && (b[22] == null || b[23] == null || b[24] == null)); });
-  const el = $('#req-note');
-  if (!missR.length && !missP.length) { el.classList.add('hidden'); return; }
-  el.classList.remove('hidden');
-  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma, fusione e gli upgrade che servono depositi più grandi possono costare più del vero:
-    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale, Laboratorio di ricerca e depositi di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
-    Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
+  const research = LV_RESEARCH.filter(([id, col]) => r[id] == null && (!col || p[col] == null || p[col] === '')).map(x => x[2]);
+  const planets = state.planets.filter(pl => { const b = pl.buildings || {}; return LV_BUILD.some(([id]) => b[id] == null) || !(pl.fields && pl.fields.max > 0); });
+  return { research, planets, count: research.length + planets.length };
 }
+function renderReqNote() {
+  const m = missingData(), chip = $('#miss-chip');
+  chip.classList.toggle('hidden', !m.count);
+  chip.textContent = `⚠ Dati da completare (${m.count})`;
+  $('#req-note').classList.add('hidden');
+}
+$('#miss-chip').addEventListener('click', () => { if (confirmLeavePlanet()) goToTab('levels'); });
+function renderLevels() {
+  const p = state.profile || {}, r = p.research || {}, m = missingData();
+  const val = v => (v == null || v === '' ? '' : v);
+  const rv = (id, col) => val(r[id] != null ? r[id] : col ? p[col] : null);
+  const cell = (attr, v) => `<input ${attr} type="number" min="0" value="${v}" placeholder="—" class="${v === '' ? 'lv-miss' : ''}">`;
+  $('#levels-panel').innerHTML = `<div class="card stack">
+      <h2 style="margin:0">Ricerche e strutture</h2>
+      <p class="muted small" style="margin:0">Questi livelli servono per requisiti (colonie, satelliti, Plasma, centrale a fusione, Terraformer), tempi di costruzione e ricerca, depositi e campi dei pianeti. <b>Arrivano tutti importando la Vista impero</b>; se non importi, inseriscili qui. Quelli in giallo mancano e per ora contano come 0, quindi alcuni consigli possono costare più del vero.</p>
+      ${m.count ? `<p class="small" style="margin:0;color:var(--warn)">Mancano: ${m.research.length ? `${m.research.length} ${m.research.length === 1 ? 'ricerca' : 'ricerche'}` : ''}${m.research.length && m.planets.length ? ' e ' : ''}${m.planets.length ? `dati di ${m.planets.length} ${m.planets.length === 1 ? 'pianeta' : 'pianeti'}` : ''}.</p>` : '<p class="small" style="margin:0;color:var(--ok)">✓ Tutti i dati ci sono.</p>'}
+    </div>
+    <div class="card stack"><h3 style="margin:0">Ricerche dell'account</h3>
+      <div class="grid">${LV_RESEARCH.map(([id, col, name]) => `<div><label>${name}</label>${cell(`data-lvr="${id}"`, rv(id, col))}</div>`).join('')}</div>
+    </div>
+    <div class="card stack"><h3 style="margin:0">Strutture e campi dei pianeti</h3>
+      <div class="bwrap"><table class="lv-grid"><tr><th>Pianeta</th>${LV_BUILD.map(([, n]) => `<th>${n}</th>`).join('')}<th>Campi usati</th><th>Campi totali</th></tr>
+        ${state.planets.map(pl => { const b = pl.buildings || {}, f = pl.fields || {};
+          return `<tr><td>${esc(pl.name)}</td>${LV_BUILD.map(([id]) => `<td>${cell(`data-lvb="${id}" data-pl="${pl.id}"`, val(b[id] != null ? b[id] : id === 14 ? pl.robotics_factory : id === 15 ? pl.nanite_factory : null))}</td>`).join('')}
+            <td>${cell(`data-lvf="used" data-pl="${pl.id}"`, val(f.used))}</td><td>${cell(`data-lvf="max" data-pl="${pl.id}"`, val(f.max))}</td></tr>`; }).join('')}
+      </table></div>
+      <div class="row"><button id="lv-save">Salva</button><span class="small" id="lv-msg"></span></div>
+    </div>`;
+}
+$('#levels-panel').addEventListener('input', e => { if (e.target.tagName === 'INPUT') e.target.classList.toggle('lv-miss', e.target.value.trim() === ''); });
+$('#levels-panel').addEventListener('click', async e => {
+  if (e.target.id !== 'lv-save') return;
+  const btn = e.target; btn.disabled = true; message($('#lv-msg'), 'Salvataggio…', 'ok');
+  const num = v => (v.trim() === '' ? null : Math.max(0, parseInt(v, 10) || 0));
+  // ricerche: livelli per id del gioco, le quattro con un campo proprio anche lì
+  const research = { ...((state.profile && state.profile.research) || {}) }, prof = {};
+  $$('#levels-panel [data-lvr]').forEach(el => {
+    const id = +el.dataset.lvr, v = num(el.value), col = (LV_RESEARCH.find(x => x[0] === id) || [])[1];
+    if (v == null) delete research[id]; else research[id] = v;
+    if (col && v != null) prof[col] = v;
+  });
+  let r = await sb.from('profiles').update({ ...prof, research }).eq('id', state.profile.id).select().single();
+  if (r.error) { btn.disabled = false; return message($('#lv-msg'), 'Errore: ' + r.error.message); }
+  state.profile = r.data;
+  for (const pl of state.planets) {
+    const b = { ...(pl.buildings || {}) }, patch = {};
+    $$(`#levels-panel [data-lvb][data-pl="${pl.id}"]`).forEach(el => { const v = num(el.value), id = +el.dataset.lvb; if (v == null) delete b[id]; else b[id] = v; });
+    patch.buildings = b;
+    if (b[14] != null) patch.robotics_factory = b[14];
+    if (b[15] != null) patch.nanite_factory = b[15];
+    const fu = num($(`#levels-panel [data-lvf="used"][data-pl="${pl.id}"]`).value), fm = num($(`#levels-panel [data-lvf="max"][data-pl="${pl.id}"]`).value);
+    patch.fields = fu != null && fm != null ? { used: fu, max: fm } : null;
+    if (JSON.stringify([pl.buildings || {}, pl.fields || null, pl.robotics_factory, pl.nanite_factory]) === JSON.stringify([patch.buildings, patch.fields, patch.robotics_factory ?? pl.robotics_factory, patch.nanite_factory ?? pl.nanite_factory])) continue;
+    r = await sb.from('planets').update(patch).eq('id', pl.id).select().single();
+    if (r.error) { btn.disabled = false; return message($('#lv-msg'), 'Errore: ' + r.error.message); }
+    Object.assign(pl, r.data);
+  }
+  btn.disabled = false;
+  renderApp(); goToTab('levels');
+  message($('#lv-msg'), 'Salvato.', 'ok'); setTimeout(() => message($('#lv-msg'), ''), 2500);
+});
 // Il piano si allunga in sottofondo (a blocchi, senza bloccare la pagina) finché serve: per riempire la lista quando
 // le spunte ne nascondono una parte e per trovare la prossima colonia. Fino a COLONY_MAX passi.
 const COLONY_MAX = 3000;
@@ -2616,8 +2673,8 @@ function expeditionLogHtml() {
       <input data-expr="2" type="number" step="0.01" min="0.01" value="${er[2]}" style="width:60px"></div>
     <p class="muted small" style="margin:0">L'app lo converte nel suo valore delle risorse (${fmtR(pr.ratio_metal)} : ${fmtR(pr.ratio_crystal)} : ${fmtR(pr.ratio_deut)}): con questo cambio ${fact >= 1 ? '+' : ''}${((fact - 1) * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 })}% (composizione tipica delle spedizioni: 63,5% metallo, 29% cristallo, 7,5% deuterio).</p>
     <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Valore (MSU)</th><th>Spedizioni</th><th>Per spedizione</th><th></th></tr>
-      ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
-      <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-n" type="number" min="0" placeholder="facoltativo" style="width:100px"></td><td></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
+      ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td style="white-space:nowrap"><button type="button" class="ghost" data-explog-edit="${i}" title="Modifica">✎</button><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
+      ${(() => { const ed = state.expEdit != null ? log[state.expEdit] : null; return `<tr><td><input type="date" id="exp-d" style="width:auto" value="${ed ? esc(ed.d || '') : ''}"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px" value="${ed ? ((+ed.r + (+ed.s || 0)) / 1e9).toLocaleString('it-IT', { maximumFractionDigits: 4 }) + 'G' : ''}"></td><td><input id="exp-n" type="number" min="0" placeholder="facoltativo" style="width:100px" value="${ed && +ed.n ? +ed.n : ''}"></td>`; })()}<td></td><td><button type="button" id="exp-add">${state.expEdit != null ? 'Salva' : 'Aggiungi'}</button>${state.expEdit != null ? ' <button type="button" class="ghost" id="exp-cancel">Annulla</button>' : ''}</td></tr>
       ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total / fact)}${Math.abs(fact - 1) > 0.001 ? ` <span class="muted">(${big(avg.total)} per l'app)</span>` : ''}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
     </table></div>
     <span class="small neg" id="exp-msg"></span>
@@ -2635,9 +2692,14 @@ document.addEventListener('click', e => {
     const r = parseBig($('#exp-r').value), n = Math.max(0, parseInt($('#exp-n').value, 10) || 0);
     if (!(r > 0)) { $('#exp-msg').textContent = 'Scrivi il valore trovato (es. 1,19G o 601,35M).'; return; }
     const d = $('#exp-d').value || new Date().toISOString().slice(0, 10);
-    const log = (Array.isArray(state.profile.expedition_log) ? state.profile.expedition_log : []).filter(x => x.d !== d).concat({ d, r, ...(n ? { n } : {}) }).sort((a, b) => String(a.d).localeCompare(String(b.d)));
+    const old = (Array.isArray(state.profile.expedition_log) ? state.profile.expedition_log : []).filter((x, i) => i !== state.expEdit);
+    state.expEdit = null;
+    const log = old.filter(x => x.d !== d).concat({ d, r, ...(n ? { n } : {}) }).sort((a, b) => String(a.d).localeCompare(String(b.d)));
     saveExpedition({ expedition_log: log });
   }
+  const ed = e.target.closest('[data-explog-edit]');
+  if (ed) { state.expEdit = +ed.dataset.explogEdit; renderExpeditions(); $('#exp-r').focus(); return; }
+  if (e.target.id === 'exp-cancel') { state.expEdit = null; renderExpeditions(); return; }
   const del = e.target.closest('[data-explog-del]');
   if (del) { const log = [...(state.profile.expedition_log || [])]; log.splice(+del.dataset.explogDel, 1); saveExpedition({ expedition_log: log }); }
 });
@@ -3040,7 +3102,6 @@ $('#cc-have-all').addEventListener('click', () => {
 function renderSettings() {
   const p = state.profile;
   $$('[data-s]').forEach(el => { if (el.type === 'checkbox') el.checked = !!p[el.dataset.s]; else el.value = p[el.dataset.s] ?? ''; });
-  $$('[data-panel="settings"] [data-r]').forEach(el => { el.value = (p.research || {})[el.dataset.r] ?? ''; });
   paintTop1(); syncRatioInputs();
 }
 // Valore delle risorse: valori del server, massimi del mercante (3 : 2 : 1) o personalizzato (nessuna spunta)
@@ -3067,7 +3128,6 @@ $('#save-settings').addEventListener('click', async () => {
   patch.top1_points = patch.top1_points === '' ? null : Math.max(0, Math.round(Number(patch.top1_points) || 0));
   patch.ratio_mode = ['server', 'merchant', 'custom'].includes(patch.ratio_mode) ? patch.ratio_mode : 'server';
   patch.research_speed = patch.research_speed === '' ? null : Math.max(0.1, Number(patch.research_speed) || 0) || null;
-  patch.research = researchFromInputs($$('[data-panel="settings"] [data-r]'), patch);
   const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
   if (r.error) return message($('#settings-msg'), 'Errore: ' + r.error.message);
   state.profile = r.data;

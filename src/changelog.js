@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 88, date: '2026-11-08', title: 'Scheda Ricerche e strutture',
+    text: 'I livelli che servono ai calcoli (ricerche dell\'account, robot, naniti, laboratorio, cantiere, depositi, Terraformer e campi di ogni pianeta) ora sono tutti in una scheda sola, "Ricerche e strutture", accanto a Pianeti. Se ne manca qualcuno, in alto compare l\'avviso "Dati da completare", che porta lì; quelli mancanti sono in giallo. Con l\'importazione della Vista impero arrivano tutti da soli. Nella resa delle spedizioni ora puoi anche modificare un giorno già inserito (✎).',
+  },
+  {
     id: 87, date: '2026-11-08', title: 'Resa delle spedizioni nei consigli',
     text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica); indichi anche il cambio con cui è calcolato il valore (es. 3 : 2 : 1) e l\'app lo converte nel suo: l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
   },
