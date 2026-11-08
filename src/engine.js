@@ -747,6 +747,17 @@ const Engine = (() => {
   };
 
   const EXP_SHIP_RATIO = 0.21;
+  // Il valore dei registri è in metallo equivalente con un suo cambio (es. 3 : 2 : 1); l'app lo riporta al proprio
+  // (profile.ratio_*) con la composizione tipica delle spedizioni: 63,5% metallo, 29% cristallo, 7,5% deuterio in
+  // quantità (19 giorni di registri del giocatore). Cambio a : b : c = 1 metallo vale a, 1 cristallo b, 1 deuterio c.
+  const EXP_MIX = [0.635, 0.29, 0.075];
+  function expRatioFactor(profile) {
+    const r = Array.isArray(profile.expedition_ratio) && profile.expedition_ratio.every(x => +x > 0) ? profile.expedition_ratio.map(Number) : [3, 2, 1];
+    const their = EXP_MIX[0] + EXP_MIX[1] * r[0] / r[1] + EXP_MIX[2] * r[0] / r[2];
+    const rm = +profile.ratio_metal || 1;
+    const ours = EXP_MIX[0] + EXP_MIX[1] * (+profile.ratio_crystal || 1.6667) / rm + EXP_MIX[2] * (+profile.ratio_deut || 2.5) / rm;
+    return ours / their;
+  }
   // Spedizioni contemporanee: radice quadrata dell'Astrofisica (per difetto), +2 per la classe Esploratore
   const expeditionSlots = profile => Math.floor(Math.sqrt(+profile.astro_tech || 0)) + (profile.player_class === 'explorer' ? 2 : 0);
   // Resa media delle spedizioni al giorno dal registro del giocatore: { res, ships } in metallo equivalente, o null
@@ -754,7 +765,7 @@ const Engine = (() => {
     if (profile.expedition_in_ranking === false) return null;
     const log = (Array.isArray(profile.expedition_log) ? profile.expedition_log : []).filter(e => e && (+e.r > 0 || +e.s > 0));
     if (!log.length) return null;
-    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
+    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length * expRatioFactor(profile);
     const withN = log.filter(e => +e.n > 0);
     const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
     // il valore MSU dei registri (cambio 3:2:1, verificato: 19 ott 494,58 + 133,13 x 1,5 + 75,11 x 3 = 919,6M) comprende
@@ -1348,7 +1359,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, lfBuildEnergy, expeditionAvg, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, expeditionAvg, expRatioFactor, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();

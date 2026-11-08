@@ -1941,6 +1941,17 @@ const Engine = (() => {
   };
 
   const EXP_SHIP_RATIO = 0.21;
+  // Il valore dei registri è in metallo equivalente con un suo cambio (es. 3 : 2 : 1); l'app lo riporta al proprio
+  // (profile.ratio_*) con la composizione tipica delle spedizioni: 63,5% metallo, 29% cristallo, 7,5% deuterio in
+  // quantità (19 giorni di registri del giocatore). Cambio a : b : c = 1 metallo vale a, 1 cristallo b, 1 deuterio c.
+  const EXP_MIX = [0.635, 0.29, 0.075];
+  function expRatioFactor(profile) {
+    const r = Array.isArray(profile.expedition_ratio) && profile.expedition_ratio.every(x => +x > 0) ? profile.expedition_ratio.map(Number) : [3, 2, 1];
+    const their = EXP_MIX[0] + EXP_MIX[1] * r[0] / r[1] + EXP_MIX[2] * r[0] / r[2];
+    const rm = +profile.ratio_metal || 1;
+    const ours = EXP_MIX[0] + EXP_MIX[1] * (+profile.ratio_crystal || 1.6667) / rm + EXP_MIX[2] * (+profile.ratio_deut || 2.5) / rm;
+    return ours / their;
+  }
   // Spedizioni contemporanee: radice quadrata dell'Astrofisica (per difetto), +2 per la classe Esploratore
   const expeditionSlots = profile => Math.floor(Math.sqrt(+profile.astro_tech || 0)) + (profile.player_class === 'explorer' ? 2 : 0);
   // Resa media delle spedizioni al giorno dal registro del giocatore: { res, ships } in metallo equivalente, o null
@@ -1948,7 +1959,7 @@ const Engine = (() => {
     if (profile.expedition_in_ranking === false) return null;
     const log = (Array.isArray(profile.expedition_log) ? profile.expedition_log : []).filter(e => e && (+e.r > 0 || +e.s > 0));
     if (!log.length) return null;
-    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
+    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length * expRatioFactor(profile);
     const withN = log.filter(e => +e.n > 0);
     const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
     // il valore MSU dei registri (cambio 3:2:1, verificato: 19 ott 494,58 + 133,13 x 1,5 + 75,11 x 3 = 919,6M) comprende
@@ -2542,7 +2553,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, lfBuildEnergy, expeditionAvg, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, expeditionAvg, expRatioFactor, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
@@ -2806,7 +2817,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 87, date: '2026-11-08', title: 'Resa delle spedizioni nei consigli',
-    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica): l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
+    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica); indichi anche il cambio con cui è calcolato il valore (es. 3 : 2 : 1) e l\'app lo converte nel suo: l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
   },
   {
     id: 86, date: '2026-11-08', title: 'Più modi per avere energia, e il Concentratore astrale',
@@ -4950,14 +4961,22 @@ function expeditionLogHtml() {
   const p = state.profile || {}, log = Array.isArray(p.expedition_log) ? p.expedition_log : [];
   const avg = Engine.expeditionAvg({ ...p, expedition_in_ranking: true });
   const slots = Engine.expeditionSlots(numericProfile(p));
+  const pr = numericProfile(p), er = Array.isArray(p.expedition_ratio) ? p.expedition_ratio : [3, 2, 1];
+  const fact = Engine.expRatioFactor({ ...pr, expedition_ratio: er });
+  const fmtR = v => (+v).toLocaleString('it-IT', { maximumFractionDigits: 2 });
   const day = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   return `<div class="card stack" id="exp-log"><h2 class="bh">Resa delle spedizioni</h2>
-    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU come lo mostrano i registri delle spedizioni (metallo equivalente al cambio 3 : 2 : 1, navi trovate comprese). Rispetto al valore delle risorse usato dall'app la differenza è di pochi punti percentuali, quindi l'app lo usa così. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
+    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU come lo mostrano i registri delle spedizioni (navi trovate comprese), e qui sotto il cambio con cui è calcolato. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
     <p class="small" style="margin:0">Spedizioni contemporanee: <b>${slots}</b> (Astrofisica ${+p.astro_tech || 0}: radice quadrata, per difetto, = ${Math.floor(Math.sqrt(+p.astro_tech || 0))}${p.player_class === 'explorer' ? ', +2 Esploratore' : ''}).</p>
+    <div class="row small" style="gap:6px;align-items:center">Cambio del valore inserito (metallo : cristallo : deuterio)
+      <input data-expr="0" type="number" step="0.01" min="0.01" value="${er[0]}" style="width:60px"> :
+      <input data-expr="1" type="number" step="0.01" min="0.01" value="${er[1]}" style="width:60px"> :
+      <input data-expr="2" type="number" step="0.01" min="0.01" value="${er[2]}" style="width:60px"></div>
+    <p class="muted small" style="margin:0">L'app lo converte nel suo valore delle risorse (${fmtR(pr.ratio_metal)} : ${fmtR(pr.ratio_crystal)} : ${fmtR(pr.ratio_deut)}): con questo cambio ${fact >= 1 ? '+' : ''}${((fact - 1) * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 })}% (composizione tipica delle spedizioni: 63,5% metallo, 29% cristallo, 7,5% deuterio).</p>
     <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Valore (MSU)</th><th>Spedizioni</th><th>Per spedizione</th><th></th></tr>
       ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
       <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-n" type="number" min="0" placeholder="facoltativo" style="width:100px"></td><td></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
-      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total)}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
+      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total / fact)}${Math.abs(fact - 1) > 0.001 ? ` <span class="muted">(${big(avg.total)} per l'app)</span>` : ''}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
     </table></div>
     <span class="small neg" id="exp-msg"></span>
     <label class="check"><input type="checkbox" id="exp-rank" ${p.expedition_in_ranking !== false ? 'checked' : ''}> Conta la resa delle spedizioni nei consigli</label>
@@ -4980,7 +4999,13 @@ document.addEventListener('click', e => {
   const del = e.target.closest('[data-explog-del]');
   if (del) { const log = [...(state.profile.expedition_log || [])]; log.splice(+del.dataset.explogDel, 1); saveExpedition({ expedition_log: log }); }
 });
-document.addEventListener('change', e => { if (e.target.id === 'exp-rank') saveExpedition({ expedition_in_ranking: e.target.checked }); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'exp-rank') saveExpedition({ expedition_in_ranking: e.target.checked });
+  if (e.target.dataset && e.target.dataset.expr != null) {
+    const v = [0, 1, 2].map(i => Math.max(0.01, +$(`[data-expr="${i}"]`).value || 1));
+    saveExpedition({ expedition_ratio: v });
+  }
+});
 function renderExpeditions() {
   const c = EXP_CTX;
   if (!c) { $('#expo-panel').innerHTML = expeditionLogHtml() + `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2><p class="muted small" style="margin:0">Per il calcolo servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p></div>`; return; }

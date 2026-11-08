@@ -2603,14 +2603,22 @@ function expeditionLogHtml() {
   const p = state.profile || {}, log = Array.isArray(p.expedition_log) ? p.expedition_log : [];
   const avg = Engine.expeditionAvg({ ...p, expedition_in_ranking: true });
   const slots = Engine.expeditionSlots(numericProfile(p));
+  const pr = numericProfile(p), er = Array.isArray(p.expedition_ratio) ? p.expedition_ratio : [3, 2, 1];
+  const fact = Engine.expRatioFactor({ ...pr, expedition_ratio: er });
+  const fmtR = v => (+v).toLocaleString('it-IT', { maximumFractionDigits: 2 });
   const day = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   return `<div class="card stack" id="exp-log"><h2 class="bh">Resa delle spedizioni</h2>
-    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU come lo mostrano i registri delle spedizioni (metallo equivalente al cambio 3 : 2 : 1, navi trovate comprese). Rispetto al valore delle risorse usato dall'app la differenza è di pochi punti percentuali, quindi l'app lo usa così. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
+    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU come lo mostrano i registri delle spedizioni (navi trovate comprese), e qui sotto il cambio con cui è calcolato. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
     <p class="small" style="margin:0">Spedizioni contemporanee: <b>${slots}</b> (Astrofisica ${+p.astro_tech || 0}: radice quadrata, per difetto, = ${Math.floor(Math.sqrt(+p.astro_tech || 0))}${p.player_class === 'explorer' ? ', +2 Esploratore' : ''}).</p>
+    <div class="row small" style="gap:6px;align-items:center">Cambio del valore inserito (metallo : cristallo : deuterio)
+      <input data-expr="0" type="number" step="0.01" min="0.01" value="${er[0]}" style="width:60px"> :
+      <input data-expr="1" type="number" step="0.01" min="0.01" value="${er[1]}" style="width:60px"> :
+      <input data-expr="2" type="number" step="0.01" min="0.01" value="${er[2]}" style="width:60px"></div>
+    <p class="muted small" style="margin:0">L'app lo converte nel suo valore delle risorse (${fmtR(pr.ratio_metal)} : ${fmtR(pr.ratio_crystal)} : ${fmtR(pr.ratio_deut)}): con questo cambio ${fact >= 1 ? '+' : ''}${((fact - 1) * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 })}% (composizione tipica delle spedizioni: 63,5% metallo, 29% cristallo, 7,5% deuterio).</p>
     <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Valore (MSU)</th><th>Spedizioni</th><th>Per spedizione</th><th></th></tr>
       ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
       <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-n" type="number" min="0" placeholder="facoltativo" style="width:100px"></td><td></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
-      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total)}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
+      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total / fact)}${Math.abs(fact - 1) > 0.001 ? ` <span class="muted">(${big(avg.total)} per l'app)</span>` : ''}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
     </table></div>
     <span class="small neg" id="exp-msg"></span>
     <label class="check"><input type="checkbox" id="exp-rank" ${p.expedition_in_ranking !== false ? 'checked' : ''}> Conta la resa delle spedizioni nei consigli</label>
@@ -2633,7 +2641,13 @@ document.addEventListener('click', e => {
   const del = e.target.closest('[data-explog-del]');
   if (del) { const log = [...(state.profile.expedition_log || [])]; log.splice(+del.dataset.explogDel, 1); saveExpedition({ expedition_log: log }); }
 });
-document.addEventListener('change', e => { if (e.target.id === 'exp-rank') saveExpedition({ expedition_in_ranking: e.target.checked }); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'exp-rank') saveExpedition({ expedition_in_ranking: e.target.checked });
+  if (e.target.dataset && e.target.dataset.expr != null) {
+    const v = [0, 1, 2].map(i => Math.max(0.01, +$(`[data-expr="${i}"]`).value || 1));
+    saveExpedition({ expedition_ratio: v });
+  }
+});
 function renderExpeditions() {
   const c = EXP_CTX;
   if (!c) { $('#expo-panel').innerHTML = expeditionLogHtml() + `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2><p class="muted small" style="margin:0">Per il calcolo servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p></div>`; return; }

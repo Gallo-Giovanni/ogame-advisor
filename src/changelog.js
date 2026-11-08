@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 87, date: '2026-11-08', title: 'Resa delle spedizioni nei consigli',
-    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica): l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
+    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica); indichi anche il cambio con cui è calcolato il valore (es. 3 : 2 : 1) e l\'app lo converte nel suo: l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
   },
   {
     id: 86, date: '2026-11-08', title: 'Più modi per avere energia, e il Concentratore astrale',
