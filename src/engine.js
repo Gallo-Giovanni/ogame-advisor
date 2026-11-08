@@ -757,9 +757,9 @@ const Engine = (() => {
     const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
     const withN = log.filter(e => +e.n > 0);
     const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
-    // il valore MSU dei registri è solo risorse (metallo + cristallo x 1,67 + deuterio x 2,5, verificato); le navi
-    // trovate valgono in più circa il 21% delle risorse (19 giorni di registri del giocatore: 4,62G di navi su 21,64G)
-    return { total, res: total, ships: total * EXP_SHIP_RATIO, days: log.length, perExp };
+    // il valore MSU dei registri comprende anche le navi trovate (convertite in risorse): circa il 21% del totale sono
+    // navi (19 giorni di registri del giocatore: 4,62G di navi su 21,64G)
+    return { total, res: total * (1 - EXP_SHIP_RATIO), ships: total * EXP_SHIP_RATIO, days: log.length, perExp };
   }
 
   // ---- Tempo prima che un consiglio produca (ore) ----

@@ -2605,7 +2605,7 @@ function expeditionLogHtml() {
   const slots = Engine.expeditionSlots(numericProfile(p));
   const day = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   return `<div class="card stack" id="exp-log"><h2 class="bh">Resa delle spedizioni</h2>
-    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore in MSU (metallo equivalente) delle risorse trovate, come lo mostrano i registri delle spedizioni. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
+    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU (metallo equivalente) come lo mostrano i registri delle spedizioni, navi trovate comprese. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
     <p class="small" style="margin:0">Spedizioni contemporanee: <b>${slots}</b> (Astrofisica ${+p.astro_tech || 0}: radice quadrata, per difetto, = ${Math.floor(Math.sqrt(+p.astro_tech || 0))}${p.player_class === 'explorer' ? ', +2 Esploratore' : ''}).</p>
     <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Valore (MSU)</th><th>Spedizioni</th><th>Per spedizione</th><th></th></tr>
       ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
@@ -2614,7 +2614,7 @@ function expeditionLogHtml() {
     </table></div>
     <span class="small neg" id="exp-msg"></span>
     <label class="check"><input type="checkbox" id="exp-rank" ${p.expedition_in_ranking !== false ? 'checked' : ''}> Conta la resa delle spedizioni nei consigli</label>
-    <p class="muted small" style="margin:0">Con la spunta, le ricerche sulle spedizioni entrano nella classifica con il guadagno calcolato dalla tua media (alle risorse si aggiungono le navi trovate, che nei registri valgono circa il 21% delle risorse); senza, la classifica guarda solo la produzione delle miniere.</p>
+    <p class="muted small" style="margin:0">Con la spunta, le ricerche sulle spedizioni entrano nella classifica con il guadagno calcolato dalla tua media (circa 79% risorse e 21% navi trovate, come nei registri delle spedizioni); senza, la classifica guarda solo la produzione delle miniere.</p>
   </div>`;
 }
 async function saveExpedition(patch) {
