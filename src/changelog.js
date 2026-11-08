@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita Rock\'tal',
+    text: 'Anche per i Rock\'tal i consigli sugli edifici forme di vita contano gli edifici da sbloccare prima (Albero tecnologico del gioco): per esempio Cristalleria richiede il Monolite 1, che richiede la Fucina delle Rune 1, che richiede l\'Enclave di Meditazione 41; il Centro di Mineralogia richiede Cristalleria 6 e Orictorium 1. Costo e tempo di quei livelli entrano nel consiglio.',
+  },
+  {
     id: 79, date: '2026-11-07', title: 'Dati del server anche importando la pagina salvata',
     text: 'Importando la Vista impero salvata, punti del primo in classifica, velocità delle ricerche e tasso di scambio arrivano di nuovo da soli: li legge il server dell\'app dall\'API pubblica di OGame, una volta al giorno per universo.',
   },

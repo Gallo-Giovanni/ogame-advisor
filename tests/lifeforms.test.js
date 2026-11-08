@@ -80,3 +80,14 @@ console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durat
   assert.deepStrictEqual([done.residential_sector, done.biosphere_farm, done.research_centre, done.high_energy_smelting], [21, 22, 5, 1]);
   console.log('ok requisiti edifici forme di vita (Umani)');
 }
+// Requisiti Rock'tal: Centro di Mineralogia su un pianeta nuovo richiede tutta la catena fino all'Enclave di Meditazione
+{
+  const LFr = LF.races.rocktal;
+  const pl = { id: 'r', name: 'R', position: 8, temp_max: 40, metal_mine: 20, crystal_mine: 16, deut_synth: 12, solar_plant: 25, lf_race: 'rocktal', lf_buildings: { meditation_enclave: 30, crystal_farm: 25 }, lf_techs: {} };
+  const recs = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [pl]);
+  const cr = recs.find(r => r.key === 'crystal_refinery');
+  assert.deepStrictEqual(cr.lfPre.map(x => [x.key, x.to]), [['meditation_enclave', 41], ['rune_forge', 1], ['monolith', 1]]);
+  const tr = recs.find(r => r.key === 'tecnologicus_runarum');
+  assert.ok(!tr || tr.lfPre.length === 0, 'Enclave 30 e Produzione di cristalli 25 bastano per il Tecnologicus Runarum');
+  console.log('ok requisiti Rock\'tal');
+}

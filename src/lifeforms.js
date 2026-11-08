@@ -268,7 +268,7 @@ const LIFEFORMS = {
 
 // Requisiti degli edifici forme di vita: dall'Albero tecnologico del gioco (screenshot del giocatore, Umani).
 // { edificio: { edificio richiesto: livello } }; i requisiti dei requisiti sono nelle loro righe.
-// Mancano: Scudo planetario Umani e le altre razze (da inserire quando abbiamo l'Albero tecnologico).
+// Mancano: Scudo planetario Umani, Mecha e Kaelesh (da inserire quando abbiamo l'Albero tecnologico).
 LIFEFORMS.races.humans.requires = {
   research_centre: { residential_sector: 21, biosphere_farm: 22 },
   academy_of_sciences: { residential_sector: 41 },
@@ -279,6 +279,19 @@ LIFEFORMS.races.humans.requires = {
   biotech_lab: { fusion_production: 2 },
   neuro_calibration_centre: { skyscraper: 5 },
   metropolis: { skyscraper: 6, neuro_calibration_centre: 1 },
+};
+
+// Rock'tal (Albero tecnologico del gioco). Manca solo l'Impianto di Riciclaggio, che nessun altro edificio richiede.
+LIFEFORMS.races.rocktal.requires = {
+  tecnologicus_runarum: { meditation_enclave: 21, crystal_farm: 22 },
+  rune_forge: { meditation_enclave: 41 },
+  monolith: { rune_forge: 1 },
+  crystal_refinery: { monolith: 1 },
+  deuterium_tuner: { monolith: 2 },
+  oriktorium: { crystal_refinery: 5 },
+  mineral_centre: { crystal_refinery: 6, oriktorium: 1 },
+  magma_forge: { tecnologicus_runarum: 5 },
+  disruption_chamber: { magma_forge: 3 },
 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che
