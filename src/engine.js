@@ -757,7 +757,8 @@ const Engine = (() => {
     const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
     const withN = log.filter(e => +e.n > 0);
     const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
-    // il valore MSU dei registri comprende anche le navi trovate (convertite in risorse): circa il 21% del totale sono
+    // il valore MSU dei registri (cambio 3:2:1, verificato: 19 ott 494,58 + 133,13 x 1,5 + 75,11 x 3 = 919,6M) comprende
+    // anche le navi trovate (convertite in risorse); differisce di 1-2% dal valore dell'app, quindi si usa così: circa il 21% del totale sono
     // navi (19 giorni di registri del giocatore: 4,62G di navi su 21,64G)
     return { total, res: total * (1 - EXP_SHIP_RATIO), ships: total * EXP_SHIP_RATIO, days: log.length, perExp };
   }
