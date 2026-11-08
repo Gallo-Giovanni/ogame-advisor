@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 91, date: '2026-11-08', title: 'Classifica: di tutto l\'impero o solo i filtri scelti',
+    text: 'Al posto della spunta "Le spunte rifanno la classifica", nei Consigli scegli "Classifica: Di tutto l\'impero" (i filtri nascondono le righe, i numeri restano quelli della classifica completa) oppure "Solo i filtri scelti" (la classifica viene rifatta con i tipi e i pianeti scelti, dal n° 1). Sotto c\'è la spiegazione della scelta attiva.',
+  },
+  {
     id: 90, date: '2026-11-08', title: 'Importa da ogni scheda',
     text: 'Il pulsante "⬆ Importa Vista impero" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
   },

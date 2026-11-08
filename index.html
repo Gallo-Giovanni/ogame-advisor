@@ -482,7 +482,8 @@
           <div class="row" style="gap:8px">
 <span style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
             <select id="filter-count" style="width:auto"><option value="25" selected>Primi 25</option><option value="50">Primi 50</option><option value="100">Primi 100</option></select>
-            <label class="check small muted" title="Spuntato: con le spunte dei tipi e dei pianeti la classifica viene rifatta solo con quelli scelti (numeri da 1). Senza spunta: la classifica resta quella di tutto l'impero e le spunte nascondono solo le righe."><input type="checkbox" id="replan"> Le spunte rifanno la classifica</label>
+            <div class="chips" id="replan-opts" style="gap:4px;justify-content:flex-end"><span class="muted small" style="align-self:center">Classifica:</span><button type="button" class="chip" data-replan="0"><span class="box"></span>Di tutto l'impero</button><button type="button" class="chip" data-replan="1"><span class="box"></span>Solo i filtri scelti</button></div>
+            <span class="muted small" id="replan-help" style="max-width:420px;text-align:right"></span>
             </span>
           </div>
         </div>
@@ -2820,6 +2821,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 91, date: '2026-11-08', title: 'Classifica: di tutto l\'impero o solo i filtri scelti',
+    text: 'Al posto della spunta "Le spunte rifanno la classifica", nei Consigli scegli "Classifica: Di tutto l\'impero" (i filtri nascondono le righe, i numeri restano quelli della classifica completa) oppure "Solo i filtri scelti" (la classifica viene rifatta con i tipi e i pianeti scelti, dal n° 1). Sotto c\'è la spiegazione della scelta attiva.',
+  },
+  {
     id: 90, date: '2026-11-08', title: 'Importa da ogni scheda',
     text: 'Il pulsante "⬆ Importa Vista impero" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
   },
@@ -3601,12 +3606,19 @@ function renderColonyNext(types) {
   el.innerHTML = `Prossima colonia: <b>n° ${fmt(before.filter(x => !x.urgent).length + 1)}</b> della lista · ${esc(c.title)} · ammortamento ${paybackText(c.payback)}${before.length ? ` · prima ci sono ${fmt(before.length)} upgrade per circa ${fmt(eq)} eq. metallo` : ''}.`;
 }
 state.replan = (() => { try { return localStorage.getItem('ogadv-replan') === '1'; } catch (e) { return false; } })();
-$('#replan').checked = state.replan;
-$('#replan').addEventListener('change', e => {
-  state.replan = e.target.checked;
+function paintReplan() {
+  $$('#replan-opts [data-replan]').forEach(b => { const on = (b.dataset.replan === '1') === !!state.replan; b.setAttribute('aria-pressed', on); b.querySelector('.box').textContent = on ? '✓' : ''; });
+  $('#replan-help').textContent = state.replan
+    ? 'La classifica viene rifatta solo con i tipi e i pianeti scelti, a partire dal n° 1.'
+    : 'I filtri nascondono le righe, i numeri restano quelli della classifica completa.';
+}
+$('#replan-opts').addEventListener('click', e => {
+  const b = e.target.closest('[data-replan]'); if (!b) return;
+  state.replan = b.dataset.replan === '1';
   try { localStorage.setItem('ogadv-replan', state.replan ? '1' : '0'); } catch (err) {}
-  renderAdvice();
+  paintReplan(); renderAdvice();
 });
+paintReplan();
 // Code della lista: seguendo i consigli in ordine, ogni consiglio aspetta che la sua coda sia libera (edifici di ogni
 // pianeta, edifici forme di vita di ogni pianeta, ricerche forme di vita di ogni pianeta, ricerche dell'account).
 // Le risorse non si stimano: con spedizioni e scambi non dipendono solo dalla produzione.
