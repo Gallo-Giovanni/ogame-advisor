@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 90, date: '2026-11-08', title: 'Importa da ogni scheda',
+    text: 'Il pulsante "⬆ Importa" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
+  },
+  {
     id: 89, date: '2026-11-08', title: 'Scegli come avere l\'energia',
     text: 'Nei Consigli, sotto i pianeti, puoi scegliere con quali fonti l\'app ti propone l\'energia che serve: satelliti solari, centrale solare, centrale a fusione e ricerche (Tecnologia energetica e ricerche forme di vita). Tra quelle spuntate sceglie la più conveniente; la scelta resta salvata nell\'account. Sostituisce l\'opzione "solo satelliti" delle Impostazioni.',
   },
