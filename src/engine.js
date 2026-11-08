@@ -518,7 +518,38 @@ const Engine = (() => {
       const fuel = (fusionDeut(fl) - fusionDeut(f0)) * profile.economy_speed;
       fusionOpt = { kind: 'fusion', from: f0, to: fl, added: fAdded, cost: fCost, eq: toMetalEq(fCost, profile), fuel, fuelEq: toMetalEq([0, 0, fuel], profile), pre: pre.steps };
     }
-    const opts = [satOpt, solarOpt, fusionOpt].filter(Boolean);
+    // Tecnologia energetica: alza l'energia di tutte le centrali a fusione (30 x L x (1,05 + 0,01 x tecnologia)^L).
+    // Conta solo l'energia in più su questo pianeta (gli altri pianeti con la fusione ne guadagnano anche loro).
+    let etOpt = null;
+    if (f0 > 0) {
+      const et0 = +profile.energy_tech || 0;
+      let e = et0, add = 0, c = [0, 0, 0];
+      while (add < energy && e < et0 + 10) {
+        e++;
+        c = c.map((x, i) => x + reqCost('r113', e)[i]);
+        add = Math.floor((fusionEnergy(f0, e) - fusionEnergy(f0, et0)) * mult.energy);
+      }
+      if (add >= energy) etOpt = { kind: 'energytech', from: et0, to: e, added: add, cost: c, eq: toMetalEq(c, profile), fuelEq: 0 };
+    }
+    // Ricerche forme di vita sull'energia (es. Batterie vulcaniche, Centrali Geotermoelettriche): +x% di energia su
+    // tutti i pianeti; anche qui conta solo l'energia in più su questo pianeta. Solo ricerche già scelte in uno slot.
+    let lfOpt = null;
+    if (LF && ctx && ctx.planets) {
+      const raw = solarEnergy(planet.solar_plant) + fusionEnergy(f0, +profile.energy_tech || 0) + (+planet.solar_satellites || 0) * satelliteEnergy(planet.temp_max);
+      for (const p of ctx.planets) for (const [slot, entry] of Object.entries(p.lf_techs || {})) {
+        const tech = entry && LF.races[entry.race] && LF.races[entry.race].techs[+slot - 1];
+        if (!tech || !tech.cost || !tech.perLevel.energy) continue;
+        const L = +entry.level || 0;
+        if (L === 0) continue; // slot ancora da aprire: la ricerca compare nei consigli normali
+        const d = (techEffect(profile, p, +slot, { ...entry, level: L + 1 }).energy || 0) - (techEffect(profile, p, +slot, entry).energy || 0);
+        const add = Math.floor(raw * d);
+        if (add < energy) continue;
+        const c = lfTechCost(tech, L + 1, researchDisc(p));
+        const o = { kind: 'lfenergy', planetId: p.id, planetName: p.name, slot: +slot, race: entry.race, it: tech.it, from: L, to: L + 1, added: add, cost: c, eq: toMetalEq(c, profile), fuelEq: 0 };
+        if (!lfOpt || o.eq < lfOpt.eq) lfOpt = o;
+      }
+    }
+    const opts = [satOpt, solarOpt, fusionOpt, etOpt, lfOpt].filter(Boolean);
     const score = o => ctx && ctx.gainEq > 0
       ? (ctx.gainEq - o.fuelEq > 0 ? (ctx.costEq + o.eq) / (ctx.gainEq - o.fuelEq) : Infinity)
       : o.eq + o.fuelEq * FUEL_HOURS;
@@ -747,8 +778,12 @@ const Engine = (() => {
       fix: (planet, fix) => {
         if (!fix) return 0;
         const shipyard = Math.max(buildingLevel(planet, 21), ...((fix.pre || []).filter(x => x.key === 'b21').map(x => x.to)));
-        const own = fix.kind === 'satellites' ? T.ships(planet, 's212', fix.count, shipyard)
-          : fix.kind === 'fusion' ? T.levels(planet, 'fusion_reactor', fix.from, fix.to) : T.levels(planet, 'solar_plant', fix.from, fix.to);
+        let own;
+        if (fix.kind === 'satellites') own = T.ships(planet, 's212', fix.count, shipyard);
+        else if (fix.kind === 'fusion') own = T.levels(planet, 'fusion_reactor', fix.from, fix.to);
+        else if (fix.kind === 'energytech') { own = 0; for (let L = fix.from + 1; L <= fix.to; L++) own += T.research(reqCost('r113', L)); }
+        else if (fix.kind === 'lfenergy') { const p = planets.find(x => x.id === fix.planetId) || planet; own = T.lfTech(p, LF.races[fix.race].techs[fix.slot - 1], fix.to); }
+        else own = T.levels(planet, 'solar_plant', fix.from, fix.to);
         return T.pre(planet, fix.pre) + own;
       },
       lfBuilding: (planet, b, L, disc) => H(lfBuildingTime(b, L, disc, robot(planet), nanite(planet), speed)),
@@ -1091,6 +1126,34 @@ const Engine = (() => {
       pre: plasmaPre.steps, prePlanet: (planets[0] || {}).id, cost: plasmaCost, costEq: pEq, gainPerHour: plasmaGain, gainEq: pGain,
       wait: pWait, payback: pGain > 0 ? pEq / pGain + pWait : Infinity, nextLevel: nextPlasma,
     });
+    // Ricerche forme di vita sul costo del Plasma (es. Concentratore astrale): un livello in più conviene se fa
+    // risparmiare sui prossimi 5 livelli di Plasma più di quanto costa; in quel caso va subito prima del Plasma.
+    if (plasmaAllowed && pGain > 0 && LF && profile._lf && profile._lf.computed) {
+      const pPay = pEq / pGain + pWait, NEXT = 5;
+      const plasmaBase = [0, 0, 0];
+      for (let n = nextPlasma; n < nextPlasma + NEXT; n++) levelCost('plasma', n).forEach((x, i) => { plasmaBase[i] += x; });
+      planets.forEach(planet => {
+        for (const [slot, entry] of Object.entries(planet.lf_techs || {})) {
+          const tech = entry && LF.races[entry.race] && LF.races[entry.race].techs[+slot - 1];
+          if (!tech || !tech.cost || !tech.perLevel.plasma_tech_cost) continue;
+          const L = +entry.level || 0;
+          if (L === 0) continue; // slot da aprire: non si valuta qui
+          const d = (techEffect(profile, planet, +slot, { ...entry, level: L + 1 }, 'all').plasma_tech_cost || 0)
+            - (techEffect(profile, planet, +slot, entry, 'all').plasma_tech_cost || 0);
+          if (plasmaDisc + d < -0.99) continue;
+          const save = plasmaBase.map(x => Math.round(x * -d)), saveEq = toMetalEq(save, profile);
+          const cost = lfTechCost(tech, L + 1, researchDisc(planet)), eq = toMetalEq(cost, profile);
+          if (saveEq <= eq) continue;
+          out.push({
+            type: 'lftech', key: tech.key, race: entry.race, slot: +slot, planetId: planet.id, planet: planet.name,
+            title: `${tech.it} ${L} → ${L + 1}`,
+            detail: `ricerca forme di vita: rende più economico il Plasma; costa ${fmt(eq)} e fa risparmiare ${fmt(saveEq)} (in metallo equivalente) sui prossimi ${NEXT} livelli di Plasma, quindi conviene subito prima del Plasma`,
+            cost, costEq: eq, gainPerHour: [0, 0, 0], gainEq: 0, saving: save,
+            wait: T.lfTech(planet, tech, L + 1), payback: pPay - 1e-6, nextLevel: L + 1,
+          });
+        }
+      });
+    }
 
     // 4) Nuova colonia: Astrofisica (se serve) + nave colonizzatrice + miniere fino alla media dell'impero + energia
     const colony = colonyRecommendation(profile, planets, gainEq);
@@ -1101,7 +1164,13 @@ const Engine = (() => {
 
   // Modifiche da salvare dopo che il giocatore completa un consiglio.
   // Restituisce { planet: {...modifiche}, profile: {...modifiche} }
-  function applyRecommendation(profile, planet, rec) {
+  function lfLevelPatch(f, planet, all) {
+    const p = f.planetId === planet.id ? planet : (all || []).find(x => x.id === f.planetId) || planet;
+    const techs = JSON.parse(JSON.stringify(p.lf_techs || {}));
+    techs[f.slot] = { ...(techs[f.slot] || { race: f.race }), level: f.to };
+    return { id: p.id, patch: { lf_techs: techs } };
+  }
+  function applyRecommendation(profile, planet, rec, allPl) {
     if (rec.type === 'plasma' || rec.type === 'colony') {
       const prof = rec.type === 'plasma' ? { plasma_tech: rec.nextLevel } : { astro_tech: rec.nextLevel };
       const pp = {};
@@ -1122,7 +1191,7 @@ const Engine = (() => {
     }
     const st = planetState(profile, planet);
     const patch = {};
-    let balance = st.balance, profPatch = null;
+    let balance = st.balance, profPatch = null, extraPlanet = null;
     if (rec.type === 'lfbuilding') {
       patch.lf_buildings = { ...(planet.lf_buildings || {}), ...Object.fromEntries((rec.lfPre || []).map(x => [x.key, x.to])), [rec.key]: rec.nextLevel };
       balance -= rec.extraNeed;
@@ -1139,6 +1208,8 @@ const Engine = (() => {
     if (rec.fix) {
       if (rec.fix.kind === 'satellites') patch.solar_satellites = (planet.solar_satellites || 0) + rec.fix.count;
       else if (rec.fix.kind === 'fusion') patch.fusion_reactor = rec.fix.to;
+      else if (rec.fix.kind === 'energytech') profPatch = { ...(profPatch || {}), energy_tech: rec.fix.to, ...(profile.research ? { research: { ...profile.research, 113: rec.fix.to } } : {}) };
+      else if (rec.fix.kind === 'lfenergy') extraPlanet = lfLevelPatch(rec.fix, planet, allPl);
       else patch.solar_plant = rec.fix.to;
       if (rec.fix.pre && rec.fix.pre.length) {
         const prof = {};
@@ -1153,11 +1224,16 @@ const Engine = (() => {
       const f = rec.fixBuild;
       if (f.kind === 'satellites') patch.solar_satellites = (patch.solar_satellites ?? planet.solar_satellites ?? 0) + f.count;
       else if (f.kind === 'fusion') patch.fusion_reactor = Math.max(patch.fusion_reactor || 0, f.to);
+      else if (f.kind === 'energytech') profPatch = { ...(profPatch || {}), energy_tech: f.to, ...(profile.research ? { research: { ...profile.research, 113: f.to } } : {}) };
+      else if (f.kind === 'lfenergy') extraPlanet = lfLevelPatch(f, planet, allPl);
       else patch.solar_plant = Math.max(patch.solar_plant || 0, f.to);
       balance += f.added;
     }
     patch.energy_balance = Math.round(balance);
-    return profPatch ? { planet: patch, profile: profPatch } : { planet: patch };
+    const res = profPatch ? { planet: patch, profile: profPatch } : { planet: patch };
+    // ricerca forme di vita su un altro pianeta: le sue modifiche vanno a quel pianeta (o a questo, se è lo stesso)
+    if (extraPlanet) { if (extraPlanet.id === planet.id) res.planet.lf_techs = extraPlanet.patch.lf_techs; else res.extraPlanet = extraPlanet; }
+    return res;
   }
 
   // Piano dei prossimi upgrade: prende il consiglio migliore, lo applica, ricalcola la classifica, e così via.
@@ -1182,9 +1258,10 @@ const Engine = (() => {
         if (!r) return null;
         const step = { ...r, group: recKey(r), step: i++ };
         const planet = pls.find(p => p.id === (r.planetId || r.prePlanet));
-        const patch = applyRecommendation(withLifeforms(prof, pls), planet, r);
+        const patch = applyRecommendation(withLifeforms(prof, pls), planet, r, pls);
         if (patch.profile) prof = { ...prof, ...patch.profile };
         if (patch.planet) pls = pls.map(p => (p.id === planet.id ? { ...p, ...patch.planet } : p));
+        if (patch.extraPlanet) pls = pls.map(p => (p.id === patch.extraPlanet.id ? { ...p, ...patch.extraPlanet.patch } : p));
         if (r.type === 'colony') {
           colonyDone = true;
           // da qui le miniere della nuova colonia sono consigli come gli altri (si faranno dopo averla colonizzata)
@@ -1220,6 +1297,8 @@ const Engine = (() => {
       : f.kind === 'fusion'
         ? `Centrale a fusione ${f.from} → ${f.to} (brucia ${fmt(f.fuel)} di deuterio all'ora in più)` + (f.pre && f.pre.length
           ? `; prima servono ${prereqText(f.pre)}, già compresi nel costo` : '')
+        : f.kind === 'energytech' ? `Tecnologia energetica ${f.from} → ${f.to} (più energia da tutte le centrali a fusione)`
+        : f.kind === 'lfenergy' ? `${f.it} ${f.from} → ${f.to} (ricerca forme di vita su ${f.planetName}: più energia su tutti i pianeti)`
         : `Centrale solare ${f.from} → ${f.to}`;
     return one(fix);
   }

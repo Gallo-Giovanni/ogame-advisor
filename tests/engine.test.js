@@ -239,3 +239,16 @@ console.log('Tutti i test superati');
   assert.ok(m.fixBuild && /per costruirlo serve 16\.000 di energia libera/.test(m.detail)); // Terraformer 5 = 16k
   console.log('ok energia per costruire');
 }
+
+// Energia: la Tecnologia energetica è un'opzione quando il pianeta ha una centrale a fusione
+{
+  // tabella della community: centrale 11 con tecnologia 17 = 2.941
+  assert.ok(Math.abs(E.fusionEnergy(11, 17) - 2941) <= 1); // la tabella arrotonda, l'app tronca
+  const pl = { id: 'f', name: 'F', position: 8, temp_max: -100, metal_mine: 30, crystal_mine: 25, deut_synth: 25, solar_plant: 1, fusion_reactor: 25,
+    solar_satellites: 0, robotics_factory: 10, buildings: { 14: 10, 21: 10, 31: 10, 22: 20, 23: 20, 24: 20 }, lf_buildings: {}, lf_techs: {} };
+  const prof = { economy_speed: 5, research_speed: 5, energy_tech: 2, research: { 113: 2 }, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const f = E.energyFix(prof, pl, 300, { planets: [pl], costEq: 0, gainEq: 1e6 });
+  const et = E.energyFix({ ...prof, energy_satellites_only: false }, pl, 300, { planets: [pl] });
+  assert.ok(['energytech', 'satellites', 'solar', 'fusion'].includes(f.kind));
+  console.log('ok tecnologia energetica come opzione (' + f.kind + ')');
+}

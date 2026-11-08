@@ -1344,12 +1344,17 @@ async function completeRec(rec, btn) {
   const profile = numericProfile(state.profile);
   // colonia e Plasma: i requisiti (edifici) si fanno sul pianeta indicato dal consiglio
   const planet = state.planets.find(p => p.id === (rec.planetId || rec.prePlanet));
-  const patch = Engine.applyRecommendation(profile, planet, rec);
+  const patch = Engine.applyRecommendation(profile, planet, rec, state.planets);
   btn.disabled = true;
   let r;
   if (patch.profile) {
     r = await sb.from('profiles').update(patch.profile).eq('id', state.profile.id).select().single();
     if (!r.error) state.profile = r.data;
+  }
+  // ricerca forme di vita sull'energia fatta su un altro pianeta
+  if (patch.extraPlanet && !(r && r.error)) {
+    r = await sb.from('planets').update(patch.extraPlanet.patch).eq('id', patch.extraPlanet.id).select().single();
+    if (!r.error) { const xp = state.planets.find(p => p.id === patch.extraPlanet.id); if (xp) Object.assign(xp, r.data); }
   }
   if (patch.planet && !(r && r.error)) {
     r = await sb.from('planets').update(patch.planet).eq('id', planet.id).select().single();
