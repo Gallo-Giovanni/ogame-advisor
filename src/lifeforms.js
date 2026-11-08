@@ -325,6 +325,8 @@ LIFEFORMS.races.kaelesh.requires = {
 LIFEFORMS.races.kaelesh.buildings.antimatter_condenser.buildEnergy = { base: 9, factor: 1.02 };
 // Fabbrica Celle a fusione (Mecha, gioco): livelli 1-3 = 8, 16, 25. 
 LIFEFORMS.races.mechas.buildings.fusion_cell_factory.buildEnergy = { base: 8, factor: 1.02 };
+// Fattoria della Biosfera (Umani, gioco): livelli 1-3 = 8, 16, 25, come la Fabbrica Celle a fusione.
+LIFEFORMS.races.humans.buildings.biosphere_farm.buildEnergy = { base: 8, factor: 1.02 };
 // Produzione di cristalli (Rock'tal, gioco): livelli 1-3 = 9, 19, 30. Fattore da confermare con un livello alto (1,036-1,047 vanno bene).
 LIFEFORMS.races.rocktal.buildings.crystal_farm.buildEnergy = { base: 9, factor: 1.04 };
 
