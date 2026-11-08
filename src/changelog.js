@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 87, date: '2026-11-08', title: 'Resa delle spedizioni nei consigli',
+    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (risorse in MSU e, se vuoi, il valore delle navi): l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
+  },
+  {
     id: 86, date: '2026-11-08', title: 'Più modi per avere energia, e il Concentratore astrale',
     text: 'Quando un consiglio ha bisogno di energia, oltre a satelliti, centrale solare e fusione l\'app valuta anche la Tecnologia energetica (alza l\'energia di tutte le centrali a fusione: 30 x livello x (1,05 + 0,01 x tecnologia)^livello) e le ricerche forme di vita sull\'energia, come Batterie vulcaniche e Centrali Geotermoelettriche, e sceglie la più economica. Le ricerche forme di vita che rendono più economico il Plasma, come il Concentratore astrale, vengono consigliate subito prima del Plasma quando fanno risparmiare sui prossimi 5 livelli più di quanto costano.',
   },

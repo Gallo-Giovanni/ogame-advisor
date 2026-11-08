@@ -2585,13 +2585,59 @@ function expFleetSum(r) {
   </table></div>
   <p class="muted small" style="margin:0">Si trovano le navi fino a un grado sopra la più forte che mandi (Sonda, Cargo leggero, Caccia leggero, Cargo pesante, Pathfinder, Caccia pesante, Incrociatore, Nave da battaglia, Incrociatore da battaglia, Bombardiere, Corazzata, Reaper); Colonizzatrice, Riciclatrice e Morte Nera non si trovano mai. Il valore di una nave è metallo + cristallo del suo costo. Ogni risorsa e il valore delle navi trovate si fermano alla capacità di stiva della flotta.</p>`;
 }
+// Resa delle spedizioni: il giocatore inserisce quanto ha trovato in alcuni giorni (risorse in MSU, cioè metallo
+// equivalente, e se vuole il valore delle navi); l'app fa la media e, con la spunta, la usa nei consigli.
+// Numeri come li scrive il gioco: 1,19G · 1.19 mld · 601,35M · 1.190.000.000
+function parseBig(v) {
+  let t = String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!t) return 0;
+  const m = t.match(/^([\d.,]+)(k|m|mln|g|b|mld|bn)?$/); if (!m) return NaN;
+  let n = m[1];
+  if (m[2]) n = n.replace(/\./g, (x, i, str) => (str.indexOf(',') >= 0 ? '' : '.')).replace(',', '.'); // 1,19 / 1.19
+  else n = n.replace(/[.,](?=\d{3}(\D|$))/g, '').replace(',', '.'); // 1.190.000.000
+  const mult = { k: 1e3, m: 1e6, mln: 1e6, g: 1e9, b: 1e9, mld: 1e9, bn: 1e9 }[m[2]] || 1;
+  return Math.round(parseFloat(n) * mult);
+}
+const big = v => (v >= 1e9 ? (v / 1e9).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' mld' : v >= 1e6 ? (v / 1e6).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + ' M' : fmt(v));
+function expeditionLogHtml() {
+  const p = state.profile || {}, log = Array.isArray(p.expedition_log) ? p.expedition_log : [];
+  const avg = Engine.expeditionAvg({ ...p, expedition_in_ranking: true });
+  return `<div class="card stack" id="exp-log"><h2 class="bh">Resa delle spedizioni</h2>
+    <p class="muted small" style="margin:0">Inserisci quanto hai trovato con le spedizioni in alcuni giorni: le risorse in MSU (metallo equivalente) e, se vuoi, il valore delle navi trovate. L'app fa la media e la usa per valutare le ricerche sulle spedizioni (risorse e navi trovate, bonus Esploratore). Scrivi i numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
+    <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Risorse (MSU)</th><th>Navi (valore)</th><th></th></tr>
+      ${log.map((e, i) => `<tr><td>${e.d ? new Date(e.d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</td><td>${big(+e.r || 0)}</td><td>${+e.s ? big(+e.s) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`).join('')}
+      <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-s" placeholder="facoltativo" style="width:110px"></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
+      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.res)}</td><td>${avg.ships ? big(avg.ships) : '—'}</td><td></td></tr>` : ''}
+    </table></div>
+    <span class="small neg" id="exp-msg"></span>
+    <label class="check"><input type="checkbox" id="exp-rank" ${p.expedition_in_ranking !== false ? 'checked' : ''}> Conta la resa delle spedizioni nei consigli</label>
+    <p class="muted small" style="margin:0">Con la spunta, le ricerche sulle spedizioni entrano nella classifica con il guadagno calcolato dalla tua media; senza, la classifica guarda solo la produzione delle miniere.</p>
+  </div>`;
+}
+async function saveExpedition(patch) {
+  const r = await sb.from('profiles').update(patch).eq('id', state.profile.id).select().single();
+  if (r.error) { $('#exp-msg').textContent = 'Errore: ' + r.error.message; return; }
+  state.profile = r.data; state.planKey = null; renderApp(); goToTab('expo');
+}
+document.addEventListener('click', e => {
+  if (e.target.id === 'exp-add') {
+    const r = parseBig($('#exp-r').value), sh = parseBig($('#exp-s').value);
+    if (!(r > 0) || isNaN(sh)) { $('#exp-msg').textContent = 'Scrivi le risorse trovate (es. 1,19G o 601,35M).'; return; }
+    const d = $('#exp-d').value || new Date().toISOString().slice(0, 10);
+    const log = (Array.isArray(state.profile.expedition_log) ? state.profile.expedition_log : []).filter(x => x.d !== d).concat({ d, r, s: sh || 0 }).sort((a, b) => String(a.d).localeCompare(String(b.d)));
+    saveExpedition({ expedition_log: log });
+  }
+  const del = e.target.closest('[data-explog-del]');
+  if (del) { const log = [...(state.profile.expedition_log || [])]; log.splice(+del.dataset.explogDel, 1); saveExpedition({ expedition_log: log }); }
+});
+document.addEventListener('change', e => { if (e.target.id === 'exp-rank') saveExpedition({ expedition_in_ranking: e.target.checked }); });
 function renderExpeditions() {
   const c = EXP_CTX;
-  if (!c) { $('#expo-panel').innerHTML = `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2><p class="muted small" style="margin:0">Per il calcolo servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p></div>`; return; }
+  if (!c) { $('#expo-panel').innerHTML = expeditionLogHtml() + `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2><p class="muted small" style="margin:0">Per il calcolo servono i punti del primo in classifica: arrivano importando dalla Vista impero, oppure scegli la fascia in Impostazioni.</p></div>`; return; }
   const pct = v => (v * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + '%';
   const band = c.hi === Infinity ? 'oltre i ' + fmt(c.lo) : 'da ' + fmt(c.lo) + ' a ' + fmt(c.hi);
   const cls = { explorer: 'Esploratore', collector: 'Collezionista', general: 'Generale' }[c.cls] || 'nessuna';
-  $('#expo-panel').innerHTML = `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2>
+  $('#expo-panel').innerHTML = expeditionLogHtml() + `<div class="card stack"><h2 class="bh">Calcolo spedizioni</h2>
     <p class="muted small" style="margin:0">Primo in classifica ${band} punti · classe ${cls} · velocità economia ${c.speed} · Tecnologia iperspaziale ${c.hyper} · ricerche forme di vita: risorse trovate +${pct(c.res - 1)}, navi trovate +${pct(c.ships - 1)}. Sono i dati del tuo account: per cambiarli, aggiorna l'account o reimporta.</p>
     ${expFleetHtml()}
   </div>`;

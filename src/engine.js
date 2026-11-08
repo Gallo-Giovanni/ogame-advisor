@@ -746,6 +746,15 @@ const Engine = (() => {
     return t;
   };
 
+  // Resa media delle spedizioni al giorno dal registro del giocatore: { res, ships } in metallo equivalente, o null
+  function expeditionAvg(profile) {
+    if (profile.expedition_in_ranking === false) return null;
+    const log = (Array.isArray(profile.expedition_log) ? profile.expedition_log : []).filter(e => e && (+e.r > 0 || +e.s > 0));
+    if (!log.length) return null;
+    const res = log.reduce((t, e) => t + (+e.r || 0), 0) / log.length, ships = log.reduce((t, e) => t + (+e.s || 0), 0) / log.length;
+    return { res, ships, days: log.length };
+  }
+
   // ---- Tempo prima che un consiglio produca (ore) ----
   // Ogni consiglio somma all'ammortamento il tempo per farlo: costruzione o ricerca, più l'energia che gli serve e i
   // requisiti. Edifici e ricerche vanno in code separate, quindi i requisiti contano come il più lungo dei due.
@@ -1077,17 +1086,33 @@ const Engine = (() => {
           Math.max(0, baseProd.deut_synth(pl.deut_synth, pl.temp_max)) * s];
       });
       const sumRow = [0, 1, 2].map(i => rows.reduce((t, r) => t + r[i], 0));
+      // Spedizioni: resa media al giorno inserita dal giocatore (risorse e navi, in metallo equivalente come il
+      // gioco, MSU). Le ricerche che aumentano risorse o navi trovate, o il bonus della classe Esploratore, rendono
+      // la loro parte: resa x (aumento / (1 + bonus attuale)). Solo con la spunta "conta le spedizioni nei consigli".
+      const ex = expeditionAvg(profile);
+      const allT = ex ? allTechTotals(profile, allPlanets) : {};
+      const EXP_KEYS = ['expedition_resources', 'expedition_ships_found', 'explorer_class_bonus'];
       planets.forEach(planet => {
         const disc = researchDisc(planet);
         for (const [slot, entry] of Object.entries(planet.lf_techs || {})) {
           if (!entry || !entry.race || !LF.races[entry.race]) continue;
           const tech = LF.races[entry.race].techs[+slot - 1];
-          if (!tech || !tech.cost || !tech.used) continue;
-          if (!['metal', 'crystal', 'deut'].some(r => tech.perLevel[r])) continue; // ricerche sull'energia o sul costo del Plasma: per ora fuori dalla classifica
+          if (!tech || !tech.cost) continue;
+          const isExp = ex && EXP_KEYS.some(k => tech.perLevel[k]) && (!tech.perLevel.explorer_class_bonus || profile.player_class === 'explorer');
+          if (!isExp && (!tech.used || !['metal', 'crystal', 'deut'].some(r => tech.perLevel[r]))) continue; // ricerche sull'energia o sul costo del Plasma: valutate a parte
           const L = +entry.level || 0, next = L + 1;
           const now = techEffect(profile, planet, +slot, { race: entry.race, level: L });
           const after = techEffect(profile, planet, +slot, { race: entry.race, level: next });
           const prodDelta = [0, 1, 2].map(i => { const k = ['metal', 'crystal', 'deut'][i]; return sumRow[i] * ((after[k] || 0) - (now[k] || 0)); });
+          let expH = 0;
+          if (isExp) {
+            const a = techEffect(profile, planet, +slot, { race: entry.race, level: next }, 'all'), b = techEffect(profile, planet, +slot, { race: entry.race, level: L }, 'all');
+            const d = k => (a[k] || 0) - (b[k] || 0);
+            expH = (ex.res * d('expedition_resources') / (1 + (allT.expedition_resources || 0))
+              + ex.ships * d('expedition_ships_found') / (1 + (allT.expedition_ships_found || 0))
+              + (ex.res + ex.ships) * d('explorer_class_bonus') / (1 + (allT.explorer_class_bonus || 0))) / 24;
+            prodDelta[0] += expH; // in metallo equivalente
+          }
           // slot ancora chiuso (livello 0 e popolazione insufficiente): si aggiungono gli edifici per aprirlo (popPlan)
           const un = L === 0 ? slotUnlock(profile, planet, +slot, T) : null;
           const cost = lfTechCost(tech, next, disc).map((x, i) => x + (un ? un.cost[i] : 0));
@@ -1096,7 +1121,7 @@ const Engine = (() => {
           out.push({
             type: 'lftech', key: tech.key, race: entry.race, slot: +slot, planetId: planet.id, planet: planet.name,
             title: `${tech.it} ${L} → ${next}`,
-            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}${un ? `; lo slot è ancora chiuso: per aprirlo servono ${un.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo, più almeno ${waitText(un.grow)} perché la popolazione cresca, anche questo compreso; scegliere la ricerca dello slot invece di tirarla a sorte costa ${fmt(un.artifacts)} manufatti` : ''}`,
+            detail: `ricerca forme di vita: ${isExp ? `aumenta la resa delle spedizioni di circa ${fmt(expH * 24)} al giorno (dalla tua resa media)` : 'aumenta la produzione di tutti i pianeti'}${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}${un ? `; lo slot è ancora chiuso: per aprirlo servono ${un.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo, più almeno ${waitText(un.grow)} perché la popolazione cresca, anche questo compreso; scegliere la ricerca dello slot invece di tirarla a sorte costa ${fmt(un.artifacts)} manufatti` : ''}`,
             unlock: un && un.steps, cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, nextLevel: next,
           });
@@ -1315,7 +1340,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, lfBuildEnergy, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, expeditionAvg, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
