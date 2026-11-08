@@ -268,7 +268,7 @@ const LIFEFORMS = {
 
 // Requisiti degli edifici forme di vita: dall'Albero tecnologico del gioco (screenshot del giocatore, Umani).
 // { edificio: { edificio richiesto: livello } }; i requisiti dei requisiti sono nelle loro righe.
-// Mancano: Scudo planetario Umani e i Kaelesh (da inserire quando abbiamo l'Albero tecnologico).
+// Manca solo lo Scudo planetario Umani, che nessun altro edificio richiede.
 LIFEFORMS.races.humans.requires = {
   research_centre: { residential_sector: 21, biosphere_farm: 22 },
   academy_of_sciences: { residential_sector: 41 },
@@ -305,6 +305,19 @@ LIFEFORMS.races.mechas.requires = {
   chip_mass_production: { production_assembly_hall: 6, quantum_computer_centre: 1 },
   automatised_assembly_centre: { robotics_research_centre: 5 },
   high_performance_transformer: { automatised_assembly_centre: 3 },
+};
+
+// Kaelesh (Albero tecnologico del gioco). Manca solo il Soprarifrattore, che nessun altro edificio richiede.
+LIFEFORMS.races.kaelesh.requires = {
+  vortex_chamber: { sanctuary: 20, antimatter_condenser: 21 },
+  halls_of_realisation: { sanctuary: 42 },
+  chrysalis_accelerator: { halls_of_realisation: 1 },
+  bio_modifier: { chrysalis_accelerator: 1 },
+  psionic_modulator: { chrysalis_accelerator: 2 },
+  forum_of_transcendence: { bio_modifier: 5 },
+  ship_manufacturing_hall: { bio_modifier: 6, forum_of_transcendence: 1 },
+  antimatter_convector: { vortex_chamber: 5 },
+  cloning_lab: { antimatter_convector: 3 },
 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che

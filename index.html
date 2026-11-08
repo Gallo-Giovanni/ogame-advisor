@@ -1067,7 +1067,7 @@ const LIFEFORMS = {
 
 // Requisiti degli edifici forme di vita: dall'Albero tecnologico del gioco (screenshot del giocatore, Umani).
 // { edificio: { edificio richiesto: livello } }; i requisiti dei requisiti sono nelle loro righe.
-// Mancano: Scudo planetario Umani e i Kaelesh (da inserire quando abbiamo l'Albero tecnologico).
+// Manca solo lo Scudo planetario Umani, che nessun altro edificio richiede.
 LIFEFORMS.races.humans.requires = {
   research_centre: { residential_sector: 21, biosphere_farm: 22 },
   academy_of_sciences: { residential_sector: 41 },
@@ -1104,6 +1104,19 @@ LIFEFORMS.races.mechas.requires = {
   chip_mass_production: { production_assembly_hall: 6, quantum_computer_centre: 1 },
   automatised_assembly_centre: { robotics_research_centre: 5 },
   high_performance_transformer: { automatised_assembly_centre: 3 },
+};
+
+// Kaelesh (Albero tecnologico del gioco). Manca solo il Soprarifrattore, che nessun altro edificio richiede.
+LIFEFORMS.races.kaelesh.requires = {
+  vortex_chamber: { sanctuary: 20, antimatter_condenser: 21 },
+  halls_of_realisation: { sanctuary: 42 },
+  chrysalis_accelerator: { halls_of_realisation: 1 },
+  bio_modifier: { chrysalis_accelerator: 1 },
+  psionic_modulator: { chrysalis_accelerator: 2 },
+  forum_of_transcendence: { bio_modifier: 5 },
+  ship_manufacturing_hall: { bio_modifier: 6, forum_of_transcendence: 1 },
+  antimatter_convector: { vortex_chamber: 5 },
+  cloning_lab: { antimatter_convector: 3 },
 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che
@@ -2242,7 +2255,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, fusionPrereq, prereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, fusionPrereq, prereq, lfPrereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
@@ -2497,8 +2510,8 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
-    id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita Rock\'tal e Mecha',
-    text: 'Anche per i Rock\'tal i consigli sugli edifici forme di vita contano gli edifici da sbloccare prima (Albero tecnologico del gioco): per esempio Cristalleria richiede il Monolite 1, che richiede la Fucina delle Rune 1, che richiede l\'Enclave di Meditazione 41; il Centro di Mineralogia richiede Cristalleria 6 e Orictorium 1. Lo stesso per i Mecha: per esempio il Sintetizzatore Alte prestazioni richiede la Linea di produzione Microchip 2, che richiede il Network Aggiornamento 1, che richiede la Linea di produzione 41. Costo e tempo di quei livelli entrano nel consiglio.',
+    id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita per tutte le razze',
+    text: 'Anche per i Rock\'tal i consigli sugli edifici forme di vita contano gli edifici da sbloccare prima (Albero tecnologico del gioco): per esempio Cristalleria richiede il Monolite 1, che richiede la Fucina delle Rune 1, che richiede l\'Enclave di Meditazione 41; il Centro di Mineralogia richiede Cristalleria 6 e Orictorium 1. Lo stesso per i Mecha: per esempio il Sintetizzatore Alte prestazioni richiede la Linea di produzione Microchip 2, che richiede il Network Aggiornamento 1, che richiede la Linea di produzione 41. E per i Kaelesh: per esempio il Convettore Antimateria richiede la Camera Vortex 5, che richiede Rifugio 20 e Condensatore Antimateria 21. Costo e tempo di quei livelli entrano nel consiglio.',
   },
   {
     id: 79, date: '2026-11-07', title: 'Dati del server anche importando la pagina salvata',

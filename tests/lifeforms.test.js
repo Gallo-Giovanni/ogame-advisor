@@ -99,3 +99,13 @@ console.log('Energia e Monolite uguali al gioco; costi dei fogli coerenti; durat
   assert.deepStrictEqual(hs.lfPre.map(x => [x.key, x.to]), [['assembly_line', 41], ['update_network', 1], ['microchip_assembly_line', 2]]);
   console.log('ok requisiti Mecha');
 }
+// Requisiti Kaelesh: Convettore Antimateria su un pianeta nuovo
+{
+  const pl = { id: 'k', name: 'K', position: 8, temp_max: 40, metal_mine: 20, crystal_mine: 16, deut_synth: 12, solar_plant: 25, lf_race: 'kaelesh', lf_buildings: { sanctuary: 15, antimatter_condenser: 18 }, lf_techs: {} };
+  const recs = E2.recommendations({ player_class: 'explorer', economy_speed: 5, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 }, [pl]);
+  const ac = recs.find(r => r.key === 'antimatter_convector');
+  if (ac) assert.deepStrictEqual(ac.lfPre.map(x => [x.key, x.to]), [['sanctuary', 20], ['antimatter_condenser', 21], ['vortex_chamber', 5]]);
+  const pre = E2.lfPrereq({}, pl, 'kaelesh', 'ship_manufacturing_hall');
+  assert.deepStrictEqual(pre.steps.map(x => [x.key, x.to]), [['sanctuary', 42], ['halls_of_realisation', 1], ['chrysalis_accelerator', 1], ['bio_modifier', 6], ['forum_of_transcendence', 1]]);
+  console.log('ok requisiti Kaelesh');
+}
