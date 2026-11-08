@@ -112,6 +112,8 @@ const Engine = (() => {
     return lvl ? -(LF.races.rocktal.buildings.monolith.buildingCostByLevel[lvl] || 0) : 0;
   };
   const lfBuildingCost = (b, L, disc = 0) => b.cost.base.map(x => Math.round(x * Math.pow(b.cost.factor, L - 1) * L * (1 - disc)));
+  // energia libera che serve per costruire un livello (solo alcuni edifici, es. Condensatore Antimateria Kaelesh)
+  const lfBuildEnergy = (b, L) => (b && b.buildEnergy && L > 0 ? Math.floor(L * b.buildEnergy.base * Math.pow(b.buildEnergy.factor, L)) : 0);
   const lfBuildingEnergy = (b, L) => (L <= 0 ? 0 : L === 1 ? b.energyCons.base : Math.floor(L * b.energyCons.base * Math.pow(b.energyCons.factor, L)));
   const MRC_ENERGY_L1 = 120;
   const mrcLevel = planet => (planet.mrc_level === undefined || planet.mrc_level === null || planet.mrc_level === '' ? null : +planet.mrc_level);
@@ -448,7 +450,15 @@ const Engine = (() => {
     return out;
   }
   // il Terraformer chiede anche energia disponibile per essere costruito: 1.000 x 2^(livello-1) (gioco: 1 = 1k, 4 = 8k, 6 = 32k)
-  const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo (per costruire il Terraformer ${fn.steps[fn.steps.length - 1].to} serve anche ${fmt(1000 * Math.pow(2, fn.steps[fn.steps.length - 1].to - 1))} di energia libera)` : '');
+  const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo` : '');
+  // Energia richiesta per costruire (Terraformer, alcuni edifici Kaelesh): se l'energia libera dopo l'upgrade non basta,
+  // si aggiunge l'energia che manca (satelliti, solare o fusione), con costo e tempo. Dopo la costruzione resta al pianeta.
+  function buildEnergyFix(profile, planet, need, free, T, planets) {
+    if (!(need > 0) || free >= need) return null;
+    const fix = energyFix(profile, planet, need - Math.max(0, free), { planets });
+    return fix && { fix, need, time: T ? T.fix(planet, fix) : 0 };
+  }
+  const buildEnergyText = be => (be ? `; per costruirlo serve ${fmt(be.need)} di energia libera: in più ${fixText(be.fix)}, già compreso nel costo` : '');
   const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
   const waitText = h => { const m = Math.max(1, Math.round(h * 60)), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60;
     return [d ? d + 'g' : '', hh ? hh + 'o' : '', !d && mm ? mm + 'm' : ''].filter(Boolean).join(' ') || '1m'; };
@@ -789,7 +799,7 @@ const Engine = (() => {
     const R = LF && LF.races[race], req = (R && R.requires) || {};
     const levels = planet.lf_buildings || {}, lv = {}, steps = [];
     const disc = monolithDisc(planet);
-    let cost = [0, 0, 0], energy = 0, time = 0;
+    let cost = [0, 0, 0], energy = 0, time = 0, buildE = 0;
     const cur = k => (k in lv ? lv[k] : +levels[k] || 0);
     const need = (k, level) => {
       const from = cur(k);
@@ -801,11 +811,12 @@ const Engine = (() => {
         if (T) time += T.lfBuilding(planet, b, L, disc);
       }
       if (b && b.energyCons) energy += Math.ceil((lfBuildingEnergy(b, level) - lfBuildingEnergy(b, from)) * (1 - disc));
+      buildE = Math.max(buildE, lfBuildEnergy(b, level));
       lv[k] = level;
       steps.push({ key: k, it: (b && b.it) || k, from, to: level });
     };
     for (const [rk, rl] of Object.entries(req[key] || {})) need(rk, rl);
-    return { cost, energy, time, steps };
+    return { cost, energy, time, steps, buildE };
   }
 
   function colonyRecommendation(profile, planets, gainEq) {
@@ -950,16 +961,20 @@ const Engine = (() => {
           + (fix && fix.kind !== 'satellites' ? fix.to - fix.from : 0) + ((fix && fix.pre) || []).filter(x => x.key[0] === 'b').reduce((a, x) => a + x.to - x.from, 0);
         const fn = fieldsNeed(profile, planet, newLevels, T, allPlanets);
         fn.cost.forEach((x, i) => { totalCost[i] += x; });
+        // il Terraformer chiede energia libera per essere costruito: 1.000 x 2^(livello-1) (gioco: 1 = 1k, 4 = 8k, 6 = 32k)
+        const terraTo = fn.steps.length ? fn.steps[fn.steps.length - 1].to : 0;
+        const beT = terraTo ? buildEnergyFix(profile, planet, 1000 * Math.pow(2, terraTo - 1), marginAfter < 0 ? (fix ? fix.added + marginAfter : 0) : marginAfter, T, allPlanets) : null;
+        if (beT) beT.fix.cost.forEach((x, i) => { totalCost[i] += x; });
         const eq2 = toMetalEq(totalCost, profile);
-        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn) + fieldsText(fn);
+        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn) + fieldsText(fn) + buildEnergyText(beT);
         // campi, depositi, energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
-        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time + fn.time;
+        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time + fn.time + (beT ? beT.time : 0);
         const wait = fix && fix.kind === 'satellites' ? Math.max(mineH, fixH) : mineH + fixH;
         let rec = {
           type: 'mine', key: m.key, planetId: planet.id, planet: planet.name,
           title: `${m.label} ${L} → ${next}`, detail: energyText,
           cost: totalCost, buildCost: cost, costEq: eq2, gainPerHour: prodDelta, gainEq: gain,
-          wait, payback: gain > 0 ? eq2 / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps, terra: fn.steps.length ? fn : null, newFields: fn.used,
+          wait, payback: gain > 0 ? eq2 / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps, terra: fn.steps.length ? fn : null, newFields: fn.used, fixBuild: beT && beT.fix,
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
@@ -1000,15 +1015,17 @@ const Engine = (() => {
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
           const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
           const sn = storageNeed(profile, planet, cost, T);
-          const totalCost = cost.map((x, i) => x + lp.cost[i] + sn.cost[i] + (fix ? fix.cost[i] : 0));
+          const freeAfter = marginAfter < 0 ? (fix ? fix.added + marginAfter : 0) : marginAfter;
+          const be = buildEnergyFix(profile, planet, Math.max(lfBuildEnergy(b, next), lp.buildE), freeAfter, T, allPlanets);
+          const totalCost = cost.map((x, i) => x + lp.cost[i] + sn.cost[i] + (fix ? fix.cost[i] : 0) + (be ? be.fix.cost[i] : 0));
           if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
-          const wait = lp.time + sn.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
+          const wait = lp.time + sn.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix) + (be ? be.time : 0);
           out.push({
             type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
             title: `${b.it} ${L} → ${next}`,
-            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}${storageText(sn)}`,
-            lfPre: lp.steps, store: sn.steps,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}${storageText(sn)}${buildEnergyText(be)}`,
+            lfPre: lp.steps, store: sn.steps, fixBuild: be && be.fix,
             cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, extraNeed,
           });
@@ -1132,6 +1149,13 @@ const Engine = (() => {
       }
       balance += rec.fix.added;
     }
+    if (rec.fixBuild) {
+      const f = rec.fixBuild;
+      if (f.kind === 'satellites') patch.solar_satellites = (patch.solar_satellites ?? planet.solar_satellites ?? 0) + f.count;
+      else if (f.kind === 'fusion') patch.fusion_reactor = Math.max(patch.fusion_reactor || 0, f.to);
+      else patch.solar_plant = Math.max(patch.solar_plant || 0, f.to);
+      balance += f.added;
+    }
     patch.energy_balance = Math.round(balance);
     return profPatch ? { planet: patch, profile: profPatch } : { planet: patch };
   }
@@ -1212,7 +1236,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();

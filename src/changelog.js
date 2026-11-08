@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 85, date: '2026-11-08', title: 'Energia richiesta per costruire',
+    text: 'Alcuni edifici non consumano energia ma la richiedono libera per essere costruiti: il Terraformer (1.000 x 2^(livello-1)) e il Condensatore Antimateria dei Kaelesh. Se l\'energia libera del pianeta non basta, il consiglio aggiunge l\'energia che manca (satelliti o centrale), con costo e tempo.',
+  },
+  {
     id: 84, date: '2026-11-08', title: 'Code libere nei consigli',
     text: 'Seguendo la lista, ogni consiglio dice se la sua coda è libera e si può fare subito, oppure tra quanto si libera dopo i consigli che vengono prima (code separate: edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Il volo della colonizzatrice non è più stimato nel tempo della colonia: dipende dall\'universo e dalla distanza.',
   },

@@ -229,3 +229,13 @@ console.log('Tutti i test superati');
   assert.strictEqual(m2.terra, null);
   console.log('ok campi e Terraformer');
 }
+
+// Energia richiesta per costruire il Terraformer: se manca, il consiglio aggiunge l'energia
+{
+  const pl = { id: 'e', name: 'E', position: 8, temp_max: 40, metal_mine: 30, crystal_mine: 20, deut_synth: 10, solar_plant: 40, robotics_factory: 10, nanite_factory: 2, energy_balance: 600,
+    buildings: { 14: 10, 15: 2, 21: 5, 31: 10, 22: 20, 23: 20, 24: 20, 33: 4 }, fields: { used: 200, max: 200 }, lf_buildings: {}, lf_techs: {} };
+  const prof = { economy_speed: 5, research_speed: 5, energy_tech: 12, research: { 108: 10 }, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const m = E.recommendations(prof, [pl]).find(r => r.title === 'Miniera di metallo 30 → 31');
+  assert.ok(m.fixBuild && /per costruirlo serve 16\.000 di energia libera/.test(m.detail)); // Terraformer 5 = 16k
+  console.log('ok energia per costruire');
+}
