@@ -457,7 +457,7 @@
   <div id="view-app" class="hidden">
     <header class="top">
       <div class="brand" style="margin:0"><div class="logo"></div><div><h1 style="margin:0">OGame Advisor</h1><div class="muted small" id="who"></div></div></div>
-      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top bm-only" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><span class="imp-file imp-quick" title="Carica la Vista impero salvata con Ctrl+S (da telefono: Scarica / Salva pagina)"><label class="imp-pick"><input type="file" accept=".html,.htm,.mhtml,.mht,text/html,multipart/related,message/rfc822" data-imp-file><span>⬆ Importa</span></label><span class="small" data-imp-msg></span></span><button class="ghost hidden miss-chip" id="miss-chip" title="Alcuni livelli non sono inseriti: contano come 0 e i consigli possono essere meno precisi">⚠ Dati da completare</button><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
+      <div class="row" style="gap:4px"><select id="acc-switch" class="acc-switch hidden" title="Account di gioco"></select><a class="bm bm-top bm-only" data-bm href="#" title="Trascinalo sulla barra dei preferiti, poi premilo sulla Vista impero di OGame per importare. È sempre l'ultima versione.">⬇ OGame Advisor</a><span class="imp-file imp-quick" title="Carica la Vista impero salvata con Ctrl+S (da telefono: Scarica / Salva pagina)"><label class="imp-pick"><input type="file" accept=".html,.htm,.mhtml,.mht,text/html,multipart/related,message/rfc822" data-imp-file><span>⬆ Importa Vista impero</span></label><span class="small" data-imp-msg></span></span><button class="ghost hidden miss-chip" id="miss-chip" title="Alcuni livelli non sono inseriti: contano come 0 e i consigli possono essere meno precisi">⚠ Dati da completare</button><button class="ghost" id="open-updates">Novità<span id="updates-badge" class="badge hidden"></span></button><button class="ghost" data-action="logout">Esci</button></div>
     </header>
     <div class="tabs">
       <button class="tab active" data-tab="advice">Consigli</button>
@@ -2821,7 +2821,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 90, date: '2026-11-08', title: 'Importa da ogni scheda',
-    text: 'Il pulsante "⬆ Importa" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
+    text: 'Il pulsante "⬆ Importa Vista impero" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
   },
   {
     id: 89, date: '2026-11-08', title: 'Scegli come avere l\'energia',

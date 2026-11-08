@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 90, date: '2026-11-08', title: 'Importa da ogni scheda',
-    text: 'Il pulsante "⬆ Importa" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
+    text: 'Il pulsante "⬆ Importa Vista impero" per caricare la Vista impero salvata ora è in alto, accanto a Novità, e si vede da tutte le schede.',
   },
   {
     id: 89, date: '2026-11-08', title: 'Scegli come avere l\'energia',
