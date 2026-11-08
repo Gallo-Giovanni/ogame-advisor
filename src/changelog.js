@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 82, date: '2026-11-08', title: 'Ricerche forme di vita in slot ancora chiusi',
-    text: 'Se consigli una ricerca forme di vita in uno slot che il pianeta non ha ancora aperto, ora il consiglio aggiunge gli edifici che servono per avere la popolazione (abitazioni, cibo, scuola, liceo e gli altri edifici della popolazione), con i loro requisiti, costo e tempo di costruzione. Non è compreso il tempo perché la popolazione cresca.',
+    text: 'Se consigli una ricerca forme di vita in uno slot che il pianeta non ha ancora aperto, ora il consiglio aggiunge gli edifici che servono per avere la popolazione (abitazioni, cibo, scuola, liceo e gli altri edifici della popolazione), con i loro requisiti, costo e tempo di costruzione. Non è compreso il tempo perché la popolazione cresca. Il consiglio indica anche i manufatti per scegliere la ricerca dello slot (200, 400 o 600). Anche la scheda Sblocco slot ora tiene conto dei requisiti degli edifici nella scelta della combinazione più economica, li mostra nella tabella e indica i manufatti.',
   },
   {
     id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',

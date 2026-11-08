@@ -2392,6 +2392,8 @@ const LF_ICONS = {
 };
 const lfIcon = (race, key) => { const i = Engine.LF.races[race].buildingOrder.indexOf(key); return (LF_ICONS[race] || [])[i] || 'lf'; };
 /* Sblocco slot: per il pianeta e lo slot scelti, la combinazione più economica di edifici per avere la popolazione necessaria */
+// manufatti per scegliere la ricerca di uno slot invece di tirarla a sorte: 200 (T1), 400 (T2), 600 (T3)
+const artifactCost = slot => (slot <= 6 ? 200 : slot <= 12 ? 400 : 600);
 function unlockPlan(p, slot, prof) {
   const pop = planetPop(p, p, prof.economy_speed);
   if (!pop) return null;
@@ -2405,7 +2407,17 @@ function unlockPlan(p, slot, prof) {
   const steps = [...(plan.monolith > plan.monolithFrom ? [['monolith', plan.monolithFrom, plan.monolith]] : []),
     [plan.from.keys[0], plan.from.quarters, plan.quarters], [plan.from.keys[1], plan.from.farm, plan.farm], [plan.from.keys[2], plan.from.school, plan.school], [plan.from.keys[3], plan.from.high, plan.high],
     ...(plan.extra || []).map(e => [e.key, e.from, e.to])];
-  const rows = steps.filter(([, a, b]) => b > a).map(([k, a, b]) => {
+  // prima i requisiti (Albero tecnologico) degli edifici da costruire da zero, poi il piano; una riga per edificio
+  const all = [];
+  for (const [k, a, b] of [...(plan.pre || []).map(y => [y.key, y.from, y.to]), ...steps]) {
+    const m = all.find(x => x[0] === k); if (m) { m[1] = Math.min(m[1], a); m[2] = Math.max(m[2], b); } else all.push([k, a, b]);
+  }
+  // ordine di costruzione: ogni edificio dopo quelli che richiede (Albero tecnologico)
+  const req = R.requires || {}, ordered = [];
+  const visit = (k, seen = new Set()) => { if (ordered.some(x => x[0] === k) || seen.has(k)) return; seen.add(k);
+    Object.keys(req[k] || {}).forEach(r => visit(r, seen)); const it = all.find(x => x[0] === k); if (it) ordered.push(it); };
+  all.forEach(([k]) => visit(k));
+  const rows = ordered.filter(([, a, b]) => b > a).map(([k, a, b]) => {
       const c = [0, 0, 0]; let sec = 0;
       for (let L = a + 1; L <= b; L++) {
         const d = k === 'monolith' ? Engine.monoDiscAt(L - 1) : disc;
@@ -2414,7 +2426,8 @@ function unlockPlan(p, slot, prof) {
       return { k, name: R.buildings[k].it, icon: lfIcon(p.lf_race, k), from: a, to: b, cost: c, sec };
     });
   const growH = Math.max(0, plan.cap - pop.st.t1) / plan.growth;
-  return { pop, have, need, plan, rows, growH, cost: plan.cost, sec: rows.reduce((t, r) => t + r.sec, 0) };
+  const cost = rows.reduce((t, r) => t.map((x, i) => x + r.cost[i]), [0, 0, 0]);
+  return { pop, have, need, plan, rows, growH, cost, sec: rows.reduce((t, r) => t + r.sec, 0), pre: (plan.pre || []).length };
 }
 function renderUnlock() {
   const prof = numericProfile(state.profile);
@@ -2443,6 +2456,8 @@ function renderUnlock() {
     box.innerHTML = head + `<table class="btable"><tr><th>Edificio</th><th>Da</th><th>A</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>
       ${u.rows.map(r => `<tr><td><span class="lfb-name">${ic(r.icon)}${esc(r.name)}</span></td><td>${r.from}</td><td><b>${r.to}</b></td>${costCells(r.cost)}<td>${r.sec ? durText(r.sec) : ''}</td></tr>`).join('')}
       <tr class="tot"><td>Totale</td><td></td><td></td>${costCells(u.cost)}<td>${durText(u.sec)}</td></tr></table>
+      ${u.pre ? '<p class="muted small" style="margin:0">Comprende gli edifici richiesti dall\'Albero tecnologico per costruire quelli nuovi.</p>' : ''}
+      <p class="small" style="margin:0">Scegliere la ricerca di questo slot invece di tirarla a sorte costa <b>${fmt(artifactCost(slot))} manufatti</b>.</p>
       <p class="muted small" style="margin:0">${u.plan.needAfter < u.need ? `Con il Modulatore psionico più alto lo slot chiede solo ${fmt(u.plan.needAfter)} abitanti ${slotTier(slot)}. ` : ''}Con questi livelli: spazio ${fmt(u.plan.cap)} abitanti, ${slotTier(slot)} previsti ${fmt(slot <= 6 ? u.plan.cap : slot <= 12 ? u.plan.t2 : u.plan.t3)}. Dopo le costruzioni gli abitanti devono crescere: almeno ${durText(u.growH * 3600)}. Tempi di costruzione uno dopo l'altro, con Fabbrica di robot e Naniti del pianeta${p.lf_race === 'rocktal' ? ` e lo sconto del Monolite (${fmt((u.plan.disc || 0) * 100)}% con il livello ${u.plan.monolith})` : ''}. Costo in metallo equivalente: ${fmt(u.plan.eq)}.${u.plan.monolith > u.plan.monolithFrom ? ' Alzare il Monolite consuma anche un po\' di energia in più.' : ''}</p>
       ${res ? `<p class="small" style="margin:0">Risorse su ${esc(p.name)}: ${ri('metal')} ${fmt(res[0])} · ${ri('crystal')} ${fmt(res[1])} · ${ri('deut')} ${fmt(res[2])} — ${u.cost.every((x, i) => res[i] >= x) ? 'bastano.' : `mancano ${u.cost.map((x, i) => fmt(Math.max(0, x - res[i]))).join(' / ')}.`}</p>` : ''}`;
     return;
@@ -2461,7 +2476,7 @@ function renderUnlock() {
   }).join('');
   box.innerHTML = `<table class="btable"><tr><th>Pianeta</th><th>Edifici (da → a)</th><th>${ri('metal')} Metallo</th><th>${ri('crystal')} Cristallo</th><th>${ri('deut')} Deuterio</th><th>Tempo</th></tr>${rowsHtml}
     <tr class="tot"><td>Totale (${n} ${n === 1 ? 'pianeta' : 'pianeti'})</td><td><button type="button" class="ghost" id="ul-all">Tutti</button> <button type="button" class="ghost" id="ul-none">Nessuno</button></td>${costCells(tot)}<td></td></tr></table>
-    <p class="muted small" style="margin:0">Togli la spunta ai pianeti da escludere dal totale. Per sbloccare ${techTag(slot)} (${fmt(Engine.SLOT_POP[slot - 1])} abitanti ${slotTier(slot)}) sui pianeti scelti: ${fmt(eq)} in metallo equivalente. Scegli un pianeta per il dettaglio di ogni edificio. Dopo le costruzioni gli abitanti devono crescere.</p>`;
+    <p class="muted small" style="margin:0">Togli la spunta ai pianeti da escludere dal totale. Per sbloccare ${techTag(slot)} (${fmt(Engine.SLOT_POP[slot - 1])} abitanti ${slotTier(slot)}) sui pianeti scelti: ${fmt(eq)} in metallo equivalente. Scegli un pianeta per il dettaglio di ogni edificio. Dopo le costruzioni gli abitanti devono crescere. Scegliere la ricerca di uno slot ${slotTier(slot)} invece di tirarla a sorte costa <b>${fmt(artifactCost(slot))} manufatti</b> per pianeta${n > 1 ? ` (${fmt(artifactCost(slot) * n)} per ${n} pianeti)` : ''}.</p>`;
 }
 $('#ul-planet').addEventListener('change', e => { state.ulPlanet = e.target.value; state.ulSlot = null; $('#ul-slot').value = ''; renderUnlock(); });
 $('#ul-slot').addEventListener('change', e => { state.ulSlot = +e.target.value; renderUnlock(); });
