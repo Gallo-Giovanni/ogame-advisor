@@ -1173,6 +1173,38 @@ $('#replan').addEventListener('change', e => {
   try { localStorage.setItem('ogadv-replan', state.replan ? '1' : '0'); } catch (err) {}
   renderAdvice();
 });
+// Calendario della lista: ogni consiglio parte quando ci sono le risorse (tutto l'impero, in metallo equivalente,
+// come se si potessero spostare con le flotte e scambiare) e quando la sua coda è libera. Code: edifici di ogni pianeta,
+// edifici forme di vita di ogni pianeta, ricerche forme di vita di ogni pianeta, ricerche dell'account.
+// Le risorse partono da quelle dell'ultima importazione; la produzione cresce quando un consiglio è finito.
+const QUEUE_NAMES = { b: 'coda edifici del pianeta', f: 'coda edifici forme di vita', t: 'coda ricerche forme di vita', r: 'coda ricerche' };
+function schedule(profile, planets, steps) {
+  const out = new Map();
+  const ratio = [profile.ratio_metal, profile.ratio_crystal, profile.ratio_deut].map(x => (+x || 1) / (+profile.ratio_metal || 1));
+  const eqOf = a => a.reduce((t, x, i) => t + (x || 0) * ratio[i], 0);
+  let rate = eqOf(Engine.totals(profile, planets));
+  let pool = planets.reduce((t, p) => t + (p.resources ? eqOf([+p.resources.m || 0, +p.resources.c || 0, +p.resources.d || 0]) : 0), 0);
+  let tRes = 0; // quando sono pronte le risorse dell'ultimo consiglio (ore da adesso)
+  const queue = {}, pending = []; // consigli finiti più avanti: aumentano la produzione quando sono pronti
+  let colonyDone = null;
+  for (const r of steps) {
+    if (!(rate > 0)) break;
+    const cost = r.costEq || 0;
+    // la produzione aumenta con i consigli già finiti a questo punto
+    for (let i = pending.length - 1; i >= 0; i--) if (pending[i].at <= tRes) { rate += pending[i].gain; pending.splice(i, 1); }
+    if (pool >= cost) pool -= cost; else { tRes += (cost - pool) / rate; pool = 0; }
+    const q = r.type === 'mine' || r.type === 'energy' ? 'b:' + r.planetId : r.type === 'lfbuilding' ? 'f:' + r.planetId
+      : r.type === 'lftech' ? 't:' + r.planetId : 'r';
+    let free = queue[q] || 0;
+    if (r.planetId === 'nuova-colonia' && colonyDone != null) free = Math.max(free, colonyDone);
+    const start = Math.max(tRes, free), done = start + (r.wait || 0);
+    queue[q] = done;
+    if (r.type === 'colony') colonyDone = done;
+    if (r.gainEq > 0) pending.push({ at: done, gain: r.gainEq });
+    out.set(r, { res: tRes, free, done, q });
+  }
+  return out;
+}
 function renderAdvice() {
   paintTypeChips();
   renderReqNote();
@@ -1239,6 +1271,7 @@ function renderAdvice() {
   state.recs = rows.map(x => x.r);
   const nextOf = r => { const i = full.indexOf(r); return i < 0 ? null : full.slice(i + 1).find(x => x.group === r.group) || null; };
   renderColonyNext(types);
+  const sched = schedule(profile, planets, full);
   let n = 0;
   const emptyText = ftype === 'lft'
     ? 'Nessuna ricerca da suggerire: nella scheda del pianeta scegli le ricerche degli slot e il loro livello. Per ora entrano nei consigli le ricerche T1 e T2 che aumentano la produzione e di cui conosciamo il costo.'
@@ -1251,7 +1284,7 @@ function renderAdvice() {
     <details class="rec ${r.urgent ? 'urgent' : ''} ${prev ? 'later' : ''}"${r.fix && (i === 0 || r === firstNum) ? ' open' : ''}>
       <summary>
         <span class="rank">${r.urgent ? '!' : posOf.get(r)}</span>
-        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}</span></span>
+        ${kindBadge(kindOf(r))}<span class="what"><b>${esc(shortTitle(r))}</b><span class="muted small">${esc(r.planet)}${sched.get(r) ? ` · pronto tra ${waitText(sched.get(r).done)}` : ''}</span></span>
         <span class="payback" title="tempo di ammortamento">${paybackText(r.payback)}</span>
         ${r.planetId === 'nuova-colonia' ? '<span class="muted small after" title="Si fa sulla nuova colonia, dopo averla colonizzata">dopo la colonia</span>' : prev ? `<span class="muted small after" title="Si fa dopo il livello precedente della stessa costruzione">dopo il ${prev.nextLevel}</span>` : `<button class="secondary done" data-done="${i}">Fatto</button>`}
       </summary>
@@ -1260,6 +1293,8 @@ function renderAdvice() {
         <div class="muted">Costo: ${costHTML(r.cost)}</div>
         <div class="muted">Rende: +${fmt(r.gainEq)} eq. metallo all'ora</div>
         ${r.wait ? `<div class="muted">Tempo prima che produca: ${waitText(r.wait)}${r.type === 'colony' ? ' (requisiti e Astrofisica, colonizzatrice, volo di circa 45 minuti, miniere ed energia sul pianeta nuovo)' : ''}, già compreso nell'ammortamento.</div>` : ''}
+        ${(() => { const sc = sched.get(r); if (!sc) return ''; const when = new Date(Date.now() + sc.done * 3600e3);
+          return `<div class="muted">Seguendo la lista: risorse pronte ${sc.res > 0.01 ? 'tra ' + waitText(sc.res) : 'adesso'} · ${QUEUE_NAMES[sc.q[0]] || 'coda'} libera ${sc.free > 0.01 ? 'tra ' + waitText(sc.free) : 'adesso'} · pronto tra <b>${waitText(sc.done)}</b> (${when.toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}).</div>`; })()}
         ${prev ? '<div class="muted">Calcolato come se avessi già fatto i consigli che vengono prima in lista.</div>' : ''}
         ${(() => { const nx = nextOf(r); return r.type === 'energy' ? '' : nx
           ? `<div class="muted">Livello successivo (${nx.nextLevel}): <b>n° ${posOf.get(nx)}</b> della lista, ${paybackText(nx.payback)}.</div>`

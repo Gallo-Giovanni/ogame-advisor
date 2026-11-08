@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 84, date: '2026-11-08', title: 'Quando è pronto ogni consiglio',
+    text: 'Ogni consiglio dice ora tra quanto è pronto, seguendo la lista: aspetta le risorse (quelle dell\'ultima importazione più la produzione di tutto l\'impero, che cresce man mano che i consigli sono finiti) e che la sua coda sia libera (edifici del pianeta, edifici forme di vita, ricerche forme di vita del pianeta, ricerche dell\'account). Aprendo un consiglio vedi risorse pronte tra, coda libera tra e la data in cui è finito.',
+  },
+  {
     id: 83, date: '2026-11-08', title: 'Campi del pianeta e Terraformer',
     text: 'L\'importazione legge anche i campi usati e totali di ogni pianeta. Se un upgrade (con depositi ed energia) non ci sta nei campi liberi, il consiglio aggiunge i livelli di Terraformer che servono, con i suoi requisiti (Fabbrica di naniti 1 e Tecnologia energetica 12), costo e tempo. Il Terraformer dà 5,5 campi per livello e ne occupa uno. Senza importazione si inseriscono nella scheda del pianeta → Strutture.',
   },

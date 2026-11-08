@@ -447,7 +447,8 @@ const Engine = (() => {
     out.gain = terraFields(t) - terraFields(t0);
     return out;
   }
-  const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo` : '');
+  // il Terraformer chiede anche energia disponibile per essere costruito: 1.000 x 2^(livello-1) (gioco: 1 = 1k, 4 = 8k, 6 = 32k)
+  const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo (per costruire il Terraformer ${fn.steps[fn.steps.length - 1].to} serve anche ${fmt(1000 * Math.pow(2, fn.steps[fn.steps.length - 1].to - 1))} di energia libera)` : '');
   const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
   const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
   // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
