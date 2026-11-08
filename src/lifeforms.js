@@ -323,8 +323,10 @@ LIFEFORMS.races.kaelesh.requires = {
 // Energia richiesta per costruire (non consumata dopo): serve energia libera sul pianeta al momento della costruzione.
 // floor(livello x base x fattore^livello). Condensatore Antimateria (gioco): livelli 1-5 = 9, 18, 28, 38, 49.
 LIFEFORMS.races.kaelesh.buildings.antimatter_condenser.buildEnergy = { base: 9, factor: 1.02 };
-// Fabbrica Celle a fusione (Mecha, gioco): livelli 1-3 = 8, 16, 25. Gli altri edifici forme di vita non la richiedono (giocatore).
+// Fabbrica Celle a fusione (Mecha, gioco): livelli 1-3 = 8, 16, 25. 
 LIFEFORMS.races.mechas.buildings.fusion_cell_factory.buildEnergy = { base: 8, factor: 1.02 };
+// Produzione di cristalli (Rock'tal, gioco): livelli 1-3 = 9, 19, 30. Fattore da confermare con un livello alto (1,036-1,047 vanno bene).
+LIFEFORMS.races.rocktal.buildings.crystal_farm.buildEnergy = { base: 9, factor: 1.04 };
 
 // Costi da due fogli di calcolo della community (CasualSAB Lifeforms Tech Tree Planner e K2MT), usati per tutto quello che
 // non è ancora stato verificato sul gioco. I valori verificati sul gioco hanno la precedenza e coincidono con i fogli

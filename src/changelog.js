@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 85, date: '2026-11-08', title: 'Energia richiesta per costruire',
-    text: 'Alcuni edifici non consumano energia ma la richiedono libera per essere costruiti: il Terraformer (1.000 x 2^(livello-1)) il Condensatore Antimateria dei Kaelesh e la Fabbrica Celle a fusione dei Mecha. Se l\'energia libera del pianeta non basta, il consiglio aggiunge l\'energia che manca (satelliti o centrale), con costo e tempo.',
+    text: 'Alcuni edifici non consumano energia ma la richiedono libera per essere costruiti: il Terraformer (1.000 x 2^(livello-1)) il Condensatore Antimateria dei Kaelesh, la Fabbrica Celle a fusione dei Mecha e la Produzione di cristalli dei Rock\'tal. Se l\'energia libera del pianeta non basta, il consiglio aggiunge l\'energia che manca (satelliti o centrale), con costo e tempo.',
   },
   {
     id: 84, date: '2026-11-08', title: 'Code libere nei consigli',
