@@ -450,6 +450,8 @@ const Engine = (() => {
   // il Terraformer chiede anche energia disponibile per essere costruito: 1.000 x 2^(livello-1) (gioco: 1 = 1k, 4 = 8k, 6 = 32k)
   const fieldsText = fn => (fn.steps.length ? `; il pianeta non ha campi liberi: servono ${prereqText(fn.steps)}, già compresi nel costo e nel tempo (per costruire il Terraformer ${fn.steps[fn.steps.length - 1].to} serve anche ${fmt(1000 * Math.pow(2, fn.steps[fn.steps.length - 1].to - 1))} di energia libera)` : '');
   const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
+  const waitText = h => { const m = Math.max(1, Math.round(h * 60)), d = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60;
+    return [d ? d + 'g' : '', hh ? hh + 'o' : '', !d && mm ? mm + 'm' : ''].filter(Boolean).join(' ') || '1m'; };
   const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
   // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
   function prereqPatch(profile, planet, steps, patch, prof) {
@@ -776,7 +778,10 @@ const Engine = (() => {
     const visit = (k, seen = new Set()) => { if (ordered.some(x => x.key === k) || seen.has(k)) return; seen.add(k);
       Object.keys(req[k] || {}).forEach(r => visit(r, seen)); const it = merged.find(x => x.key === k); if (it) ordered.push(it); };
     merged.forEach(x => visit(x.key));
-    return { cost, time, steps: ordered, artifacts: slot <= 6 ? 200 : slot <= 12 ? 400 : 600 };
+    // dopo le costruzioni gli abitanti devono crescere fino alla nuova capienza (come nella scheda Sblocco slot: è un minimo)
+    const grow = plan.growth > 0 ? Math.max(0, plan.cap - st.t1) / plan.growth : 0;
+    time += grow;
+    return { cost, time, grow, steps: ordered, artifacts: slot <= 6 ? 200 : slot <= 12 ? 400 : 600 };
   }
   // Requisiti di un edificio forme di vita sul suo pianeta (a catena): costo, energia in più, tempo (stessa coda) e
   // livelli da raggiungere. Solo per le razze di cui conosciamo l'Albero tecnologico (LF.races[race].requires).
@@ -1039,7 +1044,7 @@ const Engine = (() => {
           out.push({
             type: 'lftech', key: tech.key, race: entry.race, slot: +slot, planetId: planet.id, planet: planet.name,
             title: `${tech.it} ${L} → ${next}`,
-            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}${un ? `; lo slot è ancora chiuso: per aprirlo servono ${un.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo (più il tempo perché la popolazione cresca); scegliere la ricerca dello slot invece di tirarla a sorte costa ${fmt(un.artifacts)} manufatti` : ''}`,
+            detail: `ricerca forme di vita: aumenta la produzione di tutti i pianeti${disc ? ` (costo già scontato del ${(disc * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}%)` : ''}${un ? `; lo slot è ancora chiuso: per aprirlo servono ${un.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo, più almeno ${waitText(un.grow)} perché la popolazione cresca, anche questo compreso; scegliere la ricerca dello slot invece di tirarla a sorte costa ${fmt(un.artifacts)} manufatti` : ''}`,
             unlock: un && un.steps, cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, nextLevel: next,
           });
