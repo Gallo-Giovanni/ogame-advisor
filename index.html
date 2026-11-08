@@ -2500,7 +2500,9 @@ function mapImport(snap, existing, LF) {
       }
       data.item_expiry = exp;
     }
-    if (snap.v >= 2) data.buildings = Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0]));
+    // la pagina elenca solo gli edifici costruiti: quelli che servono come requisiti e non ci sono valgono 0 (non "da inserire")
+    if (snap.v >= 2) data.buildings = { 14: 0, 15: 0, 21: 0, 22: 0, 23: 0, 24: 0, 31: 0,
+      ...Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0])) };
     if (ip.t != null) data.temp_max = ip.t;
     if (ip.e != null) data.energy_balance = ip.e;
     const lfb = {};
@@ -2541,7 +2543,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',
-    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni.',
+    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni. Corretto anche l\'avviso "Mancano alcuni livelli" sui pianeti nuovi: gli edifici non ancora costruiti (es. cantiere e laboratorio a 0) ora vengono importati come 0.',
   },
   {
     id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita per tutte le razze',

@@ -204,7 +204,9 @@ function mapImport(snap, existing, LF) {
       }
       data.item_expiry = exp;
     }
-    if (snap.v >= 2) data.buildings = Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0]));
+    // la pagina elenca solo gli edifici costruiti: quelli che servono come requisiti e non ci sono valgono 0 (non "da inserire")
+    if (snap.v >= 2) data.buildings = { 14: 0, 15: 0, 21: 0, 22: 0, 23: 0, 24: 0, 31: 0,
+      ...Object.fromEntries(Object.entries(ip.b).filter(([k]) => +k < 100).map(([k, v]) => [k, +v || 0])) };
     if (ip.t != null) data.temp_max = ip.t;
     if (ip.e != null) data.energy_balance = ip.e;
     const lfb = {};

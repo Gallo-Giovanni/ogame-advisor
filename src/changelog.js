@@ -5,7 +5,7 @@
 const CHANGELOG = [
   {
     id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',
-    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni.',
+    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni. Corretto anche l\'avviso "Mancano alcuni livelli" sui pianeti nuovi: gli edifici non ancora costruiti (es. cantiere e laboratorio a 0) ora vengono importati come 0.',
   },
   {
     id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita per tutte le razze',
