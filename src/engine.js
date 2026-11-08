@@ -342,10 +342,11 @@ const Engine = (() => {
     r106: [[200, 1000, 200], 2], r108: [[0, 400, 600], 2], r110: [[200, 600, 0], 2], r111: [[1000, 0, 0], 2],
     r113: [[0, 800, 400], 2], r114: [[0, 4000, 2000], 2], r115: [[400, 0, 600], 2], r117: [[2000, 4000, 600], 2],
     r120: [[200, 100, 0], 2], r121: [[1000, 300, 100], 2],
+    b22: [[1000, 0, 0], 2], b23: [[1000, 500, 0], 2], b24: [[1000, 1000, 0], 2], // depositi
   };
   const REQ_NAMES = {
     b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
-    b31: 'Laboratorio di ricerca', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
+    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
     r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
     r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
   };
@@ -400,6 +401,28 @@ const Engine = (() => {
     for (const x of steps) { const m = merged.find(y => y.key === x.key); if (m) m.to = Math.max(m.to, x.to); else merged.push({ ...x }); }
     return { cost, steps: merged, levels: lv };
   }
+  // Depositi: capienza = 5000 x parte intera di 2,5 x e^(20 x livello / 33) (Tech Info del gioco: livello 1 = 20.000,
+  // 7 = 865.000, 15 = 110.925.000, 27 = 159.789 milioni). Per pagare un upgrade con la produzione del pianeta ogni
+  // risorsa del costo deve stare nel suo deposito; con profile.count_storage = false non si conta (risorse portate
+  // con le flotte, che possono superare il deposito).
+  const storageCap = L => 5000 * Math.floor(2.5 * Math.exp(20 * L / 33));
+  function storageNeed(profile, planet, cost, T) {
+    const out = { cost: [0, 0, 0], time: 0, steps: [] };
+    if (profile.count_storage === false || !planet) return out;
+    [22, 23, 24].forEach((id, r) => {
+      const from = buildingLevel(planet, id);
+      let to = from;
+      while (storageCap(to) < cost[r] && to < 40) to++;
+      if (to === from) return;
+      for (let L = from + 1; L <= to; L++) {
+        const c = reqCost('b' + id, L); out.cost = out.cost.map((x, i) => x + c[i]);
+        if (T) out.time += T.build(planet, c, L);
+      }
+      out.steps.push({ key: 'b' + id, from, to });
+    });
+    return out;
+  }
+  const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
   const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
   // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
   function prereqPatch(profile, planet, steps, patch, prof) {
@@ -821,20 +844,21 @@ const Engine = (() => {
           : baseProd[m.key](next) - baseProd[m.key](L);
         prodDelta[m.res] = base * mult * profile.economy_speed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
-        const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+        const sn = storageNeed(profile, planet, cost, T); // depositi per poter pagare il livello
+        const totalCost = cost.map((x, i) => x + sn.cost[i] + (fix ? fix.cost[i] : 0));
         if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(prodDelta);
         const eq = toMetalEq(totalCost, profile);
 
-        const energyText = fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`;
-        // energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
-        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next);
+        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn);
+        // depositi, energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
+        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time;
         const wait = fix && fix.kind === 'satellites' ? Math.max(mineH, fixH) : mineH + fixH;
         let rec = {
           type: 'mine', key: m.key, planetId: planet.id, planet: planet.name,
           title: `${m.label} ${L} → ${next}`, detail: energyText,
           cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
-          wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next,
+          wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps,
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
@@ -842,7 +866,7 @@ const Engine = (() => {
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2, { noFusion: true }) : null;
           const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
-          const bCost = mc.map((x, i) => x + mrc1[i] + (fix2 ? fix2.cost[i] : 0));
+          const bCost = mc.map((x, i) => x + mrc1[i] + sn.cost[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
@@ -874,15 +898,16 @@ const Engine = (() => {
           ];
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
           const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
-          const totalCost = cost.map((x, i) => x + lp.cost[i] + (fix ? fix.cost[i] : 0));
+          const sn = storageNeed(profile, planet, cost, T);
+          const totalCost = cost.map((x, i) => x + lp.cost[i] + sn.cost[i] + (fix ? fix.cost[i] : 0));
           if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
-          const wait = lp.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
+          const wait = lp.time + sn.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
           out.push({
             type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
             title: `${b.it} ${L} → ${next}`,
-            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}`,
-            lfPre: lp.steps,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}${storageText(sn)}`,
+            lfPre: lp.steps, store: sn.steps,
             cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, extraNeed,
           });
@@ -980,6 +1005,7 @@ const Engine = (() => {
       patch.lf_buildings = { ...(planet.lf_buildings || {}), ...Object.fromEntries((rec.lfPre || []).map(x => [x.key, x.to])), [rec.key]: rec.nextLevel };
       balance -= rec.extraNeed;
     }
+    if (rec.store && rec.store.length) prereqPatch(profile, planet, rec.store, patch, {});
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
       if (rec.withMrc) { patch.mrc_level = 1; balance -= Math.ceil(MRC_ENERGY_L1 * (1 - monolithDisc(planet))); }
@@ -1078,7 +1104,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, fusionPrereq, prereq, lfPrereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();

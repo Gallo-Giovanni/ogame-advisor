@@ -567,6 +567,9 @@
               <div><label>Fabbrica di naniti</label><input data-f="nanite_factory" type="number" min="0"></div>
               <div><label>Laboratorio di ricerca</label><input data-b="31" type="number" min="0" placeholder="da inserire"></div>
               <div><label>Cantiere spaziale</label><input data-b="21" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Deposito di metallo</label><input data-b="22" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Deposito di cristallo</label><input data-b="23" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Cisterna di deuterio</label><input data-b="24" type="number" min="0" placeholder="da inserire"></div>
             </div>
             <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e come requisiti (satelliti e colonizzatrice richiedono il cantiere, le ricerche il laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
           </div>
@@ -755,6 +758,7 @@
           <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
           <label class="check" title="Quando un upgrade richiede energia, l'app propone solo satelliti solari invece del più economico tra satelliti, centrale solare e centrale a fusione"><input type="checkbox" data-s="energy_satellites_only"> Per l'energia consiglia solo satelliti</label>
+          <label class="check" title="Spuntato: se un upgrade costa più di quanto tiene il deposito del pianeta, l'app aggiunge i livelli di deposito che servono (costo e tempo). Togli la spunta se porti le risorse con le flotte: quelle arrivate con le flotte possono superare il deposito."><input type="checkbox" data-s="count_storage"> Conta i depositi che servono per pagare un upgrade</label>
         </div>
         <div id="settings-msg" class="msg hidden"></div>
         <div class="row"><button id="save-settings">Salva impostazioni</button></div>
@@ -1519,10 +1523,11 @@ const Engine = (() => {
     r106: [[200, 1000, 200], 2], r108: [[0, 400, 600], 2], r110: [[200, 600, 0], 2], r111: [[1000, 0, 0], 2],
     r113: [[0, 800, 400], 2], r114: [[0, 4000, 2000], 2], r115: [[400, 0, 600], 2], r117: [[2000, 4000, 600], 2],
     r120: [[200, 100, 0], 2], r121: [[1000, 300, 100], 2],
+    b22: [[1000, 0, 0], 2], b23: [[1000, 500, 0], 2], b24: [[1000, 1000, 0], 2], // depositi
   };
   const REQ_NAMES = {
     b3: 'Sintetizzatore di deuterio', b12: 'Centrale a fusione', b14: 'Fabbrica di robot', b15: 'Fabbrica di naniti', b21: 'Cantiere spaziale',
-    b31: 'Laboratorio di ricerca', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
+    b31: 'Laboratorio di ricerca', b22: 'Deposito di metallo', b23: 'Deposito di cristallo', b24: 'Cisterna di deuterio', r106: 'Tecnologia spionaggio', r108: 'Tecnologia computer', r110: 'Tecnologia scudi',
     r111: 'Tecnologia corazze', r113: 'Tecnologia energetica', r114: 'Tecnologia iperspaziale', r115: 'Propulsore a combustione',
     r117: 'Propulsore a impulso', r120: 'Tecnologia laser', r121: 'Tecnologia ionica', r122: 'Tecnologia plasma', r124: 'Astrofisica',
   };
@@ -1577,6 +1582,28 @@ const Engine = (() => {
     for (const x of steps) { const m = merged.find(y => y.key === x.key); if (m) m.to = Math.max(m.to, x.to); else merged.push({ ...x }); }
     return { cost, steps: merged, levels: lv };
   }
+  // Depositi: capienza = 5000 x parte intera di 2,5 x e^(20 x livello / 33) (Tech Info del gioco: livello 1 = 20.000,
+  // 7 = 865.000, 15 = 110.925.000, 27 = 159.789 milioni). Per pagare un upgrade con la produzione del pianeta ogni
+  // risorsa del costo deve stare nel suo deposito; con profile.count_storage = false non si conta (risorse portate
+  // con le flotte, che possono superare il deposito).
+  const storageCap = L => 5000 * Math.floor(2.5 * Math.exp(20 * L / 33));
+  function storageNeed(profile, planet, cost, T) {
+    const out = { cost: [0, 0, 0], time: 0, steps: [] };
+    if (profile.count_storage === false || !planet) return out;
+    [22, 23, 24].forEach((id, r) => {
+      const from = buildingLevel(planet, id);
+      let to = from;
+      while (storageCap(to) < cost[r] && to < 40) to++;
+      if (to === from) return;
+      for (let L = from + 1; L <= to; L++) {
+        const c = reqCost('b' + id, L); out.cost = out.cost.map((x, i) => x + c[i]);
+        if (T) out.time += T.build(planet, c, L);
+      }
+      out.steps.push({ key: 'b' + id, from, to });
+    });
+    return out;
+  }
+  const storageText = sn => (sn.steps.length ? `; per pagarlo servono i depositi ${prereqText(sn.steps)}, già compresi nel costo e nel tempo` : '');
   const prereqText = steps => steps.map(x => `${REQ_NAMES[x.key]} ${x.from} → ${x.to}`).join(', ');
   // modifiche da salvare per i requisiti fatti: edifici sul pianeta, ricerche sul profilo
   function prereqPatch(profile, planet, steps, patch, prof) {
@@ -1998,20 +2025,21 @@ const Engine = (() => {
           : baseProd[m.key](next) - baseProd[m.key](L);
         prodDelta[m.res] = base * mult * profile.economy_speed;
         const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
-        const totalCost = fix ? cost.map((x, i) => x + fix.cost[i]) : cost;
+        const sn = storageNeed(profile, planet, cost, T); // depositi per poter pagare il livello
+        const totalCost = cost.map((x, i) => x + sn.cost[i] + (fix ? fix.cost[i] : 0));
         if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
         const gain = gainEq(prodDelta);
         const eq = toMetalEq(totalCost, profile);
 
-        const energyText = fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`;
-        // energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
-        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next);
+        const energyText = (fix ? `serve anche energia: ${fixText(fix)}` : `energia sufficiente (margine dopo: ${fmt(marginAfter)})`) + storageText(sn);
+        // depositi, energia e miniera nella stessa coda edifici (i satelliti nel cantiere, in parallelo)
+        const fixH = T.fix(planet, fix), mineH = T.levels(planet, m.key, L, next) + sn.time;
         const wait = fix && fix.kind === 'satellites' ? Math.max(mineH, fixH) : mineH + fixH;
         let rec = {
           type: 'mine', key: m.key, planetId: planet.id, planet: planet.name,
           title: `${m.label} ${L} → ${next}`, detail: energyText,
           cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
-          wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next,
+          wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, store: sn.steps,
         };
         if (mrcLevel(planet) === 0) {
           const mc = mineCost(m.key, next, 1);
@@ -2019,7 +2047,7 @@ const Engine = (() => {
           const margin2 = marginAfter - MRC_ENERGY_L1;
           const fix2 = margin2 < 0 ? energyFix(profile, planet, -margin2, { noFusion: true }) : null;
           const mrc1 = MRC_LEVEL1.map(x => Math.round(x * (1 - monolithDisc(planet))));
-          const bCost = mc.map((x, i) => x + mrc1[i] + (fix2 ? fix2.cost[i] : 0));
+          const bCost = mc.map((x, i) => x + mrc1[i] + sn.cost[i] + (fix2 ? fix2.cost[i] : 0));
           const bEq = toMetalEq(bCost, profile);
           if (gain > 0 && bEq < eq) rec = {
             ...rec, withMrc: true, title: `Centro di Mineralogia 1 + ${m.label} ${L} → ${next}`,
@@ -2051,15 +2079,16 @@ const Engine = (() => {
           ];
           const prodDelta = [0, 1, 2].map(i => row[i] * (b.effect[['metal', 'crystal', 'deut'][i]] || 0));
           const fix = marginAfter < 0 ? energyFix(profile, planet, -marginAfter, { costEq: toMetalEq(cost, profile), gainEq: gainEq(prodDelta), planets: allPlanets }) : null;
-          const totalCost = cost.map((x, i) => x + lp.cost[i] + (fix ? fix.cost[i] : 0));
+          const sn = storageNeed(profile, planet, cost, T);
+          const totalCost = cost.map((x, i) => x + lp.cost[i] + sn.cost[i] + (fix ? fix.cost[i] : 0));
           if (fix && fix.fuel) prodDelta[2] -= fix.fuel; // deuterio bruciato dalla centrale a fusione
           const gain = gainEq(prodDelta), eq = toMetalEq(totalCost, profile);
-          const wait = lp.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
+          const wait = lp.time + sn.time + T.lfBuilding(planet, b, next, disc) + T.fix(planet, fix);
           out.push({
             type: 'lfbuilding', key, race: planet.lf_race, planetId: planet.id, planet: planet.name,
             title: `${b.it} ${L} → ${next}`,
-            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}`,
-            lfPre: lp.steps,
+            detail: `${fix ? 'serve anche energia: ' + fixText(fix) : 'energia sufficiente'} (consuma ${fmt(extraNeed)} di energia in più)${lp.steps.length ? `; prima servono ${lp.steps.map(x => `${x.it} ${x.from} → ${x.to}`).join(', ')}, già compresi nel costo e nel tempo` : ''}${storageText(sn)}`,
+            lfPre: lp.steps, store: sn.steps,
             cost: totalCost, buildCost: cost, costEq: eq, gainPerHour: prodDelta, gainEq: gain,
             wait, payback: gain > 0 ? eq / gain + wait : Infinity, fix, nextLevel: next, extraNeed,
           });
@@ -2157,6 +2186,7 @@ const Engine = (() => {
       patch.lf_buildings = { ...(planet.lf_buildings || {}), ...Object.fromEntries((rec.lfPre || []).map(x => [x.key, x.to])), [rec.key]: rec.nextLevel };
       balance -= rec.extraNeed;
     }
+    if (rec.store && rec.store.length) prereqPatch(profile, planet, rec.store, patch, {});
     if (rec.type === 'mine') {
       patch[rec.key] = rec.nextLevel;
       if (rec.withMrc) { patch.mrc_level = 1; balance -= Math.ceil(MRC_ENERGY_L1 * (1 - monolithDisc(planet))); }
@@ -2255,7 +2285,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, fusionPrereq, prereq, lfPrereq, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
@@ -2509,6 +2539,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // ogni utente salva l'ultimo id che ha visto, e vede tutte le voci con id più alto.
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
+  {
+    id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',
+    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni.',
+  },
   {
     id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita per tutte le razze',
     text: 'Anche per i Rock\'tal i consigli sugli edifici forme di vita contano gli edifici da sbloccare prima (Albero tecnologico del gioco): per esempio Cristalleria richiede il Monolite 1, che richiede la Fucina delle Rune 1, che richiede l\'Enclave di Meditazione 41; il Centro di Mineralogia richiede Cristalleria 6 e Orictorium 1. Lo stesso per i Mecha: per esempio il Sintetizzatore Alte prestazioni richiede la Linea di produzione Microchip 2, che richiede il Network Aggiornamento 1, che richiede la Linea di produzione 41. E per i Kaelesh: per esempio il Convettore Antimateria richiede la Camera Vortex 5, che richiede Rifugio 20 e Condensatore Antimateria 21. Costo e tempo di quei livelli entrano nel consiglio.',
@@ -2863,7 +2897,7 @@ const state = { user: null, profile: null, planets: [], accounts: [], allPlanets
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false,
+  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false, count_storage: true,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_mode: 'server', astro_tech: 0, hyperspace_tech: 0, top1_points: null,
@@ -3147,12 +3181,13 @@ function paybackText(h) {
 function renderReqNote() {
   const p = state.profile || {}, r = p.research || {};
   const missR = ['115', '117', '120', '121', '106', '108', '110', '111'].filter(id => r[id] == null);
-  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null; });
+  const storeOn = p.count_storage !== false;
+  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null || (storeOn && (b[22] == null || b[23] == null || b[24] == null)); });
   const el = $('#req-note');
   if (!missR.length && !missP.length) { el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma e fusione possono costare più del vero:
-    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale e Laboratorio di ricerca di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
+  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma, fusione e gli upgrade che servono depositi più grandi possono costare più del vero:
+    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale, Laboratorio di ricerca e depositi di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
     Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
 }
 // Il piano si allunga in sottofondo (a blocchi, senza bloccare la pagina) finché serve: per riempire la lista quando

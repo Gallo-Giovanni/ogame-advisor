@@ -567,6 +567,9 @@
               <div><label>Fabbrica di naniti</label><input data-f="nanite_factory" type="number" min="0"></div>
               <div><label>Laboratorio di ricerca</label><input data-b="31" type="number" min="0" placeholder="da inserire"></div>
               <div><label>Cantiere spaziale</label><input data-b="21" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Deposito di metallo</label><input data-b="22" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Deposito di cristallo</label><input data-b="23" type="number" min="0" placeholder="da inserire"></div>
+              <div><label>Cisterna di deuterio</label><input data-b="24" type="number" min="0" placeholder="da inserire"></div>
             </div>
             <p class="muted small" style="margin:0">Servono per i tempi di costruzione e di ricerca e come requisiti (satelliti e colonizzatrice richiedono il cantiere, le ricerche il laboratorio). Arrivano anche con l'importazione dalla Vista impero.</p>
           </div>
@@ -755,6 +758,7 @@
           <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
           <label class="check" title="Quando un upgrade richiede energia, l'app propone solo satelliti solari invece del più economico tra satelliti, centrale solare e centrale a fusione"><input type="checkbox" data-s="energy_satellites_only"> Per l'energia consiglia solo satelliti</label>
+          <label class="check" title="Spuntato: se un upgrade costa più di quanto tiene il deposito del pianeta, l'app aggiunge i livelli di deposito che servono (costo e tempo). Togli la spunta se porti le risorse con le flotte: quelle arrivate con le flotte possono superare il deposito."><input type="checkbox" data-s="count_storage"> Conta i depositi che servono per pagare un upgrade</label>
         </div>
         <div id="settings-msg" class="msg hidden"></div>
         <div class="row"><button id="save-settings">Salva impostazioni</button></div>
@@ -833,7 +837,7 @@ const state = { user: null, profile: null, planets: [], accounts: [], allPlanets
 
 const PROFILE_DEFAULTS = {
   nickname: '', universe: '', player_class: 'explorer', economy_speed: 1, plasma_tech: 0, energy_tech: 0,
-  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false,
+  geologist: false, engineer: false, technocrat: false, commanding_staff: false, alliance_trader: false, items_in_ranking: false, energy_satellites_only: false, count_storage: true,
   energy_consumption_reduction: 0,
   lf_bonus_metal: 0, lf_bonus_crystal: 0, lf_bonus_deut: 0, lf_bonus_energy: 0,
   ratio_metal: 1, ratio_crystal: 1.6667, ratio_deut: 2.5, ratio_mode: 'server', astro_tech: 0, hyperspace_tech: 0, top1_points: null,
@@ -1117,12 +1121,13 @@ function paybackText(h) {
 function renderReqNote() {
   const p = state.profile || {}, r = p.research || {};
   const missR = ['115', '117', '120', '121', '106', '108', '110', '111'].filter(id => r[id] == null);
-  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null; });
+  const storeOn = p.count_storage !== false;
+  const missP = state.planets.filter(pl => { const b = pl.buildings || {}; return b[21] == null || b[31] == null || (storeOn && (b[22] == null || b[23] == null || b[24] == null)); });
   const el = $('#req-note');
   if (!missR.length && !missP.length) { el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma e fusione possono costare più del vero:
-    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale e Laboratorio di ricerca di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
+  el.innerHTML = `<b>Mancano alcuni livelli per i requisiti</b>, per ora contano come 0, quindi colonie, satelliti, Plasma, fusione e gli upgrade che servono depositi più grandi possono costare più del vero:
+    ${missR.length ? `ricerche dell'account (Impostazioni → Account)` : ''}${missR.length && missP.length ? ' e ' : ''}${missP.length ? `Cantiere spaziale, Laboratorio di ricerca e depositi di ${missP.length === state.planets.length ? 'tutti i pianeti' : missP.map(x => esc(x.name)).join(', ')} (scheda del pianeta → Strutture)` : ''}.
     Si inseriscono a mano oppure arrivano tutti importando la Vista impero.`;
 }
 // Il piano si allunga in sottofondo (a blocchi, senza bloccare la pagina) finché serve: per riempire la lista quando

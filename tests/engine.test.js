@@ -181,7 +181,7 @@ console.log('Tutti i test superati');
 // Ammortamento con i tempi: la miniera somma il suo tempo di costruzione, la colonia anche colonizzatrice, volo e miniere
 {
   const pl = { id: 'h', name: 'Home', position: 8, temp_max: 40, metal_mine: 13, crystal_mine: 10, deut_synth: 6, solar_plant: 30,
-    robotics_factory: 2, nanite_factory: 0, buildings: { 1: 13, 2: 10, 3: 6, 4: 30, 14: 2, 21: 4, 31: 3 }, lf_buildings: {}, lf_techs: {} };
+    robotics_factory: 2, nanite_factory: 0, buildings: { 1: 13, 2: 10, 3: 6, 4: 30, 14: 2, 21: 4, 31: 3, 22: 10, 23: 10, 24: 10 }, lf_buildings: {}, lf_techs: {} };
   const prof = { economy_speed: 8, research_speed: 8, player_class: 'explorer', energy_tech: 2, astro_tech: 1,
     research: { 106: 4, 117: 3, 124: 1 }, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
   const recs = E.recommendations(prof, [pl]);
@@ -191,4 +191,24 @@ console.log('Tutti i test superati');
   const c = recs.find(r => r.type === 'colony');
   assert.ok(c.wait > 0.75 && Math.abs(c.payback - (c.costEq / c.gainEq + c.wait)) < 1e-9);
   console.log('ok tempi nell\'ammortamento');
+}
+
+// Depositi: capienza dalle tabelle del gioco; un upgrade che non entra nel deposito aggiunge i livelli che servono
+{
+  const cap = L => E.storageCap(L);
+  assert.deepStrictEqual([1, 2, 3, 7, 8, 13, 15, 17].map(cap), [20000, 40000, 75000, 865000, 1590000, 33005000, 110925000, 372785000]);
+  assert.ok(Math.abs(cap(27) / 1e9 - 159.789) < 0.0005); // il gioco mostra 159,789Bn
+  const pl = { id: 'd', name: 'D', position: 8, temp_max: 40, metal_mine: 30, crystal_mine: 20, deut_synth: 10, solar_plant: 40, robotics_factory: 5,
+    buildings: { 22: 5, 23: 5, 24: 5, 21: 5, 31: 5 }, lf_buildings: {}, lf_techs: {} };
+  const prof = { economy_speed: 5, research_speed: 5, energy_tech: 10, research: {}, ratio_metal: 1, ratio_crystal: 1.5, ratio_deut: 2.5 };
+  const m = E.recommendations(prof, [pl]).find(r => r.title === 'Miniera di metallo 30 → 31');
+  // Metallo 31 costa ~11,5 M di metallo: serve il Deposito di metallo 12 (18,005 M)
+  const st = m.store.find(x => x.key === 'b22');
+  assert.ok(st && st.from === 5 && st.to === 12 && /Deposito di metallo 5 → 12/.test(m.detail));
+  const done = E.applyRecommendation(prof, pl, m).planet;
+  assert.strictEqual(done.buildings[22], 12);
+  // senza la spunta i depositi non contano
+  const m2 = E.recommendations({ ...prof, count_storage: false }, [pl]).find(r => r.title === 'Miniera di metallo 30 → 31');
+  assert.deepStrictEqual(m2.store, []);
+  console.log('ok depositi');
 }

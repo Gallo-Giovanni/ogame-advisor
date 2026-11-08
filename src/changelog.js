@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 81, date: '2026-11-08', title: 'Depositi per pagare gli upgrade',
+    text: 'Se un upgrade costa più di quanto tengono i depositi del pianeta, il consiglio aggiunge i livelli di Deposito di metallo, Deposito di cristallo o Cisterna di deuterio che servono, con costo e tempo (capienze verificate sulle tabelle del gioco). I livelli dei depositi arrivano con l\'importazione, oppure si inseriscono nella scheda del pianeta → Strutture. Se porti le risorse con le flotte puoi togliere la spunta "Conta i depositi che servono per pagare un upgrade" in Impostazioni.',
+  },
+  {
     id: 80, date: '2026-11-08', title: 'Requisiti degli edifici forme di vita per tutte le razze',
     text: 'Anche per i Rock\'tal i consigli sugli edifici forme di vita contano gli edifici da sbloccare prima (Albero tecnologico del gioco): per esempio Cristalleria richiede il Monolite 1, che richiede la Fucina delle Rune 1, che richiede l\'Enclave di Meditazione 41; il Centro di Mineralogia richiede Cristalleria 6 e Orictorium 1. Lo stesso per i Mecha: per esempio il Sintetizzatore Alte prestazioni richiede la Linea di produzione Microchip 2, che richiede il Network Aggiornamento 1, che richiede la Linea di produzione 41. E per i Kaelesh: per esempio il Convettore Antimateria richiede la Camera Vortex 5, che richiede Rifugio 20 e Condensatore Antimateria 21. Costo e tempo di quei livelli entrano nel consiglio.',
   },
