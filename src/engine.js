@@ -501,8 +501,15 @@ const Engine = (() => {
       ? { kind: 'solar', from: planet.solar_plant, to: lvl, added, cost: solarCost, eq: toMetalEq(solarCost, profile) }
       : null;
     satOpt.fuelEq = 0; if (solarOpt) solarOpt.fuelEq = 0;
-    if (profile.energy_satellites_only) return satOpt;
-    if (ctx && ctx.noFusion) return solarOpt && solarOpt.eq < satOpt.eq ? solarOpt : satOpt;
+    // fonti di energia scelte dal giocatore nei Consigli (profile.energy_options): satelliti, solare, fusione, ricerche.
+    // Senza scelta valgono tutte; se nessuna scelta può dare l'energia che serve, si usano comunque i satelliti.
+    const allowed = Array.isArray(profile.energy_options) && profile.energy_options.length ? profile.energy_options
+      : profile.energy_satellites_only ? ['satellites'] : ['satellites', 'solar', 'fusion', 'research'];
+    const ok = k => allowed.includes(k);
+    if (ctx && ctx.noFusion || !ok('fusion') && !ok('research')) {
+      const c = [ok('satellites') && satOpt, ok('solar') && solarOpt].filter(Boolean);
+      return c.length ? c.reduce((b, o) => (o.eq < b.eq ? o : b)) : satOpt;
+    }
 
     const f0 = +planet.fusion_reactor || 0;
     const pre = fusionPrereq(profile, planet, ctx && ctx.planets);
@@ -549,7 +556,8 @@ const Engine = (() => {
         if (!lfOpt || o.eq < lfOpt.eq) lfOpt = o;
       }
     }
-    const opts = [satOpt, solarOpt, fusionOpt, etOpt, lfOpt].filter(Boolean);
+    let opts = [ok('satellites') && satOpt, ok('solar') && solarOpt, ok('fusion') && fusionOpt, ok('research') && etOpt, ok('research') && lfOpt].filter(Boolean);
+    if (!opts.length) opts = [satOpt];
     const score = o => ctx && ctx.gainEq > 0
       ? (ctx.gainEq - o.fuelEq > 0 ? (ctx.costEq + o.eq) / (ctx.gainEq - o.fuelEq) : Infinity)
       : o.eq + o.fuelEq * FUEL_HOURS;

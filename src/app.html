@@ -495,6 +495,7 @@
           <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="plasma"></span>Plasma e colonia</button>
         </div>
         <div class="chips" id="filter-planets" role="group" aria-label="Pianeti nei consigli" style="margin-top:6px"></div>
+        <div class="chips" id="energy-opts" role="group" aria-label="Fonti di energia nei consigli" style="margin-top:6px"></div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
           <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci vuole, da adesso, perché la produzione in più ripaghi la spesa, compreso il tempo per costruirlo o ricercarlo (e per i requisiti e l'energia che servono). Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
@@ -756,7 +757,6 @@
           <label class="check"><input type="checkbox" data-s="commanding_staff"> Staff di comando</label>
           <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
-          <label class="check" title="Quando un upgrade richiede energia, l'app propone solo satelliti solari invece del più economico tra satelliti, centrale solare e centrale a fusione"><input type="checkbox" data-s="energy_satellites_only"> Per l'energia consiglia solo satelliti</label>
           <label class="check" title="Spuntato: se un upgrade costa più di quanto tiene il deposito del pianeta, l'app aggiunge i livelli di deposito che servono (costo e tempo). Togli la spunta se porti le risorse con le flotte: quelle arrivate con le flotte possono superare il deposito."><input type="checkbox" data-s="count_storage"> Conta i depositi che servono per pagare un upgrade</label>
         </div>
         <div id="settings-msg" class="msg hidden"></div>
@@ -1377,7 +1377,28 @@ $('#filter-planets').addEventListener('click', e => {
 const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
 state.ftypes = new Set();
 try { (localStorage.getItem('ogadv-ftype') || '').split(',').filter(t => ALL_TYPES.includes(t)).forEach(t => state.ftypes.add(t)); } catch (e) {}
+// Fonti di energia che i consigli possono proporre quando serve energia: si sceglie quali (salvate nell'account).
+const ENERGY_OPTS = [['satellites', 'Satelliti solari'], ['solar', 'Centrale solare'], ['fusion', 'Centrale a fusione'], ['research', 'Ricerche (Tecnologia energetica e forme di vita)']];
+function energyAllowed() {
+  const p = state.profile || {};
+  return Array.isArray(p.energy_options) && p.energy_options.length ? p.energy_options : p.energy_satellites_only ? ['satellites'] : ENERGY_OPTS.map(x => x[0]);
+}
+function paintEnergyChips() {
+  const on = energyAllowed();
+  $('#energy-opts').innerHTML = `<span class="muted small" style="align-self:center">Energia con:</span>` + ENERGY_OPTS.map(([k, l]) =>
+    `<button type="button" class="chip" data-eopt="${k}" aria-pressed="${on.includes(k)}"><span class="box">${on.includes(k) ? '✓' : ''}</span>${l}</button>`).join('');
+}
+$('#energy-opts').addEventListener('click', async e => {
+  const b = e.target.closest('[data-eopt]'); if (!b) return;
+  let on = energyAllowed().slice();
+  on = on.includes(b.dataset.eopt) ? on.filter(x => x !== b.dataset.eopt) : on.concat(b.dataset.eopt);
+  if (!on.length) return; // almeno una fonte
+  const r = await sb.from('profiles').update({ energy_options: on, energy_satellites_only: on.length === 1 && on[0] === 'satellites' }).eq('id', state.profile.id).select().single();
+  if (r.error) return alert('Errore: ' + r.error.message);
+  state.profile = r.data; state.planKey = null; renderAdvice();
+});
 function paintTypeChips() {
+  paintEnergyChips();
   $$('#filter-type .kchip:empty').forEach(el => { el.innerHTML = KIND_ICONS[el.dataset.kind]; });
   $$('#filter-type [data-ftype]').forEach(b => {
     const on = b.dataset.ftype ? state.ftypes.has(b.dataset.ftype) : !state.ftypes.size;

@@ -495,6 +495,7 @@
           <button type="button" class="chip" data-ftype="other" aria-pressed="false"><span class="box"></span><span class="kchip" data-kind="plasma"></span>Plasma e colonia</button>
         </div>
         <div class="chips" id="filter-planets" role="group" aria-label="Pianeti nei consigli" style="margin-top:6px"></div>
+        <div class="chips" id="energy-opts" role="group" aria-label="Fonti di energia nei consigli" style="margin-top:6px"></div>
         <details class="small muted" style="margin-top:6px">
           <summary style="cursor:pointer">Come leggere la classifica</summary>
           <p>Gli upgrade sono in ordine di tempo di ammortamento: il tempo a destra è quanto ci vuole, da adesso, perché la produzione in più ripaghi la spesa, compreso il tempo per costruirlo o ricercarlo (e per i requisiti e l'energia che servono). Più è basso, più conviene. I problemi di energia (!) vengono sempre prima. Il simbolo ⚡ indica che servono anche satelliti o centrale: è già compreso nel costo. Tocca una riga per vedere costo, guadagno ed energia necessaria. Quando hai fatto un upgrade premi <b>Fatto</b> e la classifica si aggiorna.</p>
@@ -756,7 +757,6 @@
           <label class="check"><input type="checkbox" data-s="commanding_staff"> Staff di comando</label>
           <label class="check"><input type="checkbox" data-s="alliance_trader"> Alleanza Mercante (+5%)</label>
           <label class="check"><input type="checkbox" data-s="items_in_ranking"> Considera gli item nel calcolo degli upgrade</label>
-          <label class="check" title="Quando un upgrade richiede energia, l'app propone solo satelliti solari invece del più economico tra satelliti, centrale solare e centrale a fusione"><input type="checkbox" data-s="energy_satellites_only"> Per l'energia consiglia solo satelliti</label>
           <label class="check" title="Spuntato: se un upgrade costa più di quanto tiene il deposito del pianeta, l'app aggiunge i livelli di deposito che servono (costo e tempo). Togli la spunta se porti le risorse con le flotte: quelle arrivate con le flotte possono superare il deposito."><input type="checkbox" data-s="count_storage"> Conta i depositi che servono per pagare un upgrade</label>
         </div>
         <div id="settings-msg" class="msg hidden"></div>
@@ -1692,8 +1692,15 @@ const Engine = (() => {
       ? { kind: 'solar', from: planet.solar_plant, to: lvl, added, cost: solarCost, eq: toMetalEq(solarCost, profile) }
       : null;
     satOpt.fuelEq = 0; if (solarOpt) solarOpt.fuelEq = 0;
-    if (profile.energy_satellites_only) return satOpt;
-    if (ctx && ctx.noFusion) return solarOpt && solarOpt.eq < satOpt.eq ? solarOpt : satOpt;
+    // fonti di energia scelte dal giocatore nei Consigli (profile.energy_options): satelliti, solare, fusione, ricerche.
+    // Senza scelta valgono tutte; se nessuna scelta può dare l'energia che serve, si usano comunque i satelliti.
+    const allowed = Array.isArray(profile.energy_options) && profile.energy_options.length ? profile.energy_options
+      : profile.energy_satellites_only ? ['satellites'] : ['satellites', 'solar', 'fusion', 'research'];
+    const ok = k => allowed.includes(k);
+    if (ctx && ctx.noFusion || !ok('fusion') && !ok('research')) {
+      const c = [ok('satellites') && satOpt, ok('solar') && solarOpt].filter(Boolean);
+      return c.length ? c.reduce((b, o) => (o.eq < b.eq ? o : b)) : satOpt;
+    }
 
     const f0 = +planet.fusion_reactor || 0;
     const pre = fusionPrereq(profile, planet, ctx && ctx.planets);
@@ -1740,7 +1747,8 @@ const Engine = (() => {
         if (!lfOpt || o.eq < lfOpt.eq) lfOpt = o;
       }
     }
-    const opts = [satOpt, solarOpt, fusionOpt, etOpt, lfOpt].filter(Boolean);
+    let opts = [ok('satellites') && satOpt, ok('solar') && solarOpt, ok('fusion') && fusionOpt, ok('research') && etOpt, ok('research') && lfOpt].filter(Boolean);
+    if (!opts.length) opts = [satOpt];
     const score = o => ctx && ctx.gainEq > 0
       ? (ctx.gainEq - o.fuelEq > 0 ? (ctx.costEq + o.eq) / (ctx.gainEq - o.fuelEq) : Infinity)
       : o.eq + o.fuelEq * FUEL_HOURS;
@@ -2813,6 +2821,10 @@ if (typeof module !== 'undefined') module.exports = Importer;
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 89, date: '2026-11-08', title: 'Scegli come avere l\'energia',
+    text: 'Nei Consigli, sotto i pianeti, puoi scegliere con quali fonti l\'app ti propone l\'energia che serve: satelliti solari, centrale solare, centrale a fusione e ricerche (Tecnologia energetica e ricerche forme di vita). Tra quelle spuntate sceglie la più conveniente; la scelta resta salvata nell\'account. Sostituisce l\'opzione "solo satelliti" delle Impostazioni.',
+  },
+  {
     id: 88, date: '2026-11-08', title: 'Scheda Ricerche e strutture',
     text: 'I livelli che servono ai calcoli (ricerche dell\'account, robot, naniti, laboratorio, cantiere, depositi, Terraformer e campi di ogni pianeta) ora sono tutti in una scheda sola, "Ricerche e strutture", accanto a Pianeti. Se ne manca qualcuno, in alto compare l\'avviso "Dati da completare", che porta lì; quelli mancanti sono in giallo. Con l\'importazione della Vista impero arrivano tutti da soli. Nella resa delle spedizioni ora puoi anche modificare un giorno già inserito (✎).',
   },
@@ -3739,7 +3751,28 @@ $('#filter-planets').addEventListener('click', e => {
 const ALL_TYPES = ['mines', 'lfb', 'lft', 'other'];
 state.ftypes = new Set();
 try { (localStorage.getItem('ogadv-ftype') || '').split(',').filter(t => ALL_TYPES.includes(t)).forEach(t => state.ftypes.add(t)); } catch (e) {}
+// Fonti di energia che i consigli possono proporre quando serve energia: si sceglie quali (salvate nell'account).
+const ENERGY_OPTS = [['satellites', 'Satelliti solari'], ['solar', 'Centrale solare'], ['fusion', 'Centrale a fusione'], ['research', 'Ricerche (Tecnologia energetica e forme di vita)']];
+function energyAllowed() {
+  const p = state.profile || {};
+  return Array.isArray(p.energy_options) && p.energy_options.length ? p.energy_options : p.energy_satellites_only ? ['satellites'] : ENERGY_OPTS.map(x => x[0]);
+}
+function paintEnergyChips() {
+  const on = energyAllowed();
+  $('#energy-opts').innerHTML = `<span class="muted small" style="align-self:center">Energia con:</span>` + ENERGY_OPTS.map(([k, l]) =>
+    `<button type="button" class="chip" data-eopt="${k}" aria-pressed="${on.includes(k)}"><span class="box">${on.includes(k) ? '✓' : ''}</span>${l}</button>`).join('');
+}
+$('#energy-opts').addEventListener('click', async e => {
+  const b = e.target.closest('[data-eopt]'); if (!b) return;
+  let on = energyAllowed().slice();
+  on = on.includes(b.dataset.eopt) ? on.filter(x => x !== b.dataset.eopt) : on.concat(b.dataset.eopt);
+  if (!on.length) return; // almeno una fonte
+  const r = await sb.from('profiles').update({ energy_options: on, energy_satellites_only: on.length === 1 && on[0] === 'satellites' }).eq('id', state.profile.id).select().single();
+  if (r.error) return alert('Errore: ' + r.error.message);
+  state.profile = r.data; state.planKey = null; renderAdvice();
+});
 function paintTypeChips() {
+  paintEnergyChips();
   $$('#filter-type .kchip:empty').forEach(el => { el.innerHTML = KIND_ICONS[el.dataset.kind]; });
   $$('#filter-type [data-ftype]').forEach(b => {
     const on = b.dataset.ftype ? state.ftypes.has(b.dataset.ftype) : !state.ftypes.size;

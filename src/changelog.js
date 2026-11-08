@@ -4,6 +4,10 @@
 // bookmarklet: true = l'aggiornamento cambia il pulsante "OGame Advisor" dei preferiti: chi lo usa deve trascinarlo di nuovo.
 const CHANGELOG = [
   {
+    id: 89, date: '2026-11-08', title: 'Scegli come avere l\'energia',
+    text: 'Nei Consigli, sotto i pianeti, puoi scegliere con quali fonti l\'app ti propone l\'energia che serve: satelliti solari, centrale solare, centrale a fusione e ricerche (Tecnologia energetica e ricerche forme di vita). Tra quelle spuntate sceglie la più conveniente; la scelta resta salvata nell\'account. Sostituisce l\'opzione "solo satelliti" delle Impostazioni.',
+  },
+  {
     id: 88, date: '2026-11-08', title: 'Scheda Ricerche e strutture',
     text: 'I livelli che servono ai calcoli (ricerche dell\'account, robot, naniti, laboratorio, cantiere, depositi, Terraformer e campi di ogni pianeta) ora sono tutti in una scheda sola, "Ricerche e strutture", accanto a Pianeti. Se ne manca qualcuno, in alto compare l\'avviso "Dati da completare", che porta lì; quelli mancanti sono in giallo. Con l\'importazione della Vista impero arrivano tutti da soli. Nella resa delle spedizioni ora puoi anche modificare un giorno già inserito (✎).',
   },
