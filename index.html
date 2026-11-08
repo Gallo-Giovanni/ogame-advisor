@@ -1940,13 +1940,20 @@ const Engine = (() => {
     return t;
   };
 
+  const EXP_RES_SHARE = 0.7;
+  // Spedizioni contemporanee: radice quadrata dell'Astrofisica (per difetto), +2 per la classe Esploratore
+  const expeditionSlots = profile => Math.floor(Math.sqrt(+profile.astro_tech || 0)) + (profile.player_class === 'explorer' ? 2 : 0);
   // Resa media delle spedizioni al giorno dal registro del giocatore: { res, ships } in metallo equivalente, o null
   function expeditionAvg(profile) {
     if (profile.expedition_in_ranking === false) return null;
     const log = (Array.isArray(profile.expedition_log) ? profile.expedition_log : []).filter(e => e && (+e.r > 0 || +e.s > 0));
     if (!log.length) return null;
-    const res = log.reduce((t, e) => t + (+e.r || 0), 0) / log.length, ships = log.reduce((t, e) => t + (+e.s || 0), 0) / log.length;
-    return { res, ships, days: log.length };
+    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
+    const withN = log.filter(e => +e.n > 0);
+    const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
+    // il valore del gioco (MSU) comprende risorse e navi trovate: ~70% risorse, ~30% navi (ritrovamenti di risorse e
+    // di navi dei registri del giocatore, circa 51 e 22 su 143 spedizioni)
+    return { total, res: total * EXP_RES_SHARE, ships: total * (1 - EXP_RES_SHARE), days: log.length, perExp };
   }
 
   // ---- Tempo prima che un consiglio produca (ore) ----
@@ -2304,7 +2311,7 @@ const Engine = (() => {
             const d = k => (a[k] || 0) - (b[k] || 0);
             expH = (ex.res * d('expedition_resources') / (1 + (allT.expedition_resources || 0))
               + ex.ships * d('expedition_ships_found') / (1 + (allT.expedition_ships_found || 0))
-              + (ex.res + ex.ships) * d('explorer_class_bonus') / (1 + (allT.explorer_class_bonus || 0))) / 24;
+              + ex.total * d('explorer_class_bonus') / (1 + (allT.explorer_class_bonus || 0))) / 24;
             prodDelta[0] += expH; // in metallo equivalente
           }
           // slot ancora chiuso (livello 0 e popolazione insufficiente): si aggiungono gli edifici per aprirlo (popPlan)
@@ -2534,7 +2541,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, lfBuildEnergy, expeditionAvg, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, expeditionAvg, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
@@ -2798,7 +2805,7 @@ if (typeof module !== 'undefined') module.exports = Importer;
 const CHANGELOG = [
   {
     id: 87, date: '2026-11-08', title: 'Resa delle spedizioni nei consigli',
-    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (risorse in MSU e, se vuoi, il valore delle navi): l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
+    text: 'Nella scheda Spedizioni puoi inserire quanto trovi con le spedizioni in alcuni giorni (il valore totale in MSU come lo mostra il gioco e, se vuoi, quante spedizioni hai fatto: l\'app mostra anche quanto rende ogni spedizione e quante spedizioni puoi fare insieme, dall\'Astrofisica): l\'app fa la media e, con la spunta "Conta la resa delle spedizioni nei consigli", valuta le ricerche forme di vita sulle spedizioni (risorse e navi trovate, Rinforzo Esploratore) con il loro guadagno reale. Con una resa alta, ricerche come Sesto senso e Tecnologia Sensori migliorata finiscono in cima alla classifica.',
   },
   {
     id: 86, date: '2026-11-08', title: 'Più modi per avere energia, e il Concentratore astrale',
@@ -4941,16 +4948,19 @@ const big = v => (v >= 1e9 ? (v / 1e9).toLocaleString('it-IT', { maximumFraction
 function expeditionLogHtml() {
   const p = state.profile || {}, log = Array.isArray(p.expedition_log) ? p.expedition_log : [];
   const avg = Engine.expeditionAvg({ ...p, expedition_in_ranking: true });
+  const slots = Engine.expeditionSlots(numericProfile(p));
+  const day = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   return `<div class="card stack" id="exp-log"><h2 class="bh">Resa delle spedizioni</h2>
-    <p class="muted small" style="margin:0">Inserisci quanto hai trovato con le spedizioni in alcuni giorni: le risorse in MSU (metallo equivalente) e, se vuoi, il valore delle navi trovate. L'app fa la media e la usa per valutare le ricerche sulle spedizioni (risorse e navi trovate, bonus Esploratore). Scrivi i numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
-    <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Risorse (MSU)</th><th>Navi (valore)</th><th></th></tr>
-      ${log.map((e, i) => `<tr><td>${e.d ? new Date(e.d + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</td><td>${big(+e.r || 0)}</td><td>${+e.s ? big(+e.s) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`).join('')}
-      <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-s" placeholder="facoltativo" style="width:110px"></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
-      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.res)}</td><td>${avg.ships ? big(avg.ships) : '—'}</td><td></td></tr>` : ''}
+    <p class="muted small" style="margin:0">Inserisci quanto hai guadagnato con le spedizioni in alcuni giorni: il valore totale in MSU (metallo equivalente) come lo mostra il gioco, risorse e navi comprese. Se vuoi, anche quante spedizioni hai fatto quel giorno: l'app calcola quanto rende in media ogni spedizione. Numeri come nel gioco: 1,19G · 601,35M · 1.190.000.000.</p>
+    <p class="small" style="margin:0">Spedizioni contemporanee: <b>${slots}</b> (Astrofisica ${+p.astro_tech || 0}: radice quadrata, per difetto, = ${Math.floor(Math.sqrt(+p.astro_tech || 0))}${p.player_class === 'explorer' ? ', +2 Esploratore' : ''}).</p>
+    <div class="bwrap"><table class="btable"><tr><th>Giorno</th><th>Valore (MSU)</th><th>Spedizioni</th><th>Per spedizione</th><th></th></tr>
+      ${log.map((e, i) => { const v = (+e.r || 0) + (+e.s || 0); return `<tr><td>${day(e.d)}</td><td>${big(v)}</td><td>${+e.n ? fmt(+e.n) : '—'}</td><td>${+e.n ? big(v / +e.n) : '—'}</td><td><button type="button" class="ghost" data-explog-del="${i}" title="Elimina">✕</button></td></tr>`; }).join('')}
+      <tr><td><input type="date" id="exp-d" style="width:auto"></td><td><input id="exp-r" placeholder="es. 1,19G" style="width:110px"></td><td><input id="exp-n" type="number" min="0" placeholder="facoltativo" style="width:100px"></td><td></td><td><button type="button" id="exp-add">Aggiungi</button></td></tr>
+      ${avg ? `<tr class="tot"><td>Media (${avg.days} ${avg.days === 1 ? 'giorno' : 'giorni'})</td><td>${big(avg.total)}</td><td></td><td>${avg.perExp ? big(avg.perExp) : '—'}</td><td></td></tr>` : ''}
     </table></div>
     <span class="small neg" id="exp-msg"></span>
     <label class="check"><input type="checkbox" id="exp-rank" ${p.expedition_in_ranking !== false ? 'checked' : ''}> Conta la resa delle spedizioni nei consigli</label>
-    <p class="muted small" style="margin:0">Con la spunta, le ricerche sulle spedizioni entrano nella classifica con il guadagno calcolato dalla tua media; senza, la classifica guarda solo la produzione delle miniere.</p>
+    <p class="muted small" style="margin:0">Con la spunta, le ricerche sulle spedizioni entrano nella classifica con il guadagno calcolato dalla tua media (circa 70% risorse e 30% navi, come nei registri delle spedizioni); senza, la classifica guarda solo la produzione delle miniere.</p>
   </div>`;
 }
 async function saveExpedition(patch) {
@@ -4960,10 +4970,10 @@ async function saveExpedition(patch) {
 }
 document.addEventListener('click', e => {
   if (e.target.id === 'exp-add') {
-    const r = parseBig($('#exp-r').value), sh = parseBig($('#exp-s').value);
-    if (!(r > 0) || isNaN(sh)) { $('#exp-msg').textContent = 'Scrivi le risorse trovate (es. 1,19G o 601,35M).'; return; }
+    const r = parseBig($('#exp-r').value), n = Math.max(0, parseInt($('#exp-n').value, 10) || 0);
+    if (!(r > 0)) { $('#exp-msg').textContent = 'Scrivi il valore trovato (es. 1,19G o 601,35M).'; return; }
     const d = $('#exp-d').value || new Date().toISOString().slice(0, 10);
-    const log = (Array.isArray(state.profile.expedition_log) ? state.profile.expedition_log : []).filter(x => x.d !== d).concat({ d, r, s: sh || 0 }).sort((a, b) => String(a.d).localeCompare(String(b.d)));
+    const log = (Array.isArray(state.profile.expedition_log) ? state.profile.expedition_log : []).filter(x => x.d !== d).concat({ d, r, ...(n ? { n } : {}) }).sort((a, b) => String(a.d).localeCompare(String(b.d)));
     saveExpedition({ expedition_log: log });
   }
   const del = e.target.closest('[data-explog-del]');

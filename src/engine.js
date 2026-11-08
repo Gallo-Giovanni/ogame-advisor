@@ -746,13 +746,20 @@ const Engine = (() => {
     return t;
   };
 
+  const EXP_RES_SHARE = 0.7;
+  // Spedizioni contemporanee: radice quadrata dell'Astrofisica (per difetto), +2 per la classe Esploratore
+  const expeditionSlots = profile => Math.floor(Math.sqrt(+profile.astro_tech || 0)) + (profile.player_class === 'explorer' ? 2 : 0);
   // Resa media delle spedizioni al giorno dal registro del giocatore: { res, ships } in metallo equivalente, o null
   function expeditionAvg(profile) {
     if (profile.expedition_in_ranking === false) return null;
     const log = (Array.isArray(profile.expedition_log) ? profile.expedition_log : []).filter(e => e && (+e.r > 0 || +e.s > 0));
     if (!log.length) return null;
-    const res = log.reduce((t, e) => t + (+e.r || 0), 0) / log.length, ships = log.reduce((t, e) => t + (+e.s || 0), 0) / log.length;
-    return { res, ships, days: log.length };
+    const total = log.reduce((t, e) => t + (+e.r || 0) + (+e.s || 0), 0) / log.length;
+    const withN = log.filter(e => +e.n > 0);
+    const perExp = withN.length ? withN.reduce((t, e) => t + ((+e.r || 0) + (+e.s || 0)) / +e.n, 0) / withN.length : null;
+    // il valore del gioco (MSU) comprende risorse e navi trovate: ~70% risorse, ~30% navi (ritrovamenti di risorse e
+    // di navi dei registri del giocatore, circa 51 e 22 su 143 spedizioni)
+    return { total, res: total * EXP_RES_SHARE, ships: total * (1 - EXP_RES_SHARE), days: log.length, perExp };
   }
 
   // ---- Tempo prima che un consiglio produca (ore) ----
@@ -1110,7 +1117,7 @@ const Engine = (() => {
             const d = k => (a[k] || 0) - (b[k] || 0);
             expH = (ex.res * d('expedition_resources') / (1 + (allT.expedition_resources || 0))
               + ex.ships * d('expedition_ships_found') / (1 + (allT.expedition_ships_found || 0))
-              + (ex.res + ex.ships) * d('explorer_class_bonus') / (1 + (allT.explorer_class_bonus || 0))) / 24;
+              + ex.total * d('explorer_class_bonus') / (1 + (allT.explorer_class_bonus || 0))) / 24;
             prodDelta[0] += expH; // in metallo equivalente
           }
           // slot ancora chiuso (livello 0 e popolazione insufficiente): si aggiungono gli edifici per aprirlo (popPlan)
@@ -1340,7 +1347,7 @@ const Engine = (() => {
   }
 
   return {
-    RES, levelCost, lfBuildEnergy, expeditionAvg, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
+    RES, levelCost, lfBuildEnergy, expeditionAvg, expeditionSlots, fusionPrereq, prereq, lfPrereq, storageCap, baseProd, POP, SLOT_POP, slotNeed, popLevels, population, popPlan, monoDiscAt, consumption, solarEnergy, fusionEnergy, satelliteEnergy,
     positionBonus, multipliers, maxCrawlers, mineCost, buildTime, researchTime, labLevel, MRC_LEVEL1, maxPlanets, astroLevelsForNextPlanet, buildUpCost, active, energyModel, monolithDisc, lfBuildingCost, lfBuildingEnergy, lfTechCost, lfTechTime, lfBuildingTime, researchDisc, researchTimeDisc, buildingEffects, techEffect, techTotals, allTechTotals, crawlerBonus, withLifeforms, LF, planetState, energyFix, recommendations, applyRecommendation, plan, planIter, planGroups, totals, toMetalEq, fmt,
   };
 })();
